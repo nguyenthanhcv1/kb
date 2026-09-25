@@ -1,0 +1,216 @@
+# Danh sách task MVP và lane cho 4 agent chạy song song.
+# - File này là cấu hình TĨNH (ai làm gì, phụ thuộc gì). KHÔNG ghi trạng thái vào đây.
+# - Trạng thái suy ra từ git/GitHub:
+#     done        = có commit trên main với tiêu đề chứa "[<id>]"
+#     in_progress = có nhánh "*/<id>-*" trên origin hoặc PR đang mở có "[<id>]" trong tiêu đề
+#     ready       = chưa done, không in_progress, mọi deps đã done
+# - Chỉ người (human) được sửa file này (thêm task, đổi lane). Agent đề xuất thay đổi qua PR riêng.
+# - Chi tiết quy trình: docs/ai/WORKFLOW.md. Mô tả + tiêu chí hoàn thành của từng task: docs/PLAN.md §9
+#   (task có hậu tố a/b là phần tách ra từ task gốc cùng số: a = server/nền tảng, b = UI).
+
+version: 1
+
+lanes:
+  claude-1:
+    tool: claude-code
+    name: "UI lõi & editor"
+    owns:
+      - apps/web/src/app/layout.tsx
+      - apps/web/src/app/(auth)/**
+      - apps/web/src/app/globals.css
+      - apps/web/src/components/ui/**
+      - apps/web/src/components/layout/**
+      - apps/web/src/components/editor/**
+      - apps/web/src/lib/collab/**
+      - apps/web/tailwind.config.*
+      - apps/web/components.json
+      - packages/editor/src/extensions/**
+      - packages/editor/src/ui/**
+      - packages/editor/src/table/drag.ts
+      - packages/i18n/messages/*/common.json
+      - packages/i18n/messages/*/auth.json
+      - packages/i18n/messages/*/editor.json
+      - packages/i18n/messages/*/table.json
+      - apps/web/e2e/editor/**
+      - apps/web/e2e/table/**
+  claude-2:
+    tool: claude-code
+    name: "UI tính năng"
+    owns:
+      - apps/web/src/app/(app)/**
+      - apps/web/src/app/invite/**
+      - apps/web/src/components/space/**
+      - apps/web/src/components/tree/**
+      - apps/web/src/components/search/**
+      - apps/web/src/components/history/**
+      - apps/web/src/components/admin/**
+      - apps/web/src/components/settings/**
+      - packages/emails/**
+      - packages/i18n/messages/*/nav.json
+      - packages/i18n/messages/*/space.json
+      - packages/i18n/messages/*/tree.json
+      - packages/i18n/messages/*/search.json
+      - packages/i18n/messages/*/history.json
+      - packages/i18n/messages/*/settings.json
+      - packages/i18n/messages/*/admin.json
+      - packages/i18n/messages/*/email.json
+      - packages/i18n/messages/*/whatsNew.json
+      - changelog/vi/**
+      - docs/user-guide/**
+      - docs/glossary.md
+      - apps/web/e2e/features/**
+  codex-1:
+    tool: codex
+    name: "DB & server"
+    owns:
+      - supabase/**
+      - apps/web/src/server/**
+      - apps/web/src/app/api/**
+      - apps/web/src/app/auth/callback/**
+      - apps/web/src/middleware.ts
+      - apps/web/src/lib/supabase/**
+      - packages/db/**
+      - packages/shared/src/errors.ts
+      - packages/i18n/messages/*/errors.json
+      - packages/i18n/messages/*/audit.json
+      - scripts/seed-perf.ts
+  codex-2:
+    tool: codex
+    name: "Platform & collab"
+    owns:
+      - package.json
+      - pnpm-workspace.yaml
+      - turbo.json
+      - tsconfig*.json
+      - .lefthook.yml
+      - .github/**
+      - infra/**
+      - scripts/**
+      - release-please-config.json
+      - .release-please-manifest.json
+      - .env.example
+      - apps/collab/**
+      - apps/web/Dockerfile
+      - apps/web/next.config.ts
+      - apps/web/src/lib/env.ts
+      - packages/config/**
+      - packages/shared/src/env.ts
+      - packages/i18n/src/**
+      - packages/i18n/scripts/**
+      - packages/editor/src/extract/**
+      - packages/editor/src/table/paste.ts
+      - packages/editor/src/table/csv.ts
+      - packages/editor/src/migrations/**
+      - packages/editor/test/**
+      - apps/web/playwright.config.ts
+      - apps/web/e2e/support/**
+      - apps/web/vitest.config.ts
+      - docs/runbooks/**
+      - docs/adr/**
+  human:
+    tool: human
+    name: "Người điều phối"
+    owns:
+      - AGENTS.md
+      - CLAUDE.md
+      - docs/PLAN.md
+      - docs/ai/**
+    # Người: quyết định, cấp secret, thao tác trên Coolify/Hostinger/Cloudflare/Google Cloud UI, review & merge.
+
+# Các trường của task:
+#   lane      : agent chịu trách nhiệm
+#   deps      : task phải merge vào main trước khi bắt đầu
+#   est       : ước lượng (ngày công)
+#   ver       : release dự kiến chứa task
+#   ui        : true = chỉ Claude được làm
+#   stealable : true = agent cùng loại (hoặc Claude, nếu task không phải UI) được mượn khi lane gốc đang bận (WORKFLOW §6)
+#   human     : true = có bước người phải làm (secret, UI nhà cung cấp) — agent chuẩn bị tài liệu/script, người thực hiện
+#   touches   : file NGOÀI vùng lane mà task này được phép sửa (ngoại lệ có chủ đích)
+#
+# Vùng được sửa khi làm một task = owns của lane gốc của task + touches của task.
+# Khi 2 glob cùng khớp một file, glob CỤ THỂ HƠN thắng (vd scripts/seed-perf.ts thuộc codex-1 dù scripts/** thuộc codex-2).
+
+tasks:
+  # ---------- M0 — Nền tảng (v0.1.0) ----------
+  - { id: T0.1a, lane: codex-2, title: "Monorepo: pnpm workspaces, Turborepo, TS base, ESLint/Prettier, skeleton apps/web (Next standalone, không UI) + apps/collab", deps: [], est: 0.5, ver: 0.1.0, touches: ["apps/web/**", "apps/collab/**", "packages/**"] }
+  - { id: T0.1b, lane: claude-1, ui: true, title: "App shell: Tailwind + shadcn/ui, theme token sáng/tối, root layout, sidebar khung, trang lỗi 404/500", deps: [T0.1a], est: 0.75, ver: 0.1.0 }
+  - { id: T0.2,  lane: codex-2, title: "Commitlint + lefthook, hoàn thiện PR template (giữ trường Agent/Task/Handoff), CODEOWNERS, CONTRIBUTING", deps: [T0.1a], est: 0.5, ver: 0.1.0, stealable: true, touches: [CONTRIBUTING.md, CODEOWNERS] }
+  - { id: T0.3a, lane: codex-2, title: "packages/i18n: loader, types, normalizeVi, script i18n:check (+ sort key), ESLint no-literal-string", deps: [T0.1a], est: 1, ver: 0.1.0 }
+  - { id: T0.3b, lane: claude-1, ui: true, title: "Tích hợp next-intl vào app (resolve locale, timeZone, formatter), language switcher, namespace common", deps: [T0.1b, T0.3a], est: 0.5, ver: 0.1.0 }
+  - { id: T0.3c, lane: claude-2, ui: true, title: "Glossary thuật ngữ vi/en (docs/glossary.md) + skeleton file dịch cho namespace của lane", deps: [T0.3a], est: 0.25, ver: 0.1.0 }
+  - { id: T0.4,  lane: codex-1, title: "Supabase CLI local: config.toml, migration extensions, schema app, test 'mọi bảng bật RLS', docker-compose", deps: [], est: 1, ver: 0.1.0, touches: [infra/docker-compose.yml] }
+  - { id: T0.5,  lane: codex-2, title: "CI ci.yml: lint, typecheck, unit, i18n, pr-title, db, build, licenses", deps: [T0.3a, T0.4], est: 1, ver: 0.1.0 }
+  - { id: T0.11, lane: codex-2, title: "Công cụ agent: pnpm ai:next (chọn task), pnpm ai:status, CI agent-scope (chặn sửa file ngoài lane, chặn Codex sửa UI)", deps: [T0.5], est: 0.5, ver: 0.1.0 }
+  - { id: T0.6a, lane: codex-2, title: "release-please + release-vi-notes.yml + inject-vi-changelog + build-changelog (changelog.json), /api/health trả version", deps: [T0.5], est: 1, ver: 0.1.0, touches: ["apps/web/src/app/api/health/**"] }
+  - { id: T0.6b, lane: claude-2, ui: true, title: "Trang What's new + version ở footer + Settings › Giới thiệu", deps: [T0.3b, T0.6a], est: 0.5, ver: 0.1.0, touches: [apps/web/src/components/layout/app-version.tsx] }
+  - { id: T0.7,  lane: codex-2, title: "Dockerfile web/collab/migrate, HEALTHCHECK, env zod, build-images.yml (GHCR)", deps: [T0.1a], est: 1, ver: 0.1.0, touches: ["apps/web/src/app/api/health/**"] }
+  - { id: T0.8,  lane: codex-2, human: true, title: "Staging trên Coolify (Hostinger kb-ops-1), Cloudflare DNS/Origin CA, firewall, secrets, deploy.yml", deps: [T0.7], est: 2, ver: 0.1.0 }
+  - { id: T0.9,  lane: codex-2, human: true, title: "Backup pg_dump → Cloudflare R2, lifecycle, restore runbook + job kiểm thử restore", deps: [T0.8], est: 1, ver: 0.1.0 }
+  - { id: T0.10, lane: codex-2, human: true, title: "Spike: GoTrue hook, WS qua Cloudflare/Traefik, JWT trong collab, preview + DNS, OAuth công ty, Gmail App Password", deps: [T0.8], est: 1, ver: 0.1.0 }
+
+  # ---------- M1 — Auth, Space, phân quyền (v0.2.0) ----------
+  - { id: T1.1,  lane: codex-1, title: "Schema lõi: profiles, app_settings, access_allowlist, spaces, space_members, invitations, hàm app.*, RLS, pgTAP", deps: [T0.4], est: 2, ver: 0.2.0 }
+  - { id: T1.2a, lane: codex-1, title: "Auth server: @supabase/ssr clients, middleware, callback, hook before_user_created, trigger profile, bootstrap super admin", deps: [T1.1], est: 1, ver: 0.2.0 }
+  - { id: T1.2b, lane: claude-1, ui: true, title: "UI đăng nhập Google, trang lỗi AUTH_NOT_ALLOWED, đăng xuất, menu người dùng", deps: [T0.3b], est: 0.5, ver: 0.2.0 }
+  - { id: T1.3,  lane: claude-2, ui: true, title: "Cài đặt cá nhân: ngôn ngữ (lưu profile), múi giờ, tên/avatar", deps: [T1.2a, T1.2b], est: 0.5, ver: 0.2.0 }
+  - { id: T1.4a, lane: codex-1, title: "Contract + server actions Space (list/create/update/archive)", deps: [T1.1], est: 0.5, ver: 0.2.0 }
+  - { id: T1.4b, lane: claude-2, ui: true, title: "UI Space: danh sách, tạo, cài đặt, lưu trữ", deps: [T1.4a, T0.3b], est: 1, ver: 0.2.0 }
+  - { id: T1.5a, lane: codex-1, title: "Server thành viên + lời mời (token, hạn, thu hồi, gửi mail SMTP)", deps: [T1.4a], est: 1, ver: 0.2.0 }
+  - { id: T1.5b, lane: claude-2, ui: true, title: "UI thành viên + trang /invite/[token] + email template song ngữ (React Email)", deps: [T1.5a, T1.4b], est: 1, ver: 0.2.0 }
+  - { id: T1.6a, lane: codex-1, title: "audit_logs + trigger + app.actor_id + contract truy vấn audit", deps: [T1.1], est: 0.5, ver: 0.2.0 }
+  - { id: T1.6b, lane: claude-2, ui: true, title: "UI audit log của Space (lọc, nhãn action dịch)", deps: [T1.6a, T1.4b], est: 0.5, ver: 0.2.0 }
+  - { id: T1.7a, lane: codex-1, title: "Server quản trị truy cập: allowlist email/domain, quản lý user, email thử, đăng xuất user bị gỡ", deps: [T1.2a, T1.6a], est: 0.5, ver: 0.2.0 }
+  - { id: T1.7b, lane: claude-2, ui: true, title: "UI /admin/access và /admin/users", deps: [T1.7a, T1.4b], est: 0.5, ver: 0.2.0 }
+
+  # ---------- M2 — Cây trang (v0.3.0) ----------
+  - { id: T2.1,  lane: codex-1, title: "Schema pages + page_documents rỗng, fractional index, trigger, RLS, audit, pgTAP", deps: [T1.1, T1.6a], est: 1.5, ver: 0.3.0 }
+  - { id: T2.2,  lane: codex-1, title: "Server actions trang: tạo/đổi tên/di chuyển/xoá mềm/khôi phục/xoá vĩnh viễn", deps: [T2.1], est: 1, ver: 0.3.0 }
+  - { id: T2.3,  lane: claude-2, ui: true, title: "Sidebar tree: lazy load, kéo thả (dnd-kit), menu ngữ cảnh, breadcrumb", deps: [T2.2, T1.4b], est: 2, ver: 0.3.0 }
+  - { id: T2.4,  lane: claude-2, ui: true, title: "Route trang /s/[space]/p/[ref], tiêu đề/icon, thùng rác", deps: [T2.2, T1.4b], est: 1, ver: 0.3.0 }
+  - { id: T2.5,  lane: claude-2, ui: true, title: "Realtime cây trang (Supabase Realtime)", deps: [T2.3], est: 0.5, ver: 0.3.0 }
+
+  # ---------- M3 — Editor & Yjs (v0.4.0) ----------
+  - { id: T3.1,  lane: claude-1, ui: true, title: "packages/editor: bộ extension dùng chung, UniqueID, EDITOR_SCHEMA_VERSION", deps: [T0.1b], est: 1.5, ver: 0.4.0 }
+  - { id: T3.2,  lane: claude-1, ui: true, title: "UI editor: slash menu, bubble menu, drag handle, phím tắt", deps: [T3.1, T0.3b], est: 2, ver: 0.4.0 }
+  - { id: T3.3a, lane: codex-1, title: "page_documents đầy đủ + role kb_collab + grant/policy + pgTAP", deps: [T2.1], est: 0.5, ver: 0.4.0 }
+  - { id: T3.3b, lane: codex-2, title: "Bộ trích xuất JSON → text/headings/table/word count (packages/editor/src/extract)", deps: [T3.1], est: 0.5, ver: 0.4.0, stealable: true }
+  - { id: T3.4,  lane: codex-2, title: "kb-collab: auth, read-only viewer, Database extension fetch/store, health, shutdown", deps: [T3.3a, T3.3b], est: 2, ver: 0.4.0 }
+  - { id: T3.5,  lane: claude-1, ui: true, title: "Client collab: HocuspocusProvider, refresh token, trạng thái kết nối, SSR read-only", deps: [T3.4, T3.2, T2.4], est: 1.5, ver: 0.4.0 }
+  - { id: T3.6a, lane: codex-1, title: "Bucket attachments + RLS storage + bảng attachments + contract upload", deps: [T2.1], est: 0.5, ver: 0.4.0 }
+  - { id: T3.6b, lane: claude-1, ui: true, title: "UI upload ảnh/tệp trong editor (kéo thả, paste ảnh, chặn base64)", deps: [T3.6a, T3.5], est: 1, ver: 0.4.0 }
+  - { id: T3.7,  lane: codex-2, title: "Internal API collab replace document (HMAC) + client phía kb-web server", deps: [T3.4], est: 1, ver: 0.4.0, touches: ["apps/web/src/server/collab/**"] }
+
+  # ---------- M4 — Table block (v0.5.0) ----------
+  - { id: T4.1,  lane: claude-1, ui: true, title: "Bảng cơ bản: thêm/xoá hàng-cột, header, resize, menu bảng (gồm nút Xuất CSV)", deps: [T3.2], est: 1.5, ver: 0.5.0 }
+  - { id: T4.2,  lane: claude-1, ui: true, title: "Gộp/tách ô, màu nền ô (attribute tự viết)", deps: [T4.1], est: 1, ver: 0.5.0 }
+  - { id: T4.3,  lane: claude-1, ui: true, title: "Kéo thả hàng và cột (plugin ProseMirror tự viết)", deps: [T4.2], est: 2, ver: 0.5.0 }
+  - { id: T4.4a, lane: codex-2, title: "Parser paste Excel/Sheets/LibreOffice/TSV → ProseMirror table + fixtures", deps: [T3.1], est: 1.5, ver: 0.5.0, stealable: true }
+  - { id: T4.4b, lane: claude-1, ui: true, title: "Gắn parser paste vào editor (paste vào bảng có sẵn, mở rộng bảng)", deps: [T4.4a, T4.2], est: 0.5, ver: 0.5.0 }
+  - { id: T4.5,  lane: codex-1, title: "Xuất CSV (RFC 4180, BOM, ô gộp) — hàm thuần + unit test", deps: [T3.1], est: 0.5, ver: 0.5.0, stealable: true, touches: [packages/editor/src/table/csv.ts, "packages/editor/test/csv/**"] }
+  - { id: T4.6,  lane: codex-2, title: "Test hội tụ 2 client trên bảng + table_text", deps: [T4.3, T3.4], est: 0.5, ver: 0.5.0, stealable: true }
+
+  # ---------- M5 — Tìm kiếm (v0.6.0) ----------
+  - { id: T5.1,  lane: codex-1, title: "vn_unaccent, cấu hình vi_unaccent, page_search + trigger + index + backfill", deps: [T3.3a], est: 1, ver: 0.6.0 }
+  - { id: T5.2,  lane: codex-1, title: "RPC search_pages + /api/search + rate limit", deps: [T5.1], est: 1.5, ver: 0.6.0 }
+  - { id: T5.3,  lane: claude-2, ui: true, title: "UI tìm kiếm: quick switcher ⌘K + trang kết quả", deps: [T5.2, T2.4], est: 1.5, ver: 0.6.0 }
+  - { id: T5.4,  lane: codex-1, title: "Golden set 30 truy vấn + seed 20k trang + benchmark + ADR", deps: [T5.2], est: 1, ver: 0.6.0, stealable: true }
+
+  # ---------- M6 — Phiên bản & audit (v0.7.0) ----------
+  - { id: T6.1a, lane: codex-1, title: "page_versions schema + RLS + job retention", deps: [T3.3a], est: 0.5, ver: 0.7.0 }
+  - { id: T6.1b, lane: codex-2, title: "Chính sách snapshot trong collab (auto/manual/last-disconnect)", deps: [T6.1a, T3.4], est: 0.5, ver: 0.7.0 }
+  - { id: T6.2,  lane: claude-2, ui: true, title: "UI lịch sử phiên bản: danh sách, xem trước, diff", deps: [T6.1b, T3.5], est: 1.5, ver: 0.7.0 }
+  - { id: T6.3a, lane: codex-2, title: "Luồng khôi phục phía server (pre_restore → replace → restore → audit)", deps: [T6.1b, T3.7], est: 0.75, ver: 0.7.0, touches: ["apps/web/src/server/versions/**"] }
+  - { id: T6.3b, lane: claude-2, ui: true, title: "UI khôi phục + toast cho client đang mở", deps: [T6.3a, T6.2], est: 0.25, ver: 0.7.0 }
+  - { id: T6.4a, lane: codex-1, title: "Truy vấn audit mở rộng + export CSV audit (server)", deps: [T1.6a, T6.3a], est: 0.25, ver: 0.7.0 }
+  - { id: T6.4b, lane: claude-2, ui: true, title: "UI audit hoàn thiện: lọc người/loại/thời gian, nút export", deps: [T6.4a, T1.6b], est: 0.75, ver: 0.7.0 }
+
+  # ---------- M7 — Hoàn thiện & ra mắt (v0.8.x → v1.0.0) ----------
+  - { id: T7.1a, lane: codex-1, title: "Hoàn chỉnh ma trận RLS pgTAP", deps: [T6.4a], est: 1, ver: 0.8.0 }
+  - { id: T7.1b, lane: codex-2, title: "Hạ tầng E2E: e2e.yml bắt buộc, chạy vi/en, chống flaky", deps: [T6.3a], est: 1, ver: 0.8.0 }
+  - { id: T7.1c, lane: claude-1, ui: true, title: "E2E editor + bảng hoàn chỉnh", deps: [T4.6, T7.1b], est: 0.5, ver: 0.8.0 }
+  - { id: T7.1d, lane: claude-2, ui: true, title: "E2E luồng tính năng hoàn chỉnh (Space, cây, tìm kiếm, lịch sử, ngôn ngữ)", deps: [T6.4b, T7.1b], est: 0.5, ver: 0.8.0 }
+  - { id: T7.2,  lane: codex-1, title: "Bảo mật: CSP/headers, rate limit, pnpm audit, runbook xoay secret", deps: [T0.8], est: 1, ver: 0.8.0, touches: [apps/web/next.config.ts, "docs/runbooks/**"] }
+  - { id: T7.3,  lane: codex-2, human: true, title: "Production kb-prod-1: Coolify remote server, OAuth prod, backup + restore thử, monitoring", deps: [T7.2, T0.9], est: 1.5, ver: 0.8.0 }
+  - { id: T7.4,  lane: claude-2, ui: true, title: "Tài liệu người dùng vi/en + Space Hướng dẫn seed + nội dung What's new", deps: [T6.4b], est: 1, ver: 0.8.0 }
+  - { id: T7.5,  lane: human, title: "Pilot 0.8.x, thu phản hồi → tạo task sửa lỗi (gán lane theo quy tắc)", deps: [T7.3, T7.1c, T7.1d, T7.4], est: 3, ver: 0.8.x }
+  - { id: T7.6,  lane: human, title: "Go-live checklist, Release-As 1.0.0", deps: [T7.5], est: 0, ver: 1.0.0 }
