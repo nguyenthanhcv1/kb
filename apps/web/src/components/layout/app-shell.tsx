@@ -6,23 +6,27 @@ import { useState, type ReactNode } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import type { CurrentUser } from "@/server/auth/mock";
 
 import { Brand } from "./brand";
 import { LocaleSwitcher } from "./locale-switcher";
 import { Sidebar } from "./sidebar";
 import { ThemeToggle } from "./theme-toggle";
+import { UserMenu } from "./user-menu";
 
 type AppShellProps = {
   /** Navigation rendered in the sidebar (desktop) or in the slide-over drawer (< md). */
   sidebar?: ReactNode;
+  /** Signed-in user shown in the account menu; omitted → no menu. */
+  user?: CurrentUser | null;
   children: ReactNode;
 };
 
 /**
  * Signed-in app frame: fixed sidebar from `md` (768 px), a drawer below that,
- * a top bar with the language and theme switchers, and a skip link to the main content.
+ * a top bar with the language and theme switchers and the account menu, and a skip link to the main content.
  */
-export function AppShell({ sidebar, children }: AppShellProps) {
+export function AppShell({ sidebar, user, children }: AppShellProps) {
   const t = useTranslations("common.shell");
   const [open, setOpen] = useState(false);
 
@@ -72,6 +76,7 @@ export function AppShell({ sidebar, children }: AppShellProps) {
           <div className="ml-auto flex items-center gap-1">
             <LocaleSwitcher />
             <ThemeToggle />
+            {user && <UserMenu user={user} />}
           </div>
         </header>
 
