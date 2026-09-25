@@ -1,0 +1,36 @@
+{
+  "app": {
+    "name": "KB",
+    "tagline": "Kho tri thức nội bộ"
+  },
+  "error": {
+    "description": "Đã có lỗi ngoài ý muốn. Bạn thử lại, nếu vẫn lỗi hãy báo cho quản trị viên kèm mã lỗi.",
+    "digest": "Mã lỗi: {digest}",
+    "retry": "Thử lại",
+    "title": "Có lỗi xảy ra"
+  },
+  "home": {
+    "description": "Chọn một Space ở thanh bên để bắt đầu.",
+    "title": "Chào mừng đến với KB"
+  },
+  "notFound": {
+    "backHome": "Về trang chủ",
+    "code": "404",
+    "description": "Trang bạn tìm không tồn tại, đã bị xoá hoặc bạn không có quyền xem.",
+    "title": "Không tìm thấy trang"
+  },
+  "shell": {
+    "closeSidebar": "Đóng thanh bên",
+    "mainNavigation": "Điều hướng chính",
+    "openSidebar": "Mở thanh bên",
+    "sidebarEmpty": "Chưa có Space nào.",
+    "skipToContent": "Bỏ qua, tới nội dung chính"
+  },
+  "theme": {
+    "dark": "Tối",
+    "label": "Giao diện",
+    "light": "Sáng",
+    "system": "Theo hệ thống",
+    "toggle": "Đổi giao diện sáng/tối"
+  }
+}

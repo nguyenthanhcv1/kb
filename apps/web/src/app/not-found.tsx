@@ -1,0 +1,26 @@
+import Link from "next/link";
+
+import { ErrorState } from "@/components/layout/error-state";
+import { getCommonTranslations } from "@/components/layout/intl";
+import { Button } from "@/components/ui/button";
+
+export async function generateMetadata() {
+  const t = await getCommonTranslations();
+  return { title: t("notFound.title") };
+}
+
+export default async function NotFound() {
+  const t = await getCommonTranslations();
+  return (
+    <ErrorState
+      code={t("notFound.code")}
+      title={t("notFound.title")}
+      description={t("notFound.description")}
+      actions={
+        <Button asChild>
+          <Link href="/">{t("notFound.backHome")}</Link>
+        </Button>
+      }
+    />
+  );
+}
