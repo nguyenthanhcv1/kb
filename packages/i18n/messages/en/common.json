@@ -1,0 +1,36 @@
+{
+  "app": {
+    "name": "KB",
+    "tagline": "Internal knowledge base"
+  },
+  "error": {
+    "description": "Something unexpected happened. Please try again; if it keeps failing, send the error code to an administrator.",
+    "digest": "Error code: {digest}",
+    "retry": "Try again",
+    "title": "Something went wrong"
+  },
+  "home": {
+    "description": "Pick a Space in the sidebar to get started.",
+    "title": "Welcome to KB"
+  },
+  "notFound": {
+    "backHome": "Back to home",
+    "code": "404",
+    "description": "The page you are looking for does not exist, was deleted, or you do not have access to it.",
+    "title": "Page not found"
+  },
+  "shell": {
+    "closeSidebar": "Close sidebar",
+    "mainNavigation": "Main navigation",
+    "openSidebar": "Open sidebar",
+    "sidebarEmpty": "No Spaces yet.",
+    "skipToContent": "Skip to main content"
+  },
+  "theme": {
+    "dark": "Dark",
+    "label": "Appearance",
+    "light": "Light",
+    "system": "System",
+    "toggle": "Switch light/dark theme"
+  }
+}
