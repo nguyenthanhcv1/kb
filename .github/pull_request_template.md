@@ -7,7 +7,7 @@ Tiêu đề PR = commit message sau squash-merge (CI kiểm tra bằng commitlin
 Xem CONTRIBUTING.md và AGENTS.md.
 -->
 
-Agent: <!-- claude-1 | claude-2 | codex-1 | codex-2 | human  (mượn task: "claude-2 (mượn từ lane codex-1)") -->
+Agent: <!-- claude-1 | claude-2 | codex-1 | human  (mượn task: "claude-2 (mượn từ lane codex-1)") -->
 Task: <!-- T1.1 — xem docs/ai/tasks.yaml và docs/PLAN.md §9 -->
 
 ## Tóm tắt

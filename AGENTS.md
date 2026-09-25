@@ -6,7 +6,7 @@
 
 ## 0. Làm việc song song nhiều agent — ĐỌC TRƯỚC KHI LÀM BẤT CỨ ĐIỀU GÌ
 
-Có 4 agent chạy song song: `claude-1`, `claude-2` (Claude Code) và `codex-1`, `codex-2` (ChatGPT Codex). Người dùng cho biết bạn là agent nào ở tin nhắn đầu phiên ("Bạn là `codex-1`"). **Nếu chưa được cho biết, hãy hỏi — không tự chọn.**
+Có 3 agent chạy song song: `claude-1`, `claude-2` (Claude Code) và `codex-1` (ChatGPT Codex). Việc của lane `codex-2` cũ đã chia cho `claude-1` (collab, logic editor không-UI, hạ tầng test) và `claude-2` (platform: tooling, CI/CD, release, Docker, hạ tầng). Người dùng cho biết bạn là agent nào ở tin nhắn đầu phiên ("Bạn là `codex-1`"). **Nếu chưa được cho biết, hãy hỏi — không tự chọn.**
 
 1. **Chỉ làm task thuộc lane của mình** trong `docs/ai/tasks.yaml` (trừ luật "mượn task" ở `docs/ai/WORKFLOW.md` §6).
 2. **Chỉ sửa file trong vùng sở hữu của lane** (`lanes.<agent>.owns` trong `tasks.yaml`). Cần thay đổi ở vùng khác → ghi vào mục "Yêu cầu cho lane khác" trong PR, không tự sửa.
@@ -65,9 +65,8 @@ Knowledge base nội bộ self-host: editor dạng block (TipTap), table block �
 - Ai được đăng nhập do super admin khai báo trong DB (bảng `access_allowlist`, theo email hoặc domain) — không hard-code email/domain trong code (trừ env `BOOTSTRAP_SUPER_ADMIN_EMAILS` cho lần đầu). Space mới mặc định `restricted`.
 - Migration DB: Supabase CLI, **forward-only**, thay đổi phá vỡ dùng expand → contract qua ít nhất 1 release.
 
-## Riêng cho Codex (`codex-1`, `codex-2`)
+## Riêng cho Codex (`codex-1`)
 - `codex-1` — **DB & server**: `supabase/**` (migration, RLS, pgTAP, seed), `apps/web/src/server/**`, Route Handler `app/api/**`, auth middleware, SQL tìm kiếm.
-- `codex-2` — **Platform & collab**: tooling monorepo, CI/CD, Docker, Coolify, release, backup, `apps/collab/**`, logic không-UI của editor (trích xuất text, parser paste, xuất CSV), hạ tầng test.
 - **Không làm UI** (xem §0.3). Nếu task của bạn cần thay đổi UI → hoàn thành phần server/contract, ghi rõ trong Handoff và mục "Yêu cầu cho lane khác" để Claude làm.
 - Khi viết contract cho UI (`apps/web/src/server/<area>/index.ts`): export hàm có kiểu rõ ràng + schema zod cho input/output + mã lỗi từ `packages/shared/src/errors.ts`; ghi ví dụ dữ liệu trong JSDoc để Claude dựng mock.
 

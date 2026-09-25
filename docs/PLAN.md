@@ -876,7 +876,7 @@ Mục tiêu coverage: `packages/editor` ≥ 80 %, logic khác ≥ 60 %; mọi po
 
 ## 9. Milestones MVP
 
-> Phân công cho 4 agent chạy song song (claude-1, claude-2, codex-1, codex-2): task trong bảng dưới được tách thành phần server (`a`) và UI (`b`) và gán lane trong [`docs/ai/tasks.yaml`](ai/tasks.yaml); quy trình ở [`docs/ai/WORKFLOW.md`](ai/WORKFLOW.md). UI luôn do Claude Code làm. Nếu chạy song song đủ 4 agent, thời gian lịch ước ~6–7 tuần thay vì ~3 tháng.
+> Phân công cho 3 agent chạy song song (claude-1, claude-2, codex-1; lane codex-2 cũ đã chia cho claude-1/claude-2): task trong bảng dưới được tách thành phần server (`a`) và UI (`b`) và gán lane trong [`docs/ai/tasks.yaml`](ai/tasks.yaml); quy trình ở [`docs/ai/WORKFLOW.md`](ai/WORKFLOW.md). UI luôn do Claude Code làm. Nếu chạy song song đủ 3 agent, thời gian lịch ước ~7–8 tuần thay vì ~3 tháng.
 
 Ước lượng cho **1 dev fulltime (+AI)**. Mỗi milestone kết thúc bằng một release (MINOR). "Version" = release đầu tiên chứa task.
 
