@@ -29,6 +29,7 @@ Knowledge base nội bộ self-host: editor dạng block (TipTap), table block �
 
 ### 3. Số hiệu phiên bản
 - **Semantic Versioning**, bắt đầu `0.1.0`. Không sửa version bằng tay — release-please bump version, tạo tag `vX.Y.Z` và GitHub Release khi merge Release PR.
+- Các milestone MVP là `0.x`; **MVP ra mắt chính thức là `1.0.0`** (`Release-As: 1.0.0`). Sau 1.0, giai đoạn V2/V3 vẫn là `1.x` — chỉ tăng MAJOR khi có thay đổi phá vỡ thật.
 - Version hiển thị trong app (footer + Settings › Giới thiệu) và trong `/api/health`, `/health` của collab.
 
 ### 4. Row Level Security cho MỌI bảng
@@ -38,11 +39,16 @@ Knowledge base nội bộ self-host: editor dạng block (TipTap), table block �
 - Mỗi policy mới phải có test pgTAP trong `supabase/tests/` (ma trận vai trò × thao tác, gồm khách mời).
 - `service_role` chỉ dùng ở server cho việc thật sự cần (mời khách, job hệ thống). Nội dung trang chỉ được ghi qua `kb-collab` (role DB `kb_collab`, quyền tối thiểu).
 
+### 5. Chỉ dùng thư viện mã nguồn mở
+- **Không dùng TipTap Pro / TipTap Cloud / `@tiptap-pro`** hay bất kỳ extension trả phí nào. Tính năng thiếu (kéo thả hàng/cột, màu nền ô, paste Excel, xuất CSV, lịch sử phiên bản, comment…) thì tự viết trong `packages/editor`.
+- Kiểm tra license trước khi thêm dependency; CI (`licenses`) fail nếu license ngoài allowlist (MIT, Apache-2.0, BSD, ISC, MPL-2.0).
+
 ## Quyết định kiến trúc không được phá vỡ
 - **Nguồn sự thật của nội dung trang là Yjs** (`page_documents.ydoc`). `content_json`, `content_text`, `page_search` là dữ liệu dẫn xuất.
 - **Một đường ghi nội dung duy nhất:** mọi thay đổi nội dung (sửa, khôi phục, mẫu, import) đi qua `kb-collab`. `kb-web` không ghi thẳng `page_documents.ydoc`.
 - **Schema editor dùng chung:** extension TipTap nằm ở `packages/editor`, được dùng bởi cả client, collab server và bộ trích xuất search. Đổi schema → tăng `EDITOR_SCHEMA_VERSION`.
 - Mỗi block có **ID ổn định** (UniqueID) — dùng cho deep link, comment (V2), trích dẫn RAG (V3).
+- Domain email được đăng nhập do super admin khai báo trong DB (`app_settings.allowed_email_domains`) — không hard-code domain trong code/env (trừ `BOOTSTRAP_SUPER_ADMIN_EMAILS` cho lần đầu).
 - Migration DB: Supabase CLI, **forward-only**, thay đổi phá vỡ dùng expand → contract qua ít nhất 1 release.
 
 ## Definition of Done cho mỗi PR

@@ -1,6 +1,6 @@
 # Kế hoạch triển khai `kb` — Knowledge base nội bộ
 
-> Trạng thái: **Bản nháp v1** · Ngày: 2026-09-25 · Phạm vi: MVP chi tiết, V2/V3 tổng quan
+> Trạng thái: **Bản nháp v2** (đã cập nhật theo trả lời vòng 2) · Ngày: 2026-09-25 · Phạm vi: MVP chi tiết, V2/V3 tổng quan
 > Nguyên tắc bắt buộc (song ngữ, changelog, SemVer, RLS): xem [`CLAUDE.md`](../CLAUDE.md).
 
 ## 0. Tóm tắt các quyết định đã chốt
@@ -10,15 +10,20 @@
 | Quy mô thiết kế | < 200 người dùng, < 20.000 trang → 1 server Coolify, tìm kiếm bằng Postgres FTS + `pg_trgm`, 1 instance `kb-collab` |
 | Lưu nội dung | **Yjs binary là nguồn sự thật** (`bytea`) + dẫn xuất TipTap JSON / plain text phục vụ render, search, version |
 | `kb-collab` | **Có ngay từ MVP.** Editor luôn kết nối Hocuspocus; V2 chỉ bật UI presence/cursor |
-| Đăng nhập | Google SSO, **giới hạn domain công ty + cho phép mời khách** vào từng Space |
+| Đăng nhập | Google SSO. **Super admin khai báo danh sách domain** được phép trong trang Quản trị (lưu DB, đổi được lúc chạy) + cho phép mời khách vào từng Space |
 | Phân quyền MVP | Theo Space (Xem / Sửa / Quản trị); schema và hàm helper sẵn sàng cho quyền theo trang ở V2 |
 | Khách mời | Tối đa Xem/Sửa trong Space được mời; không bao giờ là Quản trị; không thấy Space "nội bộ"; không tạo Space |
-| Release | **release-please** |
+| Release | **release-please**. Các milestone phát hành `0.x`; **MVP ra mắt production là `1.0.0`** |
 | Changelog | `CHANGELOG.md` do release-please sinh (en) + ghi chú tiếng Việt viết tay `changelog/vi/<version>.md`, CI chèn vào `CHANGELOG.md` |
 | Môi trường | local · staging · production · preview theo PR (chỉ `kb-web`, dùng chung Supabase staging) |
-| Mạng | Cloudflare proxy (SSL Full strict), backup lên S3-compatible |
+| Mạng | Cloudflare proxy (SSL Full strict) |
 | Domain gốc | `thanhgo.com` (xem §7.3 — **chỉ dùng subdomain 1 cấp**) |
-| Nhân lực | 1 dev fulltime (+AI) → ước lượng ~62 ngày công cho MVP (~3 tháng lịch) |
+| Server | **2 VPS tách biệt**: production (4 vCPU / 8 GB / 160 GB NVMe) và staging + preview + Coolify control plane (4 vCPU / 8 GB / 80 GB) — §7.0 |
+| Lưu trữ backup (S3) | **Cloudflare R2** (S3-compatible, không phí egress, cùng tài khoản Cloudflare). Supabase Storage *không* dùng làm đích backup vì nằm cùng server — §7.8 |
+| Email (SMTP) | Supabase không cung cấp SMTP. Đề xuất **Google Workspace SMTP relay** (nếu công ty dùng Workspace), dự phòng **Amazon SES** hoặc **Resend** — §7.14 |
+| TipTap | **Chỉ dùng phần mã nguồn mở (MIT)**; tính năng thiếu thì tự viết. CI chặn package trả phí — §2.1 |
+| AI (V3) | **Được phép** gửi nội dung tới API bên ngoài: Claude API (Anthropic) cho sinh câu trả lời, Voyage AI cho embedding; có cờ tắt AI theo Space — §10.2 |
+| Nhân lực | 1 dev fulltime (+AI) → ước lượng ~63 ngày công cho MVP (~3 tháng lịch) |
 
 ---
 
@@ -60,7 +65,7 @@
 **Đăng nhập**
 1. Người dùng bấm "Đăng nhập với Google" → `kb-web` gọi `supabase.auth.signInWithOAuth({ provider: 'google' })`.
 2. GoTrue (tại `kb-api.thanhgo.com/auth/v1`) redirect sang Google → callback về GoTrue.
-3. **Hook `before_user_created`** (hàm Postgres) kiểm tra: email thuộc `app_settings.allowed_email_domains` **hoặc** có lời mời còn hạn trong `invitations` → cho tạo; ngược lại từ chối với mã lỗi `AUTH_DOMAIN_NOT_ALLOWED`.
+3. **Hook `before_user_created`** (hàm Postgres) kiểm tra: email thuộc `app_settings.allowed_email_domains` (do super admin khai báo) **hoặc** có lời mời còn hạn trong `invitations` **hoặc** nằm trong danh sách bootstrap super admin (`app_settings.bootstrap_admin_emails`, nạp từ env lúc triển khai lần đầu) → cho tạo; ngược lại từ chối với mã lỗi `AUTH_DOMAIN_NOT_ALLOWED`. Hook cũng chạy ở **mỗi lần đăng nhập** (kiểm tra ở middleware): nếu admin gỡ một domain, người dùng nội bộ thuộc domain đó bị chặn (trừ khi đã được chuyển thành khách có membership).
 4. Trigger `on auth.users insert` tạo `profiles` (locale mặc định `vi`, `is_guest` = email ngoài domain), gắn membership từ lời mời.
 5. `kb-web` nhận session qua `@supabase/ssr` (cookie httpOnly trên `kb.thanhgo.com`); middleware refresh token.
 
@@ -175,6 +180,26 @@ kb/
 
 **Lý do tách `packages/editor`:** client editor, `kb-collab` (dẫn xuất JSON/text), bộ trích xuất search và (V3) chunker RAG phải dùng **cùng một schema ProseMirror**. Lệch schema giữa client và server là nguyên nhân phổ biến nhất gây mất nội dung với Yjs.
 
+### 2.1 Chính sách chỉ dùng mã nguồn mở cho editor
+
+Không dùng TipTap Pro / TipTap Cloud / registry `@tiptap-pro`. Từ TipTap v3 nhiều extension trước đây trả phí đã chuyển sang MIT (UniqueID, Drag Handle, File Handler, Details, Table of Contents…) — **mỗi package phải được kiểm tra license lúc cài**; nếu không phải MIT/Apache/BSD thì tự viết.
+
+| Nhu cầu | Nguồn | Ghi chú |
+|---|---|---|
+| Lõi editor, StarterKit, Link, Image, Placeholder, TaskList, CodeBlockLowlight | `@tiptap/*` (MIT) | |
+| Bảng: thêm/xoá hàng-cột, header, resize cột, gộp/tách ô | `@tiptap/extension-table` (MIT, dựa trên `prosemirror-tables`) | |
+| Màu nền ô | **Tự viết** — thêm attribute `backgroundColor` cho `TableCell`/`TableHeader` | ~0,5 ngày, trong T4.2 |
+| Kéo thả hàng/cột | **Tự viết** — plugin ProseMirror (TipTap không có) | T4.3 |
+| Paste Excel/Sheets, xuất CSV | **Tự viết** | T4.4, T4.5 |
+| Block ID ổn định | `@tiptap/extension-unique-id` nếu MIT, ngược lại **tự viết** (~0,5 ngày: plugin `appendTransaction` gán `data-id` uuid) | T3.1 |
+| Drag handle block | `@tiptap/extension-drag-handle` nếu MIT, ngược lại tự viết | T3.2 |
+| Slash menu, bubble menu | `@tiptap/suggestion` + `BubbleMenu` (MIT) + UI shadcn tự làm | T3.2 |
+| Collaboration, cursor (V2) | `@tiptap/extension-collaboration`, `…-collaboration-caret`, Hocuspocus (MIT) | |
+| Lịch sử phiên bản | **Tự viết** (`page_versions`) — thay cho "Collaboration History" trả phí | M6 |
+| Comment (V2), AI (V3), import DOCX/Notion (V3) | **Tự viết** — thay cho các extension trả phí tương ứng; import `.docx` dùng `mammoth` (BSD) | |
+
+CI: job `licenses` (trong `ci.yml`) chạy `license-checker`/`pnpm licenses list` với allowlist (MIT, Apache-2.0, BSD-2/3, ISC, MPL-2.0 cho thư viện dùng qua import) và fail nếu có package từ `@tiptap-pro` hoặc license ngoài danh sách.
+
 ---
 
 ## 3. Schema DB chi tiết
@@ -205,7 +230,9 @@ kb/
 | `created_at`, `updated_at` | timestamptz | |
 
 #### `app_settings` (1 dòng)
-`id smallint PK check (id = 1)`, `allowed_email_domains text[] not null`, `default_space_visibility space_visibility default 'internal'`, `updated_at`, `updated_by`.
+`id smallint PK check (id = 1)`, `allowed_email_domains citext[] not null default '{}'` (check mỗi phần tử khớp regex domain, không cho `gmail.com` và domain email công cộng phổ biến — cảnh báo ở UI), `bootstrap_admin_emails citext[] not null default '{}'`, `default_space_visibility space_visibility default 'internal'`, `ai_enabled boolean not null default false` (V3, bật toàn hệ thống), `updated_at`, `updated_by`.
+- **Khai báo domain**: trang `/admin/settings` (chỉ super admin) — thêm/xoá domain, xem số người dùng hiện có theo domain trước khi xoá; mọi thay đổi ghi audit `settings.update` (before/after).
+- **Bootstrap**: lần deploy đầu, env `BOOTSTRAP_SUPER_ADMIN_EMAILS` được migration/seed script ghi vào `bootstrap_admin_emails`; người dùng đó đăng nhập lần đầu được đặt `is_super_admin = true`, sau đó tự khai báo domain công ty. Xoá bootstrap email khỏi danh sách sau khi đã có ≥ 2 super admin.
 
 #### `spaces`
 | Cột | Kiểu | Ghi chú |
@@ -216,6 +243,7 @@ kb/
 | `description` | text | |
 | `icon` | text | emoji hoặc key icon |
 | `visibility` | space_visibility not null default `'internal'` | |
+| `ai_enabled` | boolean not null default true | **dành cho V3**: admin Space có thể loại Space nhạy cảm (nhân sự, tài chính) khỏi AI/embedding |
 | `created_by` | uuid FK profiles | |
 | `archived_at` | timestamptz | |
 | `created_at`, `updated_at` | | |
@@ -292,7 +320,7 @@ Storage bucket `attachments` (private), giới hạn 25 MB/tệp, whitelist MIME
 | `request_id` | text | trace |
 
 Index: `(space_id, occurred_at desc)`, `(entity_id, occurred_at desc)`, `(actor_id, occurred_at desc)`.
-Ghi bằng **trigger `SECURITY DEFINER`** (`app.audit_*`) trên `pages`, `spaces`, `space_members`, `invitations`, `app_settings`, `page_versions` (reason = `restore`). Riêng `page.update_content` do `kb-collab` ghi, gộp tối đa 1 bản ghi / người / trang / 10 phút. Không có policy UPDATE/DELETE → bất biến với mọi role trừ superuser. Giữ 2 năm (câu hỏi mở).
+Ghi bằng **trigger `SECURITY DEFINER`** (`app.audit_*`) trên `pages`, `spaces`, `space_members`, `invitations`, `app_settings`, `page_versions` (reason = `restore`). Riêng `page.update_content` do `kb-collab` ghi, gộp tối đa 1 bản ghi / người / trang / 10 phút. Không có policy UPDATE/DELETE → bất biến với mọi role trừ superuser. Giữ 2 năm (đề xuất, xem §12.2).
 
 ### 3.3 Quan hệ
 ```
@@ -514,6 +542,8 @@ Mẫu trang (V2), email, tài liệu `docs/user-guide/{vi,en}`: script kiểm tr
 }
 ```
 `.release-please-manifest.json`: `{ ".": "0.0.0" }` + commit đầu dùng footer `Release-As: 0.1.0` để release đầu tiên là **0.1.0**. Trước 1.0: `feat` → MINOR, `fix` → PATCH, breaking (`!`) → MINOR.
+
+**Lộ trình số hiệu:** mỗi milestone MVP là một MINOR (`0.1.0` … `0.8.0`); `0.8.x` là bản ứng viên chạy pilot trên production với nhóm nhỏ; khi pilot đạt tiêu chí (T7.6) → commit `chore(release): 1.0.0` với footer `Release-As: 1.0.0` → **`v1.0.0` = MVP ra mắt chính thức**. Sau 1.0: `feat` → MINOR, `fix` → PATCH, breaking → MAJOR. Giai đoạn sản phẩm V2/V3 **không** đồng nghĩa với MAJOR: tính năng V2 ra dưới dạng `1.x`; chỉ tăng MAJOR khi có thay đổi phá vỡ thật (vd API public, định dạng export). Khi đó bỏ `bump-minor-pre-major` khỏi config (không còn tác dụng).
 Mục `Deprecated` của Keep a Changelog: dùng footer `DEPRECATED:` → script hậu xử lý đưa vào section `Deprecated`.
 
 ### 6.3 Changelog song ngữ
@@ -544,7 +574,7 @@ main ──▶ build images ghcr.io/…/kb-{web,collab,migrate}:sha-<7> ──�
       └─▶ release-please cập nhật Release PR "chore(main): release 0.x.y"
                  │ dev thêm changelog/vi/0.x.y.md, CI chèn vào CHANGELOG.md
                  ▼ merge
-          tag v0.x.y + GitHub Release ──▶ retag images :0.x.y (không build lại — cùng artifact đã test ở staging)
+          tag vX.Y.Z + GitHub Release ──▶ retag images :0.x.y (không build lại — cùng artifact đã test ở staging)
                  ──▶ GitHub Environment "production" (cần duyệt thủ công)
                  ──▶ backup trước migration ──▶ migrate prod ──▶ deploy prod (Coolify API) ──▶ smoke test ──▶ thông báo
 ```
@@ -553,6 +583,21 @@ Hotfix: nhánh từ `main`, `fix:` → merge → Release PR patch → release nh
 ---
 
 ## 7. Môi trường, hạ tầng và CI/CD
+
+### 7.0 Đề xuất server
+
+**Tách staging khỏi production: CÓ.** Lý do: preview theo PR và staging build/chạy thử liên tục (build Next.js ngốn 2–4 GB RAM, Supabase staging ~10 container); nếu chung máy, một PR lỗi hoặc một lần build có thể làm chậm/sập production. Chi phí thêm một VPS nhỏ hơn nhiều so với rủi ro.
+
+| Server | Vai trò | Cấu hình đề xuất | Ước tính RAM sử dụng |
+|---|---|---|---|
+| `kb-prod-1` | Production: Supabase prod, `kb-web`, `kb-collab`, `kb-backup` | **4 vCPU, 8 GB RAM, 160 GB NVMe**, IPv4 tĩnh | Supabase ~3 GB (Postgres 2 GB), web ~0,5 GB, collab ~0,3 GB, Traefik + khác ~0,5 GB → dư ~3 GB |
+| `kb-ops-1` | **Coolify control plane** + staging (Supabase staging, web, collab) + preview (tối đa 3 đồng thời) + Uptime Kuma | **4 vCPU, 8 GB RAM, 80 GB NVMe** | Coolify ~1 GB, Supabase staging ~2,5 GB, staging apps ~0,8 GB, preview 3 × 0,5 GB, build tạm ~2 GB |
+
+- Coolify cài trên `kb-ops-1` và quản lý `kb-prod-1` như **remote server** (qua SSH). Nếu `kb-ops-1` gặp sự cố, production **vẫn chạy bình thường** (chỉ tạm không deploy được). Image build ở GitHub Actions (GHCR), không build trên server prod.
+- Vị trí: ưu tiên data center **Việt Nam** (Viettel IDC, VNG Cloud, BizFly Cloud, FPT Cloud…) để độ trễ thấp và dữ liệu nằm trong nước; hoặc **Singapore** (Hetzner, DigitalOcean, Vultr, AWS Lightsail) nếu muốn giá tốt / hạ tầng quốc tế. Độ trễ Singapore → VN ~30–50 ms, chấp nhận được cho real-time.
+- Ổ đĩa: 160 GB đủ cho DB (< 5 GB với 20k trang + phiên bản) + tệp đính kèm (ước 50–100 GB sau vài năm). Khi tệp đính kèm lớn, chuyển Supabase Storage sang backend S3 (R2) — không cần đổi code app.
+- Snapshot VPS hằng tuần của nhà cung cấp (bổ sung cho backup logic §7.8).
+- Khi nào nâng cấp: CPU > 70 % kéo dài, RAM Postgres thiếu (cache hit < 99 %), hoặc > 500 người dùng → tách Postgres sang server riêng 8 GB.
 
 ### 7.1 Môi trường
 
@@ -564,7 +609,7 @@ Hotfix: nhánh từ `main`, `fix:` → merge → Release PR patch → release nh
 | staging | `kb-staging.thanhgo.com` | `kb-staging-collab.thanhgo.com` | `kb-staging-api.thanhgo.com` | seed + dữ liệu thử |
 | production | `kb.thanhgo.com` | `kb-collab.thanhgo.com` | `kb-api.thanhgo.com` | thật |
 
-Staging và production nên ở **2 server Coolify khác nhau** (hoặc ít nhất 2 project, tài nguyên giới hạn) để staging không ảnh hưởng prod — câu hỏi mở về cấu hình server.
+Staging (và preview) chạy trên `kb-ops-1`, production trên `kb-prod-1` (§7.0).
 
 Local Google OAuth: Supabase CLI `config.toml` `[auth.external.google]` với OAuth client riêng cho dev (redirect `http://127.0.0.1:54321/auth/v1/callback`). E2E/CI không dùng Google: bật email+password **chỉ trong local/CI** (`[auth.email] enable_signup = true` trong `config.toml`), tạo người dùng test bằng admin API; production tắt provider email (`GOTRUE_EXTERNAL_EMAIL_ENABLED=false`).
 
@@ -619,7 +664,7 @@ Lưu ý quan trọng: **không dùng `NEXT_PUBLIC_*` cho giá trị khác nhau g
 **Supabase** (Coolify service template "Supabase"):
 - Project `kb-prod` / `kb-staging`. Domain Kong: `kb-api.thanhgo.com`; Studio `kb-studio.thanhgo.com`.
 - Image Postgres `supabase/postgres` 15.x (có sẵn `pgvector`, `pg_trgm`, `unaccent`, `pgtap`); migration đầu `create extension if not exists … schema extensions`.
-- Volume persistent cho `db-data`, `storage-data`. Storage backend: file (MVP) — cân nhắc S3 backend ở V2.
+- Volume persistent cho `db-data`, `storage-data`. Storage backend: file trên đĩa (MVP, đơn giản, nhanh); khi dữ liệu tệp lớn → cấu hình Supabase Storage dùng **S3 backend = Cloudflare R2** (bucket riêng `kb-attachments-prod`, không trùng bucket backup).
 - Cấu hình GoTrue: Google OAuth, `SITE_URL`, `ADDITIONAL_REDIRECT_URLS`, hook `before_user_created` (pg-function) — **spike T0.10 xác minh version GoTrue self-host hỗ trợ**; dự phòng: trigger `before insert on auth.users` raise exception.
 - Realtime: bật; publication `supabase_realtime` chỉ gồm `pages` (cập nhật cây trang).
 - Bật "Connect to predefined network" để `kb-collab`, `kb-backup`, `kb-migrate` truy cập `supabase-db` qua tên host nội bộ.
@@ -666,7 +711,9 @@ Lưu ý quan trọng: **không dùng `NEXT_PUBLIC_*` cho giá trị khác nhau g
 | `COLLAB_INTERNAL_URL` | web | – | `http://kb-collab:3001` |
 | `COLLAB_INTERNAL_SECRET` | web, collab | **có** | HMAC cho internal API |
 | `DEFAULT_LOCALE` / `DEFAULT_TIME_ZONE` | web | – | `vi` / `Asia/Ho_Chi_Minh` |
-| `SMTP_HOST/PORT/USER/PASSWORD/FROM` | web | **có** | email mời khách |
+| `SMTP_HOST/PORT/USER/PASSWORD/FROM` | web, supabase | **có** | email mời khách (§7.14); `FROM` = `kb-noreply@thanhgo.com` |
+| `BOOTSTRAP_SUPER_ADMIN_EMAILS` | web (seed) | – | danh sách email super admin đầu tiên, chỉ dùng khi DB chưa có super admin |
+| `ANTHROPIC_API_KEY`, `VOYAGE_API_KEY` | web, worker (V3) | **có** | chỉ thêm ở V3 |
 | `SENTRY_DSN` (hoặc GlitchTip) | web, collab | có | tuỳ chọn |
 | `DATABASE_URL` | collab | **có** | role `kb_collab`, host `supabase-db` nội bộ |
 | `SUPABASE_JWT_SECRET` | collab | **có** | verify access token (hoặc `SUPABASE_JWKS_URL` nếu dùng khoá bất đối xứng) |
@@ -678,7 +725,7 @@ Lưu ý quan trọng: **không dùng `NEXT_PUBLIC_*` cho giá trị khác nhau g
 | `GOTRUE_EXTERNAL_EMAIL_ENABLED` | supabase | – | `false` ở staging/prod |
 | `GOTRUE_HOOK_BEFORE_USER_CREATED_ENABLED/URI` | supabase | – | `pg-functions://postgres/public/hook_before_user_created` |
 | `DASHBOARD_USERNAME/PASSWORD` | supabase | **có** | Studio |
-| `S3_ENDPOINT/BUCKET/ACCESS_KEY/SECRET_KEY`, `BACKUP_AGE_RECIPIENT` | backup | **có** | |
+| `S3_ENDPOINT/BUCKET/ACCESS_KEY/SECRET_KEY`, `BACKUP_AGE_RECIPIENT` | backup | **có** | R2: endpoint `https://<account_id>.r2.cloudflarestorage.com`, token R2 chỉ quyền Object Read & Write trên bucket backup |
 
 GitHub (Environments `staging`, `production` — production có required reviewer): `COOLIFY_API_URL`, `COOLIFY_API_TOKEN`, `COOLIFY_APP_UUID_WEB/COLLAB`, `DEPLOY_SSH_KEY`, `CF_TUNNEL_*`, `CLOUDFLARE_API_TOKEN` (DNS preview), `GHCR` dùng `GITHUB_TOKEN`.
 
@@ -692,8 +739,11 @@ Quy tắc: secret chỉ ở Coolify (đánh dấu locked/encrypted) và GitHub E
 - Origin check: collab chỉ chấp nhận `Origin` thuộc danh sách (`kb.thanhgo.com`, `kb-staging…`, `kb-pr-*.thanhgo.com` ở staging).
 
 ### 7.8 Backup Postgres tự động
-- **Hằng đêm (02:00 ICT)** `kb-backup`: `pg_dump -Fc` (DB `postgres`, gồm schema `auth`, `storage`, `public`) → mã hoá `age` → `rclone copy` lên S3 (`s3://kb-backups/prod/daily/YYYY-MM-DD.dump.age`). Đồng bộ volume storage (tệp đính kèm) bằng `rclone sync` (bản versioned ở bucket).
-- Retention bằng lifecycle rule S3: daily 14 ngày, weekly 8 tuần, monthly 12 tháng.
+- **Hằng đêm (02:00 ICT)** `kb-backup`: `pg_dump -Fc` (DB `postgres`, gồm schema `auth`, `storage`, `public`) → mã hoá `age` → `rclone copy` lên **Cloudflare R2** (`r2:kb-backups/prod/daily/YYYY-MM-DD.dump.age`). Đồng bộ volume storage (tệp đính kèm) bằng `rclone sync` (bản versioned ở bucket).
+- **Vì sao R2, không dùng Supabase Storage làm đích backup?** Supabase Storage có API tương thích S3, nhưng nó chạy **trên chính server production** — server hỏng thì mất cả DB lẫn backup. Backup phải nằm ở hạ tầng khác. R2: đã dùng Cloudflare, không phí egress (restore không tốn tiền), 10 GB miễn phí rồi ~0,015 USD/GB/tháng, hỗ trợ lifecycle rule và bucket lock (chống xoá/ghi đè — bảo vệ khi server bị chiếm quyền). Dự phòng: Backblaze B2 hoặc AWS S3.
+- Khoá: token R2 của server chỉ có quyền ghi vào bucket backup (không có quyền xoá); bật bucket lock 30 ngày; khoá riêng `age` giữ **ngoài server** (password manager của admin).
+- Retention bằng lifecycle rule R2: daily 14 ngày, weekly 8 tuần, monthly 12 tháng. Chi phí ước tính < 2 USD/tháng.
+- Staging không backup (có thể dựng lại từ seed), chỉ snapshot VPS.
 - Trước mỗi migration production: backup ad-hoc `pre-migrate-<version>`.
 - Coolify có tính năng scheduled backup cho database — dùng **bổ sung** nếu hỗ trợ container `supabase-db` trong service; không phụ thuộc hoàn toàn.
 - **Kiểm thử khôi phục hằng tháng** (tự động): job tải bản mới nhất, restore vào Postgres tạm, chạy truy vấn kiểm tra (đếm `pages`, `page_documents`, decode ngẫu nhiên 20 `ydoc`), báo kết quả. Runbook `docs/runbooks/backup-restore.md`.
@@ -737,7 +787,7 @@ Quy tắc: secret chỉ ở Coolify (đánh dấu locked/encrypted) và GitHub E
 
 | Workflow | Trigger | Job |
 |---|---|---|
-| `ci.yml` | PR, push `main` | `lint` (eslint + prettier + no-literal-string) · `typecheck` (turbo) · `unit` (vitest, coverage) · `i18n` (`pnpm i18n:check`) · `pr-title` (`amannn/action-semantic-pull-request`) · `db` (`supabase start` → `db reset` → `supabase test db` → kiểm tra drift types) · `build` (turbo build web + collab, docker build không push ở PR) |
+| `ci.yml` | PR, push `main` | `lint` (eslint + prettier + no-literal-string) · `typecheck` (turbo) · `unit` (vitest, coverage) · `i18n` (`pnpm i18n:check`) · `pr-title` (`amannn/action-semantic-pull-request`) · `db` (`supabase start` → `db reset` → `supabase test db` → kiểm tra drift types) · `build` (turbo build web + collab, docker build không push ở PR) · `licenses` (§2.1) |
 | `e2e.yml` | PR (sau `ci`), push `main` | `supabase start` + seed, chạy web + collab (build production), Playwright (Chromium; Firefox/WebKit nightly), upload trace/video khi fail |
 | `release-please.yml` | push `main` | `googleapis/release-please-action` |
 | `release-vi-notes.yml` | PR từ nhánh `release-please--*` | kiểm tra & chèn `changelog/vi/<version>.md` vào `CHANGELOG.md` |
@@ -748,6 +798,17 @@ Quy tắc: secret chỉ ở Coolify (đánh dấu locked/encrypted) và GitHub E
 | Dependabot/Renovate | tuần | cập nhật deps, nhóm theo hệ (tiptap, next, supabase) |
 
 Branch protection `main`: bắt buộc `ci/*`, `e2e`, 1 review (hoặc tự review khi 1 dev — bật khi có người thứ 2), squash merge only, linear history.
+
+### 7.14 Email (SMTP)
+Supabase self-host **không có dịch vụ gửi mail**; GoTrue chỉ nhận cấu hình SMTP bên ngoài (và vì ta dùng Google OAuth nên GoTrue hầu như không gửi mail). Email của app (mời khách; V2: thông báo, @mention, digest) do `kb-web` gửi qua cùng SMTP.
+
+| Phương án | Ưu | Nhược | Khi nào chọn |
+|---|---|---|---|
+| **Google Workspace SMTP relay** (`smtp-relay.gmail.com`) — **đề xuất** | Miễn phí trong gói Workspace, gửi từ domain công ty, uy tín gửi tốt, giới hạn ~10.000 người nhận/ngày | Cần admin Workspace bật relay (xác thực theo IP server hoặc SMTP AUTH) | Công ty dùng Google Workspace (khả năng cao vì đăng nhập Google SSO) |
+| Amazon SES | Rất rẻ (0,1 USD/1.000 email), ổn định | Phải xin ra khỏi sandbox, cấu hình phức tạp hơn | Không có Workspace hoặc cần gửi khối lượng lớn |
+| Resend / Brevo | Setup nhanh, có dashboard, gói miễn phí (~3.000 email/tháng với Resend, ~300/ngày với Brevo) | Phụ thuộc SaaS nhỏ hơn | Muốn làm nhanh, khối lượng thấp |
+
+Bắt buộc với mọi phương án: bản ghi **SPF, DKIM, DMARC** cho `thanhgo.com` trên Cloudflare DNS; địa chỉ gửi `kb-noreply@thanhgo.com`; template song ngữ (§5.6); log gửi mail (thành công/thất bại) để debug; local/CI dùng **Mailpit** (Supabase CLI có sẵn Inbucket/Mailpit) để test mà không gửi thật.
 
 ---
 
@@ -781,23 +842,24 @@ Mục tiêu coverage: `packages/editor` ≥ 80 %, logic khác ≥ 60 %; mọi po
 | T0.2 | Quy ước commit: commitlint + lefthook, PR template (checklist DoD), CODEOWNERS, `CONTRIBUTING.md` | `.lefthook.yml`, `.github/` | commit sai định dạng bị chặn local; PR template có checklist i18n/RLS/changelog | T0.1 | 0,5 | 0.1.0 |
 | T0.3 | Nền i18n: `packages/i18n`, next-intl không prefix URL, resolve locale (cookie → header → vi), timeZone mặc định, formatter, `normalizeVi`, ESLint no-literal-string, script `i18n:check` | `packages/i18n`, `apps/web/src/i18n` | Trang mẫu hiển thị vi/en; xoá 1 key en → `pnpm i18n:check` fail; literal JSX → lint fail | T0.1 | 1,5 | 0.1.0 |
 | T0.4 | Supabase local: `supabase init`, `config.toml` (Google local, email chỉ local), migration extensions (`unaccent`, `pg_trgm`, `vector`, `pgtap`), schema `app`, `touch_updated_at`, test "mọi bảng bật RLS", `docker-compose.yml` web+collab | `supabase/`, `infra/docker-compose.yml` | `supabase start && pnpm db:reset && pnpm db:test` pass; README hướng dẫn chạy local | T0.1 | 1 | 0.1.0 |
-| T0.5 | CI: `ci.yml` (lint, typecheck, unit, i18n, pr-title, db, build) có cache pnpm/turbo | `.github/workflows/ci.yml` | PR mẫu chạy xanh < 10 phút; cố tình lệch key i18n → đỏ | T0.3, T0.4 | 1 | 0.1.0 |
+| T0.5 | CI: `ci.yml` (lint, typecheck, unit, i18n, pr-title, db, build) có cache pnpm/turbo | `.github/workflows/ci.yml` | PR mẫu chạy xanh < 10 phút; cố tình lệch key i18n → đỏ; thêm package license không cho phép → đỏ | T0.3, T0.4 | 1 | 0.1.0 |
 | T0.6 | Release: release-please config + manifest (`Release-As: 0.1.0`), `release-vi-notes.yml`, `inject-vi-changelog.ts`, `build-changelog.ts`, trang What's new (skeleton), version ở footer + Settings › Giới thiệu + `/api/health` | `release-please-config.json`, `scripts/`, `apps/web/src/app/(app)/whats-new` | Release PR mở tự động; thiếu `changelog/vi/0.1.0.md` → check đỏ; sau merge có tag `v0.1.0`; app hiển thị `v0.1.0` và changelog đúng ngôn ngữ | T0.3, T0.5 | 1,5 | 0.1.0 |
 | T0.7 | Dockerfile web/collab/migrate, HEALTHCHECK, `/api/health`, `/health`, env zod, `build-images.yml` push GHCR | `apps/*/Dockerfile`, `infra/migrate`, `packages/shared/src/env.ts` | `docker build` cả 3 image; container healthy; image web < 250 MB; thiếu env bắt buộc → crash kèm tên biến | T0.1 | 1 | 0.1.0 |
-| T0.8 | Hạ tầng staging trên Coolify: Supabase service, `kb-web`, `kb-collab`, Cloudflare DNS + Origin CA + Full strict, firewall, secrets, `deploy.yml` qua Coolify API + SSH migrate | `infra/coolify/*.md`, `.github/workflows/deploy.yml` | Merge `main` → staging tự deploy, smoke test xanh; `https://kb-staging.thanhgo.com/api/health` trả sha mới; Postgres không truy cập được từ Internet | T0.7 | 2 | 0.1.0 |
-| T0.9 | Backup: image `kb-backup`, cron, S3 + lifecycle, mã hoá age, restore runbook, job kiểm thử restore | `infra/backup`, `docs/runbooks/backup-restore.md` | Có file backup trên S3; restore vào DB tạm thành công theo runbook; alert khi quá 26 h không backup | T0.8 | 1 | 0.1.0 |
+| T0.8 | Hạ tầng staging trên Coolify (cài Coolify lên `kb-ops-1`, §7.0): Supabase service, `kb-web`, `kb-collab`, Cloudflare DNS + Origin CA + Full strict, firewall, secrets, `deploy.yml` qua Coolify API + SSH migrate | `infra/coolify/*.md`, `.github/workflows/deploy.yml` | Merge `main` → staging tự deploy, smoke test xanh; `https://kb-staging.thanhgo.com/api/health` trả sha mới; Postgres không truy cập được từ Internet | T0.7 | 2 | 0.1.0 |
+| T0.9 | Backup: image `kb-backup`, cron, Cloudflare R2 (bucket lock + lifecycle), mã hoá age, restore runbook, job kiểm thử restore | `infra/backup`, `docs/runbooks/backup-restore.md` | Có file backup trên S3; restore vào DB tạm thành công theo runbook; alert khi quá 26 h không backup | T0.8 | 1 | 0.1.0 |
 | T0.10 | Spike xác minh rủi ro: (a) hook `before_user_created` trên GoTrue self-host, (b) Hocuspocus qua Cloudflare + Traefik (timeout, reconnect), (c) verify JWT Supabase trong collab, (d) Coolify preview + DNS workflow | ADR `docs/adr/0001…0004` | Mỗi điểm có ADR kết luận + phương án dự phòng; WS giữ kết nối ≥ 30 phút qua Cloudflare | T0.8 | 1 | 0.1.0 |
 
-### M1 — Đăng nhập, hồ sơ, Space, phân quyền (→ `v0.2.0`) · ~8,5 ngày
+### M1 — Đăng nhập, hồ sơ, Space, phân quyền (→ `v0.2.0`) · ~9 ngày
 
 | ID | Task | File/module | Tiêu chí hoàn thành | Phụ thuộc | Ước lượng | Version |
 |---|---|---|---|---|---|---|
 | T1.1 | Schema lõi: `profiles`, `app_settings`, `spaces`, `space_members`, `invitations`, enum, hàm `app.*` (space_role, can_*, page_role stub), RLS + grant, pgTAP ma trận | `supabase/migrations/*_core.sql`, `supabase/tests/rls_core.test.sql` | Toàn bộ ma trận vai trò pass; khách không thể là admin; không xoá được admin cuối | T0.4 | 2 | 0.2.0 |
-| T1.2 | Google SSO: `@supabase/ssr` (client/server/middleware), trang login song ngữ, callback, logout, hook chặn domain + nhận lời mời, trigger tạo profile, trang lỗi `AUTH_DOMAIN_NOT_ALLOWED` | `apps/web/src/app/(auth)`, `middleware.ts`, migration hook | Email đúng domain đăng nhập được; email lạ bị từ chối với thông báo vi/en; có lời mời → vào được, `is_guest = true` | T1.1, T0.10 | 1,5 | 0.2.0 |
+| T1.2 | Google SSO: `@supabase/ssr` (client/server/middleware), trang login song ngữ, callback, logout, hook chặn domain + nhận lời mời, trigger tạo profile, trang lỗi `AUTH_DOMAIN_NOT_ALLOWED` | `apps/web/src/app/(auth)`, `middleware.ts`, migration hook | Email bootstrap đăng nhập được và thành super admin; email thuộc domain đã khai báo đăng nhập được; email lạ bị từ chối với thông báo vi/en; có lời mời → vào được, `is_guest = true` | T1.1, T0.10 | 1,5 | 0.2.0 |
 | T1.3 | Cài đặt cá nhân: đổi ngôn ngữ (lưu `profiles.locale` + cookie), múi giờ, avatar/tên | `apps/web/src/app/(app)/settings` | Đổi sang en → toàn bộ UI en, giữ sau đăng xuất/đăng nhập ở máy khác | T1.2 | 0,5 | 0.2.0 |
 | T1.4 | UI Space: danh sách (theo quyền), tạo (người nội bộ), cài đặt (tên, slug, icon, visibility), lưu trữ | `apps/web/src/app/(app)/s/[spaceSlug]`, `components/space` | Viewer không thấy nút sửa; khách không thấy Space internal; slug trùng báo lỗi dịch | T1.1 | 1,5 | 0.2.0 |
 | T1.5 | Thành viên: thêm người nội bộ (tìm theo tên/email), đổi vai trò, xoá, tự rời; mời khách qua email (token, hạn 14 ngày, thu hồi), email React Email song ngữ | `settings/members`, `packages/emails`, route `/invite/[token]` | Luồng mời → nhận → vào Space hoạt động E2E; token dùng 1 lần; hết hạn báo lỗi | T1.4, T1.2 | 2 | 0.2.0 |
 | T1.6 | Audit log: bảng, trigger `app.audit_*` cho spaces/members/invitations/settings, `app.actor_id`; trang audit (admin Space, super admin) có lọc, nhãn action dịch | migration `*_audit.sql`, `settings/audit` | Đổi vai trò tạo bản ghi `member.role_change` có from/to; UPDATE/DELETE audit bị từ chối với mọi role | T1.1 | 1 | 0.2.0 |
+| T1.7 | Quản trị hệ thống: trang `/admin/settings` khai báo domain được phép (thêm/xoá, validate, cảnh báo domain công cộng, hiển thị số user bị ảnh hưởng), danh sách người dùng (khoá/mở, cấp/gỡ super admin, chuyển thành khách); middleware chặn phiên của user có domain vừa bị gỡ | `app/(app)/admin/*`, `apps/web/src/server/admin.ts` | Chỉ super admin truy cập được (RLS + route guard); thêm domain → người thuộc domain đăng nhập được ngay; gỡ domain → lần request kế tiếp bị đăng xuất với thông báo dịch; audit `settings.update` có before/after | T1.2, T1.6 | 0,5 | 0.2.0 |
 
 ### M2 — Cây trang (→ `v0.3.0`) · ~6 ngày
 
@@ -850,30 +912,37 @@ Mục tiêu coverage: `packages/editor` ≥ 80 %, logic khác ≥ 60 %; mọi po
 | T6.3 | Khôi phục: tạo `pre_restore` → thay nội dung qua internal API → bản `restore` (`restored_from_version_id`) → audit `version.restore`; client đang mở nhận nội dung mới + toast | `apps/web/src/server/versions.ts`, collab internal API | Khôi phục khi người khác đang mở: không mất dữ liệu (bản pre_restore có thể khôi phục ngược lại); viewer không khôi phục được | T6.1, T3.7 | 1 | 0.7.0 |
 | T6.4 | Hoàn thiện audit UI: thêm action trang/phiên bản, lọc theo người/loại/thời gian, xuất CSV audit (admin) | `settings/audit` | Mọi thao tác trong danh sách §3.2 xuất hiện đúng; nhãn dịch đủ vi/en | T1.6, T6.3 | 1 | 0.7.0 |
 
-### M7 — Hoàn thiện và ra mắt production (→ `v0.8.0` = MVP) · ~8,5 ngày
+### M7 — Hoàn thiện, pilot và ra mắt (→ `v0.8.0` ứng viên → **`v1.0.0` = MVP**) · ~8,5 ngày
 
 | ID | Task | File/module | Tiêu chí hoàn thành | Phụ thuộc | Ước lượng | Version |
 |---|---|---|---|---|---|---|
 | T7.1 | Hoàn chỉnh E2E (danh sách §8) chạy cả vi/en, ma trận RLS đầy đủ, `e2e.yml` bắt buộc trên PR | `apps/web/e2e`, `supabase/tests` | E2E xanh ổn định 10 lần liên tiếp (không flaky) | M1–M6 | 2 | 0.8.0 |
 | T7.2 | Bảo mật: CSP/headers, rate limit (search, mời), khoá Studio sau Cloudflare Access, `pnpm audit`, review secret, runbook xoay secret | `next.config.ts`, `docs/runbooks` | Checklist bảo mật hoàn tất; securityheaders ≥ A | T0.8 | 1 | 0.8.0 |
-| T7.3 | Production: dựng môi trường prod trên Coolify (theo tài liệu staging), OAuth client prod, backup + restore thử trên prod, Uptime Kuma + alert, error tracking | `infra/coolify/production.md` | Release `v0.8.0` deploy qua pipeline có duyệt; restore thử thành công; alert test đến kênh đã chọn | T0.9, T7.2 | 1,5 | 0.8.0 |
+| T7.3 | Production: thêm `kb-prod-1` làm remote server trong Coolify, dựng môi trường prod (theo tài liệu staging), OAuth client prod, backup + restore thử trên prod, Uptime Kuma + alert, error tracking | `infra/coolify/production.md` | Release `v0.8.0` deploy qua pipeline có duyệt; restore thử thành công; alert test đến kênh đã chọn | T0.9, T7.2 | 1,5 | 0.8.0 |
 | T7.4 | Tài liệu người dùng vi/en (bắt đầu, Space & quyền, editor & bảng, tìm kiếm, lịch sử), Space "Hướng dẫn" seed sẵn, nội dung What's new đầy đủ | `docs/user-guide/{vi,en}` | Script kiểm tra mỗi trang vi có bản en | M1–M6 | 1 | 0.8.0 |
-| T7.5 | Pilot với 1–2 phòng ban, thu phản hồi, sửa lỗi (buffer) | – | Không còn bug mức nghiêm trọng; phản hồi ghi thành issue | T7.3 | 3 | 0.8.x |
+| T7.5 | Pilot `0.8.x` trên production với 1–2 phòng ban, thu phản hồi, sửa lỗi (buffer) | – | Không còn bug mức nghiêm trọng; phản hồi ghi thành issue | T7.3 | 3 | 0.8.x |
+| T7.6 | Phát hành **1.0.0**: checklist go-live (backup/restore thử trong 7 ngày qua, alert hoạt động, không bug P0/P1 mở, E2E xanh, tài liệu vi/en đủ, ghi chú phát hành vi/en), commit `Release-As: 1.0.0`, thông báo toàn công ty (song ngữ) | `changelog/vi/1.0.0.md`, `docs/runbooks/go-live.md` | Tag `v1.0.0`, app hiển thị `v1.0.0`, trang What's new có bài giới thiệu MVP | T7.5 | 0 (trong buffer) | **1.0.0** |
 
-**Tổng: ~62 ngày công** (≈ 3 tháng lịch, đã gồm buffer ở T7.5). Đường găng: T0.1 → T0.4 → T1.1 → T2.1 → T3.3 → T3.4 → T4.x → T5.x → T6.x → T7.x.
+**Tổng: ~63 ngày công** (≈ 3 tháng lịch, đã gồm buffer ở T7.5). Đường găng: T0.1 → T0.4 → T1.1 → T2.1 → T3.3 → T3.4 → T4.x → T5.x → T6.x → T7.x.
 
 ---
 
 ## 10. Lộ trình V2/V3 và các quyết định cần làm sớm ở MVP
 
-### 10.1 V2 (ước lượng ~5–6 tuần)
+### 10.1 V2 (ước lượng ~5–6 tuần, phát hành dạng `1.x`)
 - **Real-time nhiều người**: collab đã chạy từ MVP → thêm `@tiptap/extension-collaboration-caret` (cursor, tên, màu), danh sách người đang xem, `y-indexeddb` giữ bản offline; Redis extension nếu chạy >1 instance.
 - **Comment & @mention**: bảng `comments` (thread, anchor = `block_id` + Yjs `RelativePosition` lưu trong mark của doc), `mentions`, `notifications` (in-app qua Supabase Realtime + email song ngữ theo `profiles.locale`, digest). RLS theo `page_role`.
 - **Mẫu trang**: trang `is_template = true` trong Space hệ thống, có bản vi và en (`template_locale`); áp dụng = internal replace API (bản `template`). Mẫu mặc định: SOP, Meeting note, Postmortem (mỗi mẫu 2 ngôn ngữ).
 - **Quyền theo trang** (nếu cần): bảng `page_permissions`, sửa `app.page_role()`.
 
-### 10.2 V3
-- **Hỏi đáp AI (RAG có trích dẫn)**: bảng `page_chunks(page_id, block_id, space_id, content, embedding vector(n), tsv)`, chunk theo block (bảng chunk theo nhóm hàng kèm header); cập nhật khi `store` (queue qua bảng `jobs` + worker). **Retrieval chạy bằng JWT của người hỏi** (RLS) → không bao giờ trả trích đoạn ngoài quyền. Hybrid search = FTS §4 + vector. Trích dẫn = link `…/p/<ref>#block-<id>`. LLM: Claude (API Anthropic) cho sinh câu trả lời; embedding đa ngữ hỗ trợ tiếng Việt (Voyage multilingual hoặc self-host `bge-m3`) — câu hỏi mở về chính sách dữ liệu.
+### 10.2 V3 (phát hành dạng `1.x`)
+- **Hỏi đáp AI (RAG có trích dẫn)** — đã được phép dùng API bên ngoài:
+  - **Dữ liệu**: bảng `page_chunks(id, page_id, block_id, space_id, chunk_index, content, content_hash, embedding vector(1024), tsv, updated_at)`, chunk theo block (heading + các đoạn con, ~300–800 token); bảng chunk theo nhóm hàng, lặp lại hàng tiêu đề. Index HNSW (`vector_cosine_ops`) + GIN FTS. RLS giống `page_search`.
+  - **Cập nhật**: `kb-collab` sau `store` ghi job vào bảng `jobs` (debounce 5 phút/trang); service `kb-worker` (tách riêng, cùng repo `apps/worker`) tính lại chunk thay đổi (so `content_hash`) → gọi embedding API → upsert. Chỉ xử lý Space có `ai_enabled = true` và khi `app_settings.ai_enabled`.
+  - **Embedding**: **Voyage AI** (nhà cung cấp embedding Anthropic khuyến nghị, model đa ngữ — chọn model và số chiều khi bắt đầu V3, benchmark trên golden set tiếng Việt; phương án tự host `bge-m3` nếu muốn giảm phụ thuộc).
+  - **Retrieval**: chạy bằng **JWT của người hỏi** (RLS) → không bao giờ lấy đoạn ngoài quyền. Hybrid = FTS tiếng Việt §4 + vector, gộp bằng Reciprocal Rank Fusion, lấy top ~20 chunk.
+  - **Sinh câu trả lời**: **Claude API** qua SDK chính thức `@anthropic-ai/sdk`, model mặc định `claude-opus-5` (có thể hạ chi phí sau khi đo chất lượng), streaming, adaptive thinking. Các chunk được đưa vào dưới dạng `document` block với **Citations API bật** (`citations: {enabled: true}`) → câu trả lời có trích dẫn gắn đúng đoạn nguồn; UI map mỗi trích dẫn về link `…/p/<ref>#block-<id>`. System prompt cố định (song ngữ theo `profiles.locale`) được **prompt caching**. Xử lý `stop_reason: "refusal"` và bật fallback phía server.
+  - **An toàn dữ liệu**: cờ `ai_enabled` theo Space (loại Space nhạy cảm) và toàn hệ thống; không gửi tệp đính kèm, chỉ text; audit `ai.query` (người hỏi, Space, số chunk — không lưu nguyên văn nếu chính sách yêu cầu); giới hạn chi phí theo ngày/người; ghi rõ trong tài liệu người dùng (vi/en) rằng nội dung được gửi tới Anthropic/Voyage; xem xét điều khoản xử lý dữ liệu (DPA) của nhà cung cấp.
 - **Cảnh báo tài liệu cũ**: dùng `pages.owner_id`, `last_edited_at` (+ thêm `review_interval_days`, `verified_at`) → job hằng tuần gửi thông báo.
 - **Import Notion/Google Docs**: chuyển HTML/Markdown → ProseMirror JSON bằng schema `packages/editor` (server-side với `happy-dom`) → internal replace API (reason `import`), ảnh tải lại lên Storage.
 - **Bot Slack/Telegram**: bảng liên kết tài khoản (`external_identities`) để bot hỏi đáp **theo quyền người dùng**; không dùng service role để trả lời.
@@ -899,7 +968,7 @@ Mục tiêu coverage: `packages/editor` ≥ 80 %, logic khác ≥ 60 %; mọi po
 | # | Rủi ro | Mức | Phương án |
 |---|---|---|---|
 | R1 | Lệch schema editor giữa client và server → mất nội dung khi Yjs dẫn xuất | Cao | `packages/editor` dùng chung; kiểm tra `EDITOR_SCHEMA_VERSION` khi kết nối; test round-trip JSON ↔ Yjs; snapshot trước khi migrate nội dung |
-| R2 | Kéo thả hàng/cột và paste Excel phức tạp hơn dự kiến (không có sẵn trong TipTap bản miễn phí, ô gộp) | Cao | Timebox 2 ngày mỗi phần; fixture thật từ nhiều nguồn; nếu vượt: MVP chặn kéo thả khi bảng có ô gộp, hoàn thiện ở 0.5.x; đánh giá extension trả phí (câu hỏi mở) |
+| R2 | Kéo thả hàng/cột và paste Excel phức tạp hơn dự kiến (TipTap không có sẵn, **không dùng bản trả phí** → tự viết), ô gộp | Cao | Timebox 2 ngày mỗi phần; tham khảo mã nguồn mở `prosemirror-tables` (`CellSelection`, `TableMap`) và các dự án MIT; fixture thật từ nhiều nguồn; nếu vượt: MVP chặn kéo thả khi bảng có ô gộp, hoàn thiện ở 0.5.x |
 | R3 | Sai sót RLS làm lộ dữ liệu giữa phòng ban | Cao | Helper tập trung; pgTAP ma trận bắt buộc; test "mọi bảng bật RLS"; review riêng cho migration có policy; không dùng service role cho đường đọc người dùng |
 | R4 | Vận hành Supabase self-host (nhiều container, nâng cấp, GoTrue hook chưa hỗ trợ) | TB | Ghim version image; nâng cấp trên staging trước; spike T0.10; dự phòng trigger `auth.users`; runbook nâng cấp |
 | R5 | WebSocket bị ngắt qua Cloudflare/Traefik, token hết hạn giữa phiên | TB | Ping 30 s, `readTimeout=0`, reconnect backoff, `sendToken` khi refresh, UI trạng thái; test ≥ 30 phút ở T0.10 |
@@ -909,25 +978,35 @@ Mục tiêu coverage: `packages/editor` ≥ 80 %, logic khác ≥ 60 %; mọi po
 | R9 | Quên ghi chú tiếng Việt / tiếng Việt chất lượng kém | Thấp | Check bắt buộc trên Release PR; PR template nhắc; glossary thuật ngữ |
 | R10 | Một dev (bus factor, ước lượng lạc quan) | TB | Buffer 3 ngày; ADR + runbook đầy đủ; milestone có thể cắt phạm vi (T2.5, T6.2 diff, T4.3 ô gộp) |
 | R11 | Coolify API/tính năng thay đổi giữa các phiên bản | Thấp | Ghim phiên bản Coolify; bọc lời gọi API trong 1 script; dự phòng webhook deploy của Coolify |
-| R12 | Tài nguyên 1 server (Supabase + app + preview) không đủ | TB | Giới hạn RAM từng container; preview tối đa 3 đồng thời; tách prod/staging khác server |
+| R12 | Tài nguyên server không đủ (đặc biệt `kb-ops-1` khi nhiều preview) | TB | Giới hạn RAM từng container; preview tối đa 3 đồng thời; build ở GitHub Actions; prod tách server riêng (§7.0) |
+| R14 | Admin gỡ nhầm domain → khoá cả công ty | TB | UI cảnh báo số người bị ảnh hưởng + xác nhận gõ lại tên domain; không cho gỡ domain của chính super admin đang thao tác; bootstrap email luôn đăng nhập được; audit before/after để khôi phục |
+| R15 | Rò rỉ nội dung nhạy cảm qua AI (V3) | TB | Retrieval theo RLS của người hỏi; cờ `ai_enabled` theo Space; không gửi tệp; audit; giới hạn chi phí |
 | R13 | Yjs doc phình to (paste lớn, lịch sử) | Thấp | GC bật, chặn base64, cảnh báo > 5 MB, snapshot ở bảng riêng |
 
 ---
 
-## 12. Câu hỏi mở cần anh/chị quyết định
+## 12. Câu hỏi mở
 
-1. **Domain email công ty** được phép SSO: `thanhgo.com`, `ahamove.com`, hay nhiều domain? (Plan lưu ở `app_settings.allowed_email_domains`, đổi được lúc chạy.)
-2. **Số phiên bản khi ra mắt MVP**: giữ `0.8.0` và lên `1.0.0` sau pilot, hay phát hành MVP là `1.0.0`?
-3. **Hạ tầng server**: bao nhiêu server Coolify, cấu hình (CPU/RAM/disk)? Staging và prod có tách server không?
-4. **S3 cho backup**: nhà cung cấp nào (Cloudflare R2, AWS S3, MinIO riêng)? Mục tiêu RPO/RTO chấp nhận được (plan đề xuất 24 h / 2 h)?
-5. **SMTP** gửi email mời khách: dùng dịch vụ nào (Google Workspace SMTP relay, SES, Resend…)?
-6. **Ai là super admin ban đầu?** Mọi nhân viên nội bộ được tự tạo Space hay chỉ admin?
-7. **Visibility mặc định của Space mới**: `internal` (mọi nhân viên xem được) hay `restricted`?
-8. **Retention**: phiên bản trang (đề xuất: giữ hết manual, auto 30 ngày rồi thưa dần) và audit log (đề xuất 2 năm)?
-9. **Error tracking**: dùng Sentry cloud, GlitchTip self-host, hay chỉ log?
-10. **Extension trả phí của TipTap** (nếu cần cho bảng/drag handle): có ngân sách không, hay bắt buộc chỉ dùng mã nguồn mở?
-11. **Đồng bộ Google Groups** → thành viên Space: cần ở MVP, V2, hay không?
-12. **Dữ liệu staging**: chỉ dữ liệu giả (seed) hay được copy prod đã ẩn danh?
-13. **V3 AI**: được phép gửi nội dung nội bộ tới API bên ngoài (Anthropic, nhà cung cấp embedding) không, hay cần mô hình self-host?
-14. **Kênh cảnh báo vận hành** (deploy, backup lỗi, down): Slack, Telegram hay email?
-15. **Có cần review bởi người thứ hai** trước khi merge vào `main` (branch protection), hay 1 dev tự merge sau khi CI xanh?
+### 12.1 Đã quyết định
+| Câu hỏi | Quyết định |
+|---|---|
+| Domain email được đăng nhập | Super admin khai báo trong trang Quản trị (`app_settings.allowed_email_domains`); bootstrap super admin qua env |
+| Version khi ra mắt MVP | **1.0.0** (sau pilot `0.8.x`) |
+| Server, tách staging | 2 VPS tách biệt (§7.0) |
+| S3, SMTP | Cloudflare R2 cho backup; Google Workspace SMTP relay (dự phòng SES/Resend) (§7.8, §7.14) |
+| TipTap trả phí | Không — chỉ mã nguồn mở, tự viết phần thiếu (§2.1) |
+| AI gửi nội dung ra ngoài | Có — Claude API + Voyage AI, có cờ tắt theo Space (§10.2) |
+
+### 12.2 Còn mở
+1. **Công ty có dùng Google Workspace không** (để chốt SMTP relay)? Ai là admin Workspace để bật relay?
+2. **Email super admin đầu tiên** (`BOOTSTRAP_SUPER_ADMIN_EMAILS`)? Mọi nhân viên nội bộ được tự tạo Space hay chỉ admin?
+3. **Nhà cung cấp VPS**: ưu tiên data center Việt Nam hay Singapore? Có yêu cầu dữ liệu phải lưu trong nước không?
+4. **Visibility mặc định của Space mới**: `internal` (mọi nhân viên xem được) hay `restricted`?
+5. **Retention**: phiên bản trang (đề xuất: giữ hết manual, auto 30 ngày rồi thưa dần) và audit log (đề xuất 2 năm)?
+6. **Mục tiêu RPO/RTO** (đề xuất 24 h / 2 h ở MVP) — có cần PITR (RPO ~5 phút) ngay không?
+7. **Error tracking**: Sentry cloud, GlitchTip self-host (thêm ~1 GB RAM trên `kb-ops-1`), hay chỉ log?
+8. **Đồng bộ Google Groups** → thành viên Space: cần ở MVP, V2, hay không?
+9. **Dữ liệu staging**: chỉ dữ liệu giả (seed) hay được copy prod đã ẩn danh?
+10. **Kênh cảnh báo vận hành** (deploy, backup lỗi, down): Slack, Telegram hay email?
+11. **Review trước khi merge** vào `main`: cần người thứ hai hay 1 dev tự merge khi CI xanh?
+12. **V3 AI — ngân sách** hằng tháng cho API (để đặt giới hạn chi phí) và có cần lưu nguyên văn câu hỏi/trả lời để cải thiện chất lượng không?
