@@ -1,0 +1,12 @@
+pnpm-lock.yaml
+CHANGELOG.md
+packages/db/src/types.gen.ts
+.next/
+dist/
+coverage/
+.turbo/
+# owned by the human coordinator
+AGENTS.md
+CLAUDE.md
+docs/PLAN.md
+docs/ai/
