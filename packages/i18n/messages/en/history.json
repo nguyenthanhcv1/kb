@@ -1,0 +1,14 @@
+{
+  "compare": "Compare",
+  "current": "Current version",
+  "reasons": {
+    "auto": "Autosave",
+    "import": "Imported",
+    "manual": "Named version",
+    "pre_restore": "Before restore",
+    "restore": "Restored",
+    "template": "From template"
+  },
+  "restore": "Restore",
+  "title": "Version history"
+}

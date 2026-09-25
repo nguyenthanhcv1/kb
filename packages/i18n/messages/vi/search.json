@@ -1,0 +1,11 @@
+{
+  "placeholder": "Tìm kiếm trang…",
+  "quickSwitcher": {
+    "recent": "Trang gần đây",
+    "title": "Chuyển nhanh"
+  },
+  "results": {
+    "count": "{count, plural, =0 {Không có kết quả} other {# kết quả}}",
+    "title": "Kết quả tìm kiếm"
+  }
+}

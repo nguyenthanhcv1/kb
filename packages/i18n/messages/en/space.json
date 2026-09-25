@@ -1,0 +1,18 @@
+{
+  "archive": "Archive",
+  "create": "Create space",
+  "invite": "Invite members",
+  "members": "Members",
+  "roles": {
+    "admin": "Full access",
+    "editor": "Can edit",
+    "viewer": "Can view"
+  },
+  "settings": "Space settings",
+  "title": "Spaces",
+  "unarchive": "Unarchive",
+  "visibility": {
+    "internal": "Internal",
+    "restricted": "Restricted"
+  }
+}

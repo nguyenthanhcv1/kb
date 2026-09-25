@@ -1,0 +1,14 @@
+{
+  "compare": "So sánh",
+  "current": "Phiên bản hiện tại",
+  "reasons": {
+    "auto": "Tự động lưu",
+    "import": "Đã nhập",
+    "manual": "Phiên bản đặt tên",
+    "pre_restore": "Trước khi khôi phục",
+    "restore": "Đã khôi phục",
+    "template": "Tạo từ mẫu"
+  },
+  "restore": "Khôi phục",
+  "title": "Lịch sử phiên bản"
+}

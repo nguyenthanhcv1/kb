@@ -1,0 +1,15 @@
+{
+  "access": {
+    "kinds": {
+      "domain": "Tên miền",
+      "email": "Email"
+    },
+    "title": "Truy cập"
+  },
+  "title": "Quản trị",
+  "users": {
+    "guest": "Khách mời",
+    "superAdmin": "Quản trị viên hệ thống",
+    "title": "Người dùng"
+  }
+}
