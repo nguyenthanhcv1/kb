@@ -1,0 +1,13 @@
+{
+  "actions": {
+    "addSubpage": "Add subpage",
+    "copyLink": "Copy link",
+    "moveTo": "Move to…",
+    "moveToTrash": "Move to trash",
+    "rename": "Rename"
+  },
+  "collapse": "Collapse",
+  "expand": "Expand",
+  "newPage": "New page",
+  "untitled": "Untitled"
+}
