@@ -1,0 +1,18 @@
+{
+  "about": {
+    "title": "Giới thiệu",
+    "version": "Phiên bản {version}"
+  },
+  "language": {
+    "label": "Ngôn ngữ"
+  },
+  "profile": {
+    "avatar": "Ảnh đại diện",
+    "displayName": "Tên hiển thị",
+    "title": "Hồ sơ"
+  },
+  "timeZone": {
+    "label": "Múi giờ"
+  },
+  "title": "Cài đặt"
+}

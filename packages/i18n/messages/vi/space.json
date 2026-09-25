@@ -1,0 +1,18 @@
+{
+  "archive": "Lưu trữ",
+  "create": "Tạo không gian",
+  "invite": "Mời thành viên",
+  "members": "Thành viên",
+  "roles": {
+    "admin": "Quản trị",
+    "editor": "Sửa",
+    "viewer": "Xem"
+  },
+  "settings": "Cài đặt không gian",
+  "title": "Không gian",
+  "unarchive": "Bỏ lưu trữ",
+  "visibility": {
+    "internal": "Nội bộ",
+    "restricted": "Hạn chế"
+  }
+}

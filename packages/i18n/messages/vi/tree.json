@@ -1,0 +1,13 @@
+{
+  "actions": {
+    "addSubpage": "Thêm trang con",
+    "copyLink": "Sao chép liên kết",
+    "moveTo": "Di chuyển tới…",
+    "moveToTrash": "Chuyển vào thùng rác",
+    "rename": "Đổi tên"
+  },
+  "collapse": "Thu gọn",
+  "expand": "Mở rộng",
+  "newPage": "Trang mới",
+  "untitled": "Chưa có tiêu đề"
+}
