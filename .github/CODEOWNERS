@@ -1,0 +1,12 @@
+# Người điều phối review & merge mọi PR (docs/ai/WORKFLOW.md §9–10).
+# Agent (claude-1/2, codex-1/2) không phải tài khoản GitHub riêng — vùng sở hữu theo lane
+# nằm ở docs/ai/tasks.yaml và được kiểm tra bằng CI `agent-scope` (T0.11), không phải file này.
+*                  @nguyenthanhcv1
+
+# Quy tắc và kế hoạch — chỉ người sửa.
+/AGENTS.md         @nguyenthanhcv1
+/CLAUDE.md         @nguyenthanhcv1
+/docs/PLAN.md      @nguyenthanhcv1
+/docs/ai/          @nguyenthanhcv1
+/.github/          @nguyenthanhcv1
+/supabase/migrations/ @nguyenthanhcv1
