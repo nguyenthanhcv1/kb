@@ -13,6 +13,14 @@
     "description": "Chọn một Space ở thanh bên để bắt đầu.",
     "title": "Chào mừng đến với KB"
   },
+  "locale": {
+    "label": "Ngôn ngữ",
+    "names": {
+      "en": "English",
+      "vi": "Tiếng Việt"
+    },
+    "toggle": "Đổi ngôn ngữ"
+  },
   "notFound": {
     "backHome": "Về trang chủ",
     "code": "404",

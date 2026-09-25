@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 
 import { Brand } from "./brand";
+import { LocaleSwitcher } from "./locale-switcher";
 import { Sidebar } from "./sidebar";
 import { ThemeToggle } from "./theme-toggle";
 
@@ -19,7 +20,7 @@ type AppShellProps = {
 
 /**
  * Signed-in app frame: fixed sidebar from `md` (768 px), a drawer below that,
- * a top bar with the theme switcher, and a skip link to the main content.
+ * a top bar with the language and theme switchers, and a skip link to the main content.
  */
 export function AppShell({ sidebar, children }: AppShellProps) {
   const t = useTranslations("common.shell");
@@ -69,6 +70,7 @@ export function AppShell({ sidebar, children }: AppShellProps) {
             <Brand />
           </div>
           <div className="ml-auto flex items-center gap-1">
+            <LocaleSwitcher />
             <ThemeToggle />
           </div>
         </header>

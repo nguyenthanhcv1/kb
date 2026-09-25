@@ -13,6 +13,14 @@
     "description": "Pick a Space in the sidebar to get started.",
     "title": "Welcome to KB"
   },
+  "locale": {
+    "label": "Language",
+    "names": {
+      "en": "English",
+      "vi": "Tiếng Việt"
+    },
+    "toggle": "Change language"
+  },
   "notFound": {
     "backHome": "Back to home",
     "code": "404",
