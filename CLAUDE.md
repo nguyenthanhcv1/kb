@@ -48,7 +48,7 @@ Knowledge base nội bộ self-host: editor dạng block (TipTap), table block �
 - **Một đường ghi nội dung duy nhất:** mọi thay đổi nội dung (sửa, khôi phục, mẫu, import) đi qua `kb-collab`. `kb-web` không ghi thẳng `page_documents.ydoc`.
 - **Schema editor dùng chung:** extension TipTap nằm ở `packages/editor`, được dùng bởi cả client, collab server và bộ trích xuất search. Đổi schema → tăng `EDITOR_SCHEMA_VERSION`.
 - Mỗi block có **ID ổn định** (UniqueID) — dùng cho deep link, comment (V2), trích dẫn RAG (V3).
-- Domain email được đăng nhập do super admin khai báo trong DB (`app_settings.allowed_email_domains`) — không hard-code domain trong code/env (trừ `BOOTSTRAP_SUPER_ADMIN_EMAILS` cho lần đầu).
+- Ai được đăng nhập do super admin khai báo trong DB (bảng `access_allowlist`, theo email hoặc domain) — không hard-code email/domain trong code (trừ env `BOOTSTRAP_SUPER_ADMIN_EMAILS` cho lần đầu). Space mới mặc định `restricted`.
 - Migration DB: Supabase CLI, **forward-only**, thay đổi phá vỡ dùng expand → contract qua ít nhất 1 release.
 
 ## Definition of Done cho mỗi PR

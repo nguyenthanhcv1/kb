@@ -1,6 +1,6 @@
 # Kế hoạch triển khai `kb` — Knowledge base nội bộ
 
-> Trạng thái: **Bản nháp v2** (đã cập nhật theo trả lời vòng 2) · Ngày: 2026-09-25 · Phạm vi: MVP chi tiết, V2/V3 tổng quan
+> Trạng thái: **Bản nháp v3** (đã cập nhật theo trả lời vòng 3) · Ngày: 2026-09-25 · Phạm vi: MVP chi tiết, V2/V3 tổng quan
 > Nguyên tắc bắt buộc (song ngữ, changelog, SemVer, RLS): xem [`CLAUDE.md`](../CLAUDE.md).
 
 ## 0. Tóm tắt các quyết định đã chốt
@@ -10,20 +10,20 @@
 | Quy mô thiết kế | < 200 người dùng, < 20.000 trang → 1 server Coolify, tìm kiếm bằng Postgres FTS + `pg_trgm`, 1 instance `kb-collab` |
 | Lưu nội dung | **Yjs binary là nguồn sự thật** (`bytea`) + dẫn xuất TipTap JSON / plain text phục vụ render, search, version |
 | `kb-collab` | **Có ngay từ MVP.** Editor luôn kết nối Hocuspocus; V2 chỉ bật UI presence/cursor |
-| Đăng nhập | Google SSO. **Super admin khai báo danh sách domain** được phép trong trang Quản trị (lưu DB, đổi được lúc chạy) + cho phép mời khách vào từng Space |
-| Phân quyền MVP | Theo Space (Xem / Sửa / Quản trị); schema và hàm helper sẵn sàng cho quyền theo trang ở V2 |
+| Đăng nhập | Google SSO. **Super admin khai báo danh sách cho phép** trong trang Quản trị: theo **domain** (cả công ty) *hoặc* theo **từng email** (team nhỏ) — lưu DB, đổi được lúc chạy. Cộng thêm mời khách vào từng Space. Super admin đầu tiên: `nguyenthanh.cv@gmail.com` |
+| Phân quyền MVP | Theo Space (Xem / Sửa / Quản trị); **Space mới mặc định `restricted` (chỉ thành viên)**; schema và hàm helper sẵn sàng cho quyền theo trang ở V2 |
 | Khách mời | Tối đa Xem/Sửa trong Space được mời; không bao giờ là Quản trị; không thấy Space "nội bộ"; không tạo Space |
 | Release | **release-please**. Các milestone phát hành `0.x`; **MVP ra mắt production là `1.0.0`** |
 | Changelog | `CHANGELOG.md` do release-please sinh (en) + ghi chú tiếng Việt viết tay `changelog/vi/<version>.md`, CI chèn vào `CHANGELOG.md` |
 | Môi trường | local · staging · production · preview theo PR (chỉ `kb-web`, dùng chung Supabase staging) |
 | Mạng | Cloudflare proxy (SSL Full strict) |
 | Domain gốc | `thanhgo.com` (xem §7.3 — **chỉ dùng subdomain 1 cấp**) |
-| Server | **2 VPS tách biệt**: production (4 vCPU / 8 GB / 160 GB NVMe) và staging + preview + Coolify control plane (4 vCPU / 8 GB / 80 GB) — §7.0 |
+| Server | **Hostinger VPS, 2 máy tách biệt**: production `KVM 2` (2 vCPU / 8 GB / 100 GB NVMe) và staging + preview + Coolify `KVM 2`; nâng `KVM 4` khi cần. Không bắt buộc lưu dữ liệu trong nước → đặt ở data center gần VN nhất — §7.0 |
 | Lưu trữ backup (S3) | **Cloudflare R2** (S3-compatible, không phí egress, cùng tài khoản Cloudflare). Supabase Storage *không* dùng làm đích backup vì nằm cùng server — §7.8 |
-| Email (SMTP) | Supabase không cung cấp SMTP. Đề xuất **Google Workspace SMTP relay** (nếu công ty dùng Workspace), dự phòng **Amazon SES** hoặc **Resend** — §7.14 |
+| Email (SMTP) | Supabase không cung cấp SMTP. **Gmail SMTP bằng App Password của một tài khoản Workspace** (không cần admin công ty); nâng lên **Resend** với domain `thanhgo.com` khi cần — §7.14 |
 | TipTap | **Chỉ dùng phần mã nguồn mở (MIT)**; tính năng thiếu thì tự viết. CI chặn package trả phí — §2.1 |
 | AI (V3) | **Được phép** gửi nội dung tới API bên ngoài: Claude API (Anthropic) cho sinh câu trả lời, Voyage AI cho embedding; có cờ tắt AI theo Space — §10.2 |
-| Nhân lực | 1 dev fulltime (+AI) → ước lượng ~63 ngày công cho MVP (~3 tháng lịch) |
+| Nhân lực | 1 dev fulltime (+AI) → ước lượng ~63,5 ngày công cho MVP (~3 tháng lịch) |
 
 ---
 
@@ -65,8 +65,8 @@
 **Đăng nhập**
 1. Người dùng bấm "Đăng nhập với Google" → `kb-web` gọi `supabase.auth.signInWithOAuth({ provider: 'google' })`.
 2. GoTrue (tại `kb-api.thanhgo.com/auth/v1`) redirect sang Google → callback về GoTrue.
-3. **Hook `before_user_created`** (hàm Postgres) kiểm tra: email thuộc `app_settings.allowed_email_domains` (do super admin khai báo) **hoặc** có lời mời còn hạn trong `invitations` **hoặc** nằm trong danh sách bootstrap super admin (`app_settings.bootstrap_admin_emails`, nạp từ env lúc triển khai lần đầu) → cho tạo; ngược lại từ chối với mã lỗi `AUTH_DOMAIN_NOT_ALLOWED`. Hook cũng chạy ở **mỗi lần đăng nhập** (kiểm tra ở middleware): nếu admin gỡ một domain, người dùng nội bộ thuộc domain đó bị chặn (trừ khi đã được chuyển thành khách có membership).
-4. Trigger `on auth.users insert` tạo `profiles` (locale mặc định `vi`, `is_guest` = email ngoài domain), gắn membership từ lời mời.
+3. **Hook `before_user_created`** (hàm Postgres) kiểm tra theo thứ tự: (a) email nằm trong `bootstrap_admin_emails` → cho tạo, là người nội bộ + super admin; (b) email khớp **danh sách cho phép** `access_allowlist` (một dòng `domain` khớp phần sau `@`, hoặc một dòng `email` khớp chính xác) → người nội bộ; (c) có lời mời còn hạn trong `invitations` → khách; (d) còn lại → từ chối với mã lỗi `AUTH_NOT_ALLOWED`. Middleware kiểm tra lại ở **mỗi phiên**: nếu admin gỡ domain/email khỏi danh sách, người đó bị đăng xuất (trừ khi vẫn còn membership dạng khách).
+4. Trigger `on auth.users insert` tạo `profiles` (locale mặc định `vi`, `is_guest = true` chỉ khi vào bằng lời mời mà không khớp allowlist), gắn membership từ lời mời. Nếu sau này admin thêm email/domain của khách vào allowlist → `is_guest` tự chuyển `false`.
 5. `kb-web` nhận session qua `@supabase/ssr` (cookie httpOnly trên `kb.thanhgo.com`); middleware refresh token.
 
 **Mở và sửa trang**
@@ -209,7 +209,7 @@ CI: job `licenses` (trong `ci.yml`) chạy `license-checker`/`pnpm licenses list
 - Schema `public`: bảng được PostgREST expose. Schema `app`: hàm helper/trigger (không expose). Schema `private`: dữ liệu không cho client đọc (vd `ydoc` nếu cần tách — xem 3.5).
 - Enum:
   - `space_role`: `viewer`, `editor`, `admin`
-  - `space_visibility`: `internal` (mọi nhân viên nội bộ = viewer ngầm định), `restricted` (chỉ thành viên)
+  - `space_visibility`: `restricted` (**mặc định** — chỉ thành viên), `internal` (mọi người nội bộ = viewer ngầm định; admin Space chủ động bật)
   - `version_reason`: `auto`, `manual`, `pre_restore`, `restore`, `template`, `import`
 - Soft delete bằng `deleted_at` (thùng rác 30 ngày, job dọn định kỳ).
 
@@ -224,15 +224,29 @@ CI: job `licenses` (trong `ci.yml`) chạy `license-checker`/`pnpm licenses list
 | `avatar_url` | text | |
 | `locale` | text not null default `'vi'` check in (`vi`,`en`) | lưu lựa chọn ngôn ngữ |
 | `time_zone` | text not null default `'Asia/Ho_Chi_Minh'` | |
-| `is_guest` | boolean not null default false | email ngoài domain cho phép |
+| `is_guest` | boolean not null default false | vào bằng lời mời, không khớp allowlist |
 | `is_super_admin` | boolean not null default false | chỉ đổi được bởi super admin/service |
 | `deactivated_at` | timestamptz | khoá tài khoản |
 | `created_at`, `updated_at` | timestamptz | |
 
 #### `app_settings` (1 dòng)
-`id smallint PK check (id = 1)`, `allowed_email_domains citext[] not null default '{}'` (check mỗi phần tử khớp regex domain, không cho `gmail.com` và domain email công cộng phổ biến — cảnh báo ở UI), `bootstrap_admin_emails citext[] not null default '{}'`, `default_space_visibility space_visibility default 'internal'`, `ai_enabled boolean not null default false` (V3, bật toàn hệ thống), `updated_at`, `updated_by`.
-- **Khai báo domain**: trang `/admin/settings` (chỉ super admin) — thêm/xoá domain, xem số người dùng hiện có theo domain trước khi xoá; mọi thay đổi ghi audit `settings.update` (before/after).
-- **Bootstrap**: lần deploy đầu, env `BOOTSTRAP_SUPER_ADMIN_EMAILS` được migration/seed script ghi vào `bootstrap_admin_emails`; người dùng đó đăng nhập lần đầu được đặt `is_super_admin = true`, sau đó tự khai báo domain công ty. Xoá bootstrap email khỏi danh sách sau khi đã có ≥ 2 super admin.
+`id smallint PK check (id = 1)`, `bootstrap_admin_emails citext[] not null default '{}'`, `default_space_visibility space_visibility not null default 'restricted'`, `ai_enabled boolean not null default false` (V3, bật toàn hệ thống), `updated_at`, `updated_by`.
+
+#### `access_allowlist` — ai được đăng nhập với tư cách người nội bộ
+| Cột | Kiểu | Ghi chú |
+|---|---|---|
+| `id` | uuid PK | |
+| `kind` | text not null check in (`domain`, `email`) | |
+| `value` | citext not null | `ahamove.com` hoặc `an.nguyen@ahamove.com`; check regex theo `kind` |
+| `note` | text | vd "Team Vận hành" |
+| `created_by`, `created_at` | | |
+Unique (`kind`, `value`). RLS: chỉ `app.is_super_admin()` được select/insert/delete; hook đọc qua hàm `SECURITY DEFINER`.
+
+- **Hai cách dùng, cùng một cơ chế:**
+  - *Team nhỏ*: thêm từng email (`kind = 'email'`). Không ảnh hưởng người khác trong công ty, không cần quyền admin Google Workspace.
+  - *Cả công ty*: thêm một dòng `domain`. UI cảnh báo khi thêm domain email công cộng (`gmail.com`, `yahoo.com`, `outlook.com`…) — email Gmail cá nhân chỉ nên thêm theo từng email.
+- **Trang `/admin/access`** (chỉ super admin): thêm/xoá email hoặc domain, nhập hàng loạt (dán danh sách email), xem số người dùng bị ảnh hưởng trước khi xoá; mọi thay đổi ghi audit `access.add` / `access.remove`.
+- **Bootstrap**: env `BOOTSTRAP_SUPER_ADMIN_EMAILS=nguyenthanh.cv@gmail.com` được seed script ghi vào `bootstrap_admin_emails` ở lần deploy đầu; người này đăng nhập lần đầu được đặt `is_super_admin = true`, `is_guest = false` (kể cả khi là Gmail cá nhân). Khuyến nghị: sau khi chạy ổn, cấp super admin cho thêm ít nhất 1 tài khoản công ty để không phụ thuộc một tài khoản.
 
 #### `spaces`
 | Cột | Kiểu | Ghi chú |
@@ -242,7 +256,7 @@ CI: job `licenses` (trong `ci.yml`) chạy `license-checker`/`pnpm licenses list
 | `name` | text not null | nội dung người dùng, không dịch |
 | `description` | text | |
 | `icon` | text | emoji hoặc key icon |
-| `visibility` | space_visibility not null default `'internal'` | |
+| `visibility` | space_visibility not null default `'restricted'` | lấy từ `app_settings.default_space_visibility` khi tạo |
 | `ai_enabled` | boolean not null default true | **dành cho V3**: admin Space có thể loại Space nhạy cảm (nhân sự, tài chính) khỏi AI/embedding |
 | `created_by` | uuid FK profiles | |
 | `archived_at` | timestamptz | |
@@ -312,7 +326,7 @@ Storage bucket `attachments` (private), giới hạn 25 MB/tệp, whitelist MIME
 | `id` | bigint identity PK | |
 | `occurred_at` | timestamptz default now() | |
 | `actor_id` | uuid | `coalesce(auth.uid(), current_setting('app.actor_id', true)::uuid)` |
-| `action` | text not null | mã: `page.create`, `page.update_title`, `page.update_content`, `page.move`, `page.delete`, `page.restore_from_trash`, `page.purge`, `version.restore`, `space.create`, `space.update`, `space.archive`, `member.add`, `member.role_change`, `member.remove`, `invitation.create`, `invitation.revoke`, `settings.update` |
+| `action` | text not null | mã: `page.create`, `page.update_title`, `page.update_content`, `page.move`, `page.delete`, `page.restore_from_trash`, `page.purge`, `version.restore`, `space.create`, `space.update`, `space.archive`, `member.add`, `member.role_change`, `member.remove`, `invitation.create`, `invitation.revoke`, `access.add`, `access.remove`, `settings.update` |
 | `entity_type` | text | `page`, `space`, `member`, `invitation`… |
 | `entity_id` | uuid | |
 | `space_id` | uuid | để lọc theo Space |
@@ -320,7 +334,7 @@ Storage bucket `attachments` (private), giới hạn 25 MB/tệp, whitelist MIME
 | `request_id` | text | trace |
 
 Index: `(space_id, occurred_at desc)`, `(entity_id, occurred_at desc)`, `(actor_id, occurred_at desc)`.
-Ghi bằng **trigger `SECURITY DEFINER`** (`app.audit_*`) trên `pages`, `spaces`, `space_members`, `invitations`, `app_settings`, `page_versions` (reason = `restore`). Riêng `page.update_content` do `kb-collab` ghi, gộp tối đa 1 bản ghi / người / trang / 10 phút. Không có policy UPDATE/DELETE → bất biến với mọi role trừ superuser. Giữ 2 năm (đề xuất, xem §12.2).
+Ghi bằng **trigger `SECURITY DEFINER`** (`app.audit_*`) trên `pages`, `spaces`, `space_members`, `invitations`, `app_settings`, `access_allowlist`, `page_versions` (reason = `restore`). Riêng `page.update_content` do `kb-collab` ghi, gộp tối đa 1 bản ghi / người / trang / 10 phút. Không có policy UPDATE/DELETE → bất biến với mọi role trừ superuser. Giữ 2 năm (đề xuất, xem §12.2).
 
 ### 3.3 Quan hệ
 ```
@@ -367,7 +381,8 @@ create function app.authorize_document(p_page_id uuid, p_user_id uuid) returns p
 | Bảng | SELECT | INSERT | UPDATE | DELETE |
 |---|---|---|---|---|
 | `profiles` | bản thân; hoặc người dùng nội bộ xem hồ sơ nội bộ khác (để chọn thành viên); khách chỉ thấy người cùng Space | trigger (không client) | bản thân: chỉ `full_name`, `locale`, `time_zone`, `avatar_url` (column grant); super admin: `is_super_admin`, `deactivated_at` | không |
-| `app_settings` | người dùng đã đăng nhập | không | `app.is_super_admin()` | không |
+| `app_settings` | người dùng đã đăng nhập (trừ cột `bootstrap_admin_emails`: chỉ super admin) | không | `app.is_super_admin()` | không |
+| `access_allowlist` | `app.is_super_admin()` | `app.is_super_admin()` | `app.is_super_admin()` | `app.is_super_admin()` (không cho xoá dòng khớp email của chính mình) |
 | `spaces` | `app.can_view_space(id)` | `app.is_internal_user()` và `created_by = auth.uid()` (trigger thêm người tạo làm admin) | `app.is_space_admin(id)` | không (dùng archive) |
 | `space_members` | `app.can_view_space(space_id)` | `app.is_space_admin(space_id)` | `app.is_space_admin(space_id)` | `app.is_space_admin(space_id)` hoặc `user_id = auth.uid()` (tự rời) |
 | `invitations` | `app.is_space_admin(space_id)` | `app.is_space_admin(space_id)` | admin (revoke) | không |
@@ -584,20 +599,24 @@ Hotfix: nhánh từ `main`, `fix:` → merge → Release PR patch → release nh
 
 ## 7. Môi trường, hạ tầng và CI/CD
 
-### 7.0 Đề xuất server
+### 7.0 Đề xuất server (Hostinger VPS)
 
-**Tách staging khỏi production: CÓ.** Lý do: preview theo PR và staging build/chạy thử liên tục (build Next.js ngốn 2–4 GB RAM, Supabase staging ~10 container); nếu chung máy, một PR lỗi hoặc một lần build có thể làm chậm/sập production. Chi phí thêm một VPS nhỏ hơn nhiều so với rủi ro.
+**Tách staging khỏi production: CÓ.** Preview theo PR và staging chạy thử liên tục (Supabase staging ~10 container, nhiều preview cùng lúc); nếu chung máy, một PR lỗi có thể làm chậm/sập production. Thêm một VPS nhỏ rẻ hơn nhiều so với rủi ro.
 
-| Server | Vai trò | Cấu hình đề xuất | Ước tính RAM sử dụng |
+| Server | Gói Hostinger | Vai trò | Ước tính RAM |
 |---|---|---|---|
-| `kb-prod-1` | Production: Supabase prod, `kb-web`, `kb-collab`, `kb-backup` | **4 vCPU, 8 GB RAM, 160 GB NVMe**, IPv4 tĩnh | Supabase ~3 GB (Postgres 2 GB), web ~0,5 GB, collab ~0,3 GB, Traefik + khác ~0,5 GB → dư ~3 GB |
-| `kb-ops-1` | **Coolify control plane** + staging (Supabase staging, web, collab) + preview (tối đa 3 đồng thời) + Uptime Kuma | **4 vCPU, 8 GB RAM, 80 GB NVMe** | Coolify ~1 GB, Supabase staging ~2,5 GB, staging apps ~0,8 GB, preview 3 × 0,5 GB, build tạm ~2 GB |
+| `kb-prod-1` | **KVM 2** (2 vCPU, 8 GB RAM, 100 GB NVMe) | Production: Supabase prod, `kb-web`, `kb-collab`, `kb-backup` | Supabase ~3 GB (Postgres 2 GB), web ~0,5 GB, collab ~0,3 GB, Traefik ~0,3 GB → dư ~3,5 GB |
+| `kb-ops-1` | **KVM 2** (2 vCPU, 8 GB RAM, 100 GB NVMe) | Coolify + staging (Supabase staging, web, collab) + preview (tối đa 2 cùng lúc) + Uptime Kuma | Coolify ~1 GB, Supabase staging ~2,5 GB, staging apps ~0,8 GB, preview 2 × 0,5 GB |
 
-- Coolify cài trên `kb-ops-1` và quản lý `kb-prod-1` như **remote server** (qua SSH). Nếu `kb-ops-1` gặp sự cố, production **vẫn chạy bình thường** (chỉ tạm không deploy được). Image build ở GitHub Actions (GHCR), không build trên server prod.
-- Vị trí: ưu tiên data center **Việt Nam** (Viettel IDC, VNG Cloud, BizFly Cloud, FPT Cloud…) để độ trễ thấp và dữ liệu nằm trong nước; hoặc **Singapore** (Hetzner, DigitalOcean, Vultr, AWS Lightsail) nếu muốn giá tốt / hạ tầng quốc tế. Độ trễ Singapore → VN ~30–50 ms, chấp nhận được cho real-time.
-- Ổ đĩa: 160 GB đủ cho DB (< 5 GB với 20k trang + phiên bản) + tệp đính kèm (ước 50–100 GB sau vài năm). Khi tệp đính kèm lớn, chuyển Supabase Storage sang backend S3 (R2) — không cần đổi code app.
-- Snapshot VPS hằng tuần của nhà cung cấp (bổ sung cho backup logic §7.8).
-- Khi nào nâng cấp: CPU > 70 % kéo dài, RAM Postgres thiếu (cache hit < 99 %), hoặc > 500 người dùng → tách Postgres sang server riêng 8 GB.
+(Thông số gói lấy theo bảng giá Hostinger hiện tại — kiểm tra lại lúc đặt mua.)
+
+- **Đủ cho team nhỏ đến ~200 người.** Nâng lên **KVM 4** (4 vCPU, 16 GB, 200 GB) ngay trong hPanel khi: CPU > 70 % kéo dài, RAM Postgres thiếu (cache hit < 99 %), hoặc cần > 2 preview cùng lúc. Nâng gói không phải cài lại.
+- **Vị trí**: không bắt buộc lưu trong nước → chọn data center Hostinger **gần Việt Nam nhất** đang có (thường là Singapore hoặc Malaysia; kiểm tra danh sách lúc đặt). Độ trễ ~30–50 ms, ổn cho real-time. Hai máy nên cùng vị trí.
+- **Hệ điều hành**: Hostinger có template VPS cài sẵn **Coolify** (Ubuntu) — dùng cho `kb-ops-1`. `kb-prod-1` cài Ubuntu 24.04 LTS thường, Coolify tự cài Docker khi thêm làm remote server.
+- Coolify trên `kb-ops-1` quản lý `kb-prod-1` như **remote server** qua SSH. Nếu `kb-ops-1` gặp sự cố, production **vẫn chạy** (chỉ tạm không deploy được). Image build ở GitHub Actions (GHCR), không build trên server.
+- **Firewall Hostinger** (hPanel › VPS › Firewall) + `ufw`: 80/443 chỉ mở cho dải IP Cloudflare; 22 chỉ cho IP quản trị (hoặc chỉ qua Cloudflare Tunnel); từ `kb-ops-1` sang `kb-prod-1` mở 22 cho Coolify. Không mở cổng Postgres.
+- **Backup của Hostinger** (backup tự động hằng tuần + snapshot thủ công) dùng **bổ sung** — backup chính là `pg_dump` lên Cloudflare R2 (§7.8), vì backup của Hostinger nằm cùng nhà cung cấp và khôi phục theo cả máy.
+- Ổ đĩa: 100 GB đủ cho DB (< 5 GB với 20k trang + phiên bản) và tệp đính kèm vài năm đầu; khi đầy → chuyển Supabase Storage sang backend R2 (không đổi code app).
 
 ### 7.1 Môi trường
 
@@ -687,7 +706,7 @@ Lưu ý quan trọng: **không dùng `NEXT_PUBLIC_*` cho giá trị khác nhau g
 - Bật **Preview Deployments**, URL template `https://kb-pr-{{pr_id}}.thanhgo.com`, chỉ build khi PR có thay đổi ở `apps/web`, `packages/*`.
 - Env preview: trỏ Supabase staging + `kb-staging-collab`; `APP_ENV=preview` (banner "Preview #n").
 - Tự xoá khi PR đóng (Coolify), DNS xoá bằng workflow.
-- Giới hạn tài nguyên (512 MB RAM/preview).
+- Giới hạn tài nguyên (512 MB RAM/preview), tối đa 2 preview chạy cùng lúc trên `kb-ops-1` (PR cũ hơn tự dừng).
 
 **kb-backup** (Scheduled task / service chạy cron) — §7.8.
 **Uptime Kuma** (tuỳ chọn, service template): theo dõi `/api/health`, `/health`, `kb-api/auth/v1/health`, alert Slack/Telegram/email.
@@ -711,8 +730,8 @@ Lưu ý quan trọng: **không dùng `NEXT_PUBLIC_*` cho giá trị khác nhau g
 | `COLLAB_INTERNAL_URL` | web | – | `http://kb-collab:3001` |
 | `COLLAB_INTERNAL_SECRET` | web, collab | **có** | HMAC cho internal API |
 | `DEFAULT_LOCALE` / `DEFAULT_TIME_ZONE` | web | – | `vi` / `Asia/Ho_Chi_Minh` |
-| `SMTP_HOST/PORT/USER/PASSWORD/FROM` | web, supabase | **có** | email mời khách (§7.14); `FROM` = `kb-noreply@thanhgo.com` |
-| `BOOTSTRAP_SUPER_ADMIN_EMAILS` | web (seed) | – | danh sách email super admin đầu tiên, chỉ dùng khi DB chưa có super admin |
+| `SMTP_HOST/PORT/USER/PASSWORD/FROM`, `SMTP_REPLY_TO` | web, supabase | **có** | §7.14 — giai đoạn 1: `smtp.gmail.com:587`, user = tài khoản Workspace, password = App Password |
+| `BOOTSTRAP_SUPER_ADMIN_EMAILS` | web (seed) | – | `nguyenthanh.cv@gmail.com` — chỉ dùng khi DB chưa có super admin |
 | `ANTHROPIC_API_KEY`, `VOYAGE_API_KEY` | web, worker (V3) | **có** | chỉ thêm ở V3 |
 | `SENTRY_DSN` (hoặc GlitchTip) | web, collab | có | tuỳ chọn |
 | `DATABASE_URL` | collab | **có** | role `kb_collab`, host `supabase-db` nội bộ |
@@ -721,7 +740,7 @@ Lưu ý quan trọng: **không dùng `NEXT_PUBLIC_*` cho giá trị khác nhau g
 | `PORT`, `INTERNAL_PORT` | collab | – | 3001 |
 | `POSTGRES_PASSWORD`, `JWT_SECRET`, `ANON_KEY`, `SERVICE_ROLE_KEY` | supabase | **có** | sinh bởi Coolify template, mỗi môi trường khác nhau |
 | `SITE_URL`, `API_EXTERNAL_URL`, `ADDITIONAL_REDIRECT_URLS` | supabase | – | staging thêm `https://kb-pr-*.thanhgo.com/**` |
-| `GOTRUE_EXTERNAL_GOOGLE_CLIENT_ID/SECRET/REDIRECT_URI` | supabase | **có** | OAuth client riêng cho staging và prod |
+| `GOTRUE_EXTERNAL_GOOGLE_CLIENT_ID/SECRET/REDIRECT_URI` | supabase | **có** | OAuth client riêng cho staging và prod (§7.15) |
 | `GOTRUE_EXTERNAL_EMAIL_ENABLED` | supabase | – | `false` ở staging/prod |
 | `GOTRUE_HOOK_BEFORE_USER_CREATED_ENABLED/URI` | supabase | – | `pg-functions://postgres/public/hook_before_user_created` |
 | `DASHBOARD_USERNAME/PASSWORD` | supabase | **có** | Studio |
@@ -799,16 +818,39 @@ Quy tắc: secret chỉ ở Coolify (đánh dấu locked/encrypted) và GitHub E
 
 Branch protection `main`: bắt buộc `ci/*`, `e2e`, 1 review (hoặc tự review khi 1 dev — bật khi có người thứ 2), squash merge only, linear history.
 
-### 7.14 Email (SMTP)
-Supabase self-host **không có dịch vụ gửi mail**; GoTrue chỉ nhận cấu hình SMTP bên ngoài (và vì ta dùng Google OAuth nên GoTrue hầu như không gửi mail). Email của app (mời khách; V2: thông báo, @mention, digest) do `kb-web` gửi qua cùng SMTP.
+### 7.14 Email (SMTP) — cấu hình ở phạm vi team, không cần admin công ty
+Supabase self-host **không có dịch vụ gửi mail**; GoTrue chỉ nhận cấu hình SMTP bên ngoài (và vì dùng Google OAuth nên GoTrue hầu như không gửi mail). Email của app (mời khách; V2: thông báo, @mention, digest) do `kb-web` gửi. Code chỉ đọc `SMTP_*` → đổi nhà cung cấp chỉ là đổi biến môi trường.
 
-| Phương án | Ưu | Nhược | Khi nào chọn |
-|---|---|---|---|
-| **Google Workspace SMTP relay** (`smtp-relay.gmail.com`) — **đề xuất** | Miễn phí trong gói Workspace, gửi từ domain công ty, uy tín gửi tốt, giới hạn ~10.000 người nhận/ngày | Cần admin Workspace bật relay (xác thực theo IP server hoặc SMTP AUTH) | Công ty dùng Google Workspace (khả năng cao vì đăng nhập Google SSO) |
-| Amazon SES | Rất rẻ (0,1 USD/1.000 email), ổn định | Phải xin ra khỏi sandbox, cấu hình phức tạp hơn | Không có Workspace hoặc cần gửi khối lượng lớn |
-| Resend / Brevo | Setup nhanh, có dashboard, gói miễn phí (~3.000 email/tháng với Resend, ~300/ngày với Brevo) | Phụ thuộc SaaS nhỏ hơn | Muốn làm nhanh, khối lượng thấp |
+Google Workspace SMTP relay (`smtp-relay.gmail.com`) **không** phù hợp cho team nhỏ vì cần super admin của Workspace bật trong Admin console. Thay vào đó:
 
-Bắt buộc với mọi phương án: bản ghi **SPF, DKIM, DMARC** cho `thanhgo.com` trên Cloudflare DNS; địa chỉ gửi `kb-noreply@thanhgo.com`; template song ngữ (§5.6); log gửi mail (thành công/thất bại) để debug; local/CI dùng **Mailpit** (Supabase CLI có sẵn Inbucket/Mailpit) để test mà không gửi thật.
+**Giai đoạn 1 — Gmail SMTP bằng App Password (đề xuất để bắt đầu, ~10 phút, không cần admin, không đổi DNS)**
+1. Chọn một tài khoản Workspace của team (tốt nhất là tài khoản dùng chung nếu team có, vd `kb@…`; không có thì dùng tài khoản của người phụ trách).
+2. Bật **Xác minh 2 bước** cho tài khoản đó (myaccount.google.com › Bảo mật).
+3. Tạo **App Password** (myaccount.google.com › Bảo mật › Mật khẩu ứng dụng) tên "kb-smtp" → được chuỗi 16 ký tự.
+4. Đặt trong Coolify (secret): `SMTP_HOST=smtp.gmail.com`, `SMTP_PORT=587` (STARTTLS), `SMTP_USER=<email tài khoản>`, `SMTP_PASSWORD=<app password>`, `SMTP_FROM="KB <email tài khoản>"`, `SMTP_REPLY_TO=<email người phụ trách>`.
+5. Gửi thử từ trang `/admin/settings` › "Gửi email thử".
+- Ưu: email gửi từ domain công ty nên SPF/DKIM đã có sẵn (Google lo), không vào spam; miễn phí.
+- Giới hạn: ~2.000 email/ngày/tài khoản (thừa cho team nhỏ); email đi ra từ địa chỉ của tài khoản đó; nếu người đó nghỉ/đổi mật khẩu thì phải tạo lại App Password (runbook). Nếu tổ chức tắt App Password (một số chính sách bảo mật chặn) → chuyển giai đoạn 2.
+
+**Giai đoạn 2 — Resend với domain `thanhgo.com` (khi mở rộng hoặc muốn địa chỉ `kb-noreply@thanhgo.com`)**
+- Domain `thanhgo.com` do anh/chị quản lý trên Cloudflare → tự thêm bản ghi SPF/DKIM/DMARC mà Resend cung cấp, không liên quan IT công ty. Gói miễn phí ~3.000 email/tháng (100/ngày). Dự phòng: Amazon SES (rẻ khi khối lượng lớn, cần ra khỏi sandbox).
+
+Chung cho mọi phương án: template song ngữ (§5.6); log gửi mail (thành công/thất bại); local/CI dùng **Mailpit** có sẵn trong Supabase CLI để không gửi thật.
+
+### 7.15 Google OAuth — cấu hình ở phạm vi team
+Mục tiêu: đăng nhập Google hoạt động cho cả tài khoản công ty lẫn Gmail cá nhân (super admin `nguyenthanh.cv@gmail.com`), **không cần admin Workspace**; ai được vào thì do allowlist của app quyết định (§3.2).
+
+1. Đăng nhập **Google Cloud Console bằng `nguyenthanh.cv@gmail.com`** (tài khoản cá nhân → project không nằm trong tổ chức của công ty, không bị chính sách công ty chặn tạo project). Tạo project `kb-auth` (một project, hai OAuth client: staging và prod).
+2. **OAuth consent screen / Google Auth Platform**: User type **External** (loại *Internal* sẽ chặn Gmail cá nhân và chỉ tạo được trong tổ chức Workspace). Tên app "KB", email hỗ trợ, domain `thanhgo.com`. Scope chỉ `openid`, `email`, `profile` (không nhạy cảm).
+3. **Publishing status: "In production"**. Với scope không nhạy cảm, không phải qua quy trình xác minh của Google (không có logo thì không cần xác minh thương hiệu). Để ở chế độ *Testing* cũng được nhưng phải thêm tay từng người (tối đa 100) — không cần vì app đã có allowlist riêng.
+4. **Credentials › OAuth client ID** (Web application):
+   - prod: Authorized redirect URI `https://kb-api.thanhgo.com/auth/v1/callback`
+   - staging: `https://kb-staging-api.thanhgo.com/auth/v1/callback`
+   - local: client riêng với `http://127.0.0.1:54321/auth/v1/callback`
+5. Dán Client ID/Secret vào Coolify (`GOTRUE_EXTERNAL_GOOGLE_*`) của Supabase tương ứng.
+6. Trong app: super admin đăng nhập lần đầu → `/admin/access` → thêm email từng thành viên team (hoặc domain công ty khi muốn mở rộng).
+
+Rủi ro cần biết: nếu admin Workspace của công ty bật chính sách chặn "ứng dụng bên thứ ba chưa được cấu hình", nhân viên có thể gặp lỗi khi đăng nhập Google vào app. Cách xử lý: nhờ admin thêm Client ID của KB vào danh sách tin cậy (một thao tác), hoặc tạm dùng lời mời qua email cá nhân. Kiểm tra ngay ở spike T0.10 bằng 1 tài khoản công ty.
 
 ---
 
@@ -847,19 +889,19 @@ Mục tiêu coverage: `packages/editor` ≥ 80 %, logic khác ≥ 60 %; mọi po
 | T0.7 | Dockerfile web/collab/migrate, HEALTHCHECK, `/api/health`, `/health`, env zod, `build-images.yml` push GHCR | `apps/*/Dockerfile`, `infra/migrate`, `packages/shared/src/env.ts` | `docker build` cả 3 image; container healthy; image web < 250 MB; thiếu env bắt buộc → crash kèm tên biến | T0.1 | 1 | 0.1.0 |
 | T0.8 | Hạ tầng staging trên Coolify (cài Coolify lên `kb-ops-1`, §7.0): Supabase service, `kb-web`, `kb-collab`, Cloudflare DNS + Origin CA + Full strict, firewall, secrets, `deploy.yml` qua Coolify API + SSH migrate | `infra/coolify/*.md`, `.github/workflows/deploy.yml` | Merge `main` → staging tự deploy, smoke test xanh; `https://kb-staging.thanhgo.com/api/health` trả sha mới; Postgres không truy cập được từ Internet | T0.7 | 2 | 0.1.0 |
 | T0.9 | Backup: image `kb-backup`, cron, Cloudflare R2 (bucket lock + lifecycle), mã hoá age, restore runbook, job kiểm thử restore | `infra/backup`, `docs/runbooks/backup-restore.md` | Có file backup trên S3; restore vào DB tạm thành công theo runbook; alert khi quá 26 h không backup | T0.8 | 1 | 0.1.0 |
-| T0.10 | Spike xác minh rủi ro: (a) hook `before_user_created` trên GoTrue self-host, (b) Hocuspocus qua Cloudflare + Traefik (timeout, reconnect), (c) verify JWT Supabase trong collab, (d) Coolify preview + DNS workflow | ADR `docs/adr/0001…0004` | Mỗi điểm có ADR kết luận + phương án dự phòng; WS giữ kết nối ≥ 30 phút qua Cloudflare | T0.8 | 1 | 0.1.0 |
+| T0.10 | Spike xác minh rủi ro: (a) hook `before_user_created` trên GoTrue self-host, (b) Hocuspocus qua Cloudflare + Traefik (timeout, reconnect), (c) verify JWT Supabase trong collab, (d) Coolify preview + DNS workflow, (e) đăng nhập Google bằng tài khoản công ty qua OAuth client External của project cá nhân, (f) gửi mail bằng Gmail App Password | ADR `docs/adr/0001…0004` | Mỗi điểm có ADR kết luận + phương án dự phòng; WS giữ kết nối ≥ 30 phút qua Cloudflare | T0.8 | 1 | 0.1.0 |
 
-### M1 — Đăng nhập, hồ sơ, Space, phân quyền (→ `v0.2.0`) · ~9 ngày
+### M1 — Đăng nhập, hồ sơ, Space, phân quyền (→ `v0.2.0`) · ~9,5 ngày
 
 | ID | Task | File/module | Tiêu chí hoàn thành | Phụ thuộc | Ước lượng | Version |
 |---|---|---|---|---|---|---|
 | T1.1 | Schema lõi: `profiles`, `app_settings`, `spaces`, `space_members`, `invitations`, enum, hàm `app.*` (space_role, can_*, page_role stub), RLS + grant, pgTAP ma trận | `supabase/migrations/*_core.sql`, `supabase/tests/rls_core.test.sql` | Toàn bộ ma trận vai trò pass; khách không thể là admin; không xoá được admin cuối | T0.4 | 2 | 0.2.0 |
-| T1.2 | Google SSO: `@supabase/ssr` (client/server/middleware), trang login song ngữ, callback, logout, hook chặn domain + nhận lời mời, trigger tạo profile, trang lỗi `AUTH_DOMAIN_NOT_ALLOWED` | `apps/web/src/app/(auth)`, `middleware.ts`, migration hook | Email bootstrap đăng nhập được và thành super admin; email thuộc domain đã khai báo đăng nhập được; email lạ bị từ chối với thông báo vi/en; có lời mời → vào được, `is_guest = true` | T1.1, T0.10 | 1,5 | 0.2.0 |
+| T1.2 | Google SSO: `@supabase/ssr` (client/server/middleware), trang login song ngữ, callback, logout, hook chặn domain + nhận lời mời, trigger tạo profile, trang lỗi `AUTH_NOT_ALLOWED` | `apps/web/src/app/(auth)`, `middleware.ts`, migration hook | `nguyenthanh.cv@gmail.com` (bootstrap) đăng nhập được và thành super admin, không bị đánh dấu khách; email/domain trong allowlist đăng nhập được; email lạ bị từ chối với thông báo vi/en; có lời mời → vào được, `is_guest = true` | T1.1, T0.10 | 1,5 | 0.2.0 |
 | T1.3 | Cài đặt cá nhân: đổi ngôn ngữ (lưu `profiles.locale` + cookie), múi giờ, avatar/tên | `apps/web/src/app/(app)/settings` | Đổi sang en → toàn bộ UI en, giữ sau đăng xuất/đăng nhập ở máy khác | T1.2 | 0,5 | 0.2.0 |
-| T1.4 | UI Space: danh sách (theo quyền), tạo (người nội bộ), cài đặt (tên, slug, icon, visibility), lưu trữ | `apps/web/src/app/(app)/s/[spaceSlug]`, `components/space` | Viewer không thấy nút sửa; khách không thấy Space internal; slug trùng báo lỗi dịch | T1.1 | 1,5 | 0.2.0 |
+| T1.4 | UI Space: danh sách (theo quyền), tạo (người nội bộ), cài đặt (tên, slug, icon, visibility), lưu trữ | `apps/web/src/app/(app)/s/[spaceSlug]`, `components/space` | Space mới mặc định `restricted` (chỉ người tạo là admin); viewer không thấy nút sửa; khách không thấy Space internal; slug trùng báo lỗi dịch | T1.1 | 1,5 | 0.2.0 |
 | T1.5 | Thành viên: thêm người nội bộ (tìm theo tên/email), đổi vai trò, xoá, tự rời; mời khách qua email (token, hạn 14 ngày, thu hồi), email React Email song ngữ | `settings/members`, `packages/emails`, route `/invite/[token]` | Luồng mời → nhận → vào Space hoạt động E2E; token dùng 1 lần; hết hạn báo lỗi | T1.4, T1.2 | 2 | 0.2.0 |
 | T1.6 | Audit log: bảng, trigger `app.audit_*` cho spaces/members/invitations/settings, `app.actor_id`; trang audit (admin Space, super admin) có lọc, nhãn action dịch | migration `*_audit.sql`, `settings/audit` | Đổi vai trò tạo bản ghi `member.role_change` có from/to; UPDATE/DELETE audit bị từ chối với mọi role | T1.1 | 1 | 0.2.0 |
-| T1.7 | Quản trị hệ thống: trang `/admin/settings` khai báo domain được phép (thêm/xoá, validate, cảnh báo domain công cộng, hiển thị số user bị ảnh hưởng), danh sách người dùng (khoá/mở, cấp/gỡ super admin, chuyển thành khách); middleware chặn phiên của user có domain vừa bị gỡ | `app/(app)/admin/*`, `apps/web/src/server/admin.ts` | Chỉ super admin truy cập được (RLS + route guard); thêm domain → người thuộc domain đăng nhập được ngay; gỡ domain → lần request kế tiếp bị đăng xuất với thông báo dịch; audit `settings.update` có before/after | T1.2, T1.6 | 0,5 | 0.2.0 |
+| T1.7 | Quản trị truy cập: bảng `access_allowlist` + RLS + pgTAP; trang `/admin/access` thêm/xoá **email** hoặc **domain** (nhập hàng loạt, validate, cảnh báo domain công cộng, hiển thị số user bị ảnh hưởng); danh sách người dùng (khoá/mở, cấp/gỡ super admin); nút gửi email thử; middleware đăng xuất user không còn trong allowlist | `supabase/migrations/*_access.sql`, `app/(app)/admin/*`, `apps/web/src/server/admin.ts` | Chỉ super admin truy cập được; thêm 1 email → người đó đăng nhập được ngay, người khác cùng domain vẫn bị chặn; thêm domain → cả domain vào được; gỡ → request kế tiếp bị đăng xuất với thông báo dịch; không tự gỡ được chính mình; audit `access.add/remove` | T1.2, T1.6 | 1 | 0.2.0 |
 
 ### M2 — Cây trang (→ `v0.3.0`) · ~6 ngày
 
@@ -923,7 +965,7 @@ Mục tiêu coverage: `packages/editor` ≥ 80 %, logic khác ≥ 60 %; mọi po
 | T7.5 | Pilot `0.8.x` trên production với 1–2 phòng ban, thu phản hồi, sửa lỗi (buffer) | – | Không còn bug mức nghiêm trọng; phản hồi ghi thành issue | T7.3 | 3 | 0.8.x |
 | T7.6 | Phát hành **1.0.0**: checklist go-live (backup/restore thử trong 7 ngày qua, alert hoạt động, không bug P0/P1 mở, E2E xanh, tài liệu vi/en đủ, ghi chú phát hành vi/en), commit `Release-As: 1.0.0`, thông báo toàn công ty (song ngữ) | `changelog/vi/1.0.0.md`, `docs/runbooks/go-live.md` | Tag `v1.0.0`, app hiển thị `v1.0.0`, trang What's new có bài giới thiệu MVP | T7.5 | 0 (trong buffer) | **1.0.0** |
 
-**Tổng: ~63 ngày công** (≈ 3 tháng lịch, đã gồm buffer ở T7.5). Đường găng: T0.1 → T0.4 → T1.1 → T2.1 → T3.3 → T3.4 → T4.x → T5.x → T6.x → T7.x.
+**Tổng: ~63,5 ngày công** (≈ 3 tháng lịch, đã gồm buffer ở T7.5). Đường găng: T0.1 → T0.4 → T1.1 → T2.1 → T3.3 → T3.4 → T4.x → T5.x → T6.x → T7.x.
 
 ---
 
@@ -979,7 +1021,9 @@ Mục tiêu coverage: `packages/editor` ≥ 80 %, logic khác ≥ 60 %; mọi po
 | R10 | Một dev (bus factor, ước lượng lạc quan) | TB | Buffer 3 ngày; ADR + runbook đầy đủ; milestone có thể cắt phạm vi (T2.5, T6.2 diff, T4.3 ô gộp) |
 | R11 | Coolify API/tính năng thay đổi giữa các phiên bản | Thấp | Ghim phiên bản Coolify; bọc lời gọi API trong 1 script; dự phòng webhook deploy của Coolify |
 | R12 | Tài nguyên server không đủ (đặc biệt `kb-ops-1` khi nhiều preview) | TB | Giới hạn RAM từng container; preview tối đa 3 đồng thời; build ở GitHub Actions; prod tách server riêng (§7.0) |
-| R14 | Admin gỡ nhầm domain → khoá cả công ty | TB | UI cảnh báo số người bị ảnh hưởng + xác nhận gõ lại tên domain; không cho gỡ domain của chính super admin đang thao tác; bootstrap email luôn đăng nhập được; audit before/after để khôi phục |
+| R14 | Admin gỡ nhầm domain/email → khoá nhiều người | TB | UI cảnh báo số người bị ảnh hưởng + xác nhận gõ lại tên domain; không cho gỡ domain của chính super admin đang thao tác; bootstrap email luôn đăng nhập được; audit before/after để khôi phục |
+| R16 | Phụ thuộc tài khoản cá nhân (super admin Gmail, project Google Cloud cá nhân, App Password của một người) | TB | Cấp super admin cho ≥ 1 tài khoản công ty; thêm người thứ hai làm Owner của project Google Cloud; runbook thay App Password / chuyển sang Resend; lưu thông tin trong password manager của team |
+| R17 | Công ty chặn ứng dụng OAuth bên thứ ba | TB | Kiểm tra ở T0.10; nhờ admin Workspace tin cậy Client ID (1 thao tác) |
 | R15 | Rò rỉ nội dung nhạy cảm qua AI (V3) | TB | Retrieval theo RLS của người hỏi; cờ `ai_enabled` theo Space; không gửi tệp; audit; giới hạn chi phí |
 | R13 | Yjs doc phình to (paste lớn, lịch sử) | Thấp | GC bật, chặn base64, cảnh báo > 5 MB, snapshot ở bảng riêng |
 
@@ -990,23 +1034,25 @@ Mục tiêu coverage: `packages/editor` ≥ 80 %, logic khác ≥ 60 %; mọi po
 ### 12.1 Đã quyết định
 | Câu hỏi | Quyết định |
 |---|---|
-| Domain email được đăng nhập | Super admin khai báo trong trang Quản trị (`app_settings.allowed_email_domains`); bootstrap super admin qua env |
+| Ai được đăng nhập | Super admin khai báo allowlist theo **email** (team nhỏ) hoặc **domain** (cả công ty) trong trang Quản trị (§3.2) |
+| Super admin đầu tiên | `nguyenthanh.cv@gmail.com` (qua `BOOTSTRAP_SUPER_ADMIN_EMAILS`) |
 | Version khi ra mắt MVP | **1.0.0** (sau pilot `0.8.x`) |
-| Server, tách staging | 2 VPS tách biệt (§7.0) |
-| S3, SMTP | Cloudflare R2 cho backup; Google Workspace SMTP relay (dự phòng SES/Resend) (§7.8, §7.14) |
+| Server | Hostinger VPS, 2 máy KVM 2 tách prod / ops-staging; data center gần VN nhất (§7.0) |
+| Lưu trữ dữ liệu trong nước | Không bắt buộc |
+| Backup (S3) | Cloudflare R2 (§7.8) |
+| SMTP | Gmail SMTP + App Password của tài khoản Workspace (không cần admin); sau chuyển Resend trên `thanhgo.com` (§7.14) |
+| Google OAuth | Project Google Cloud cá nhân, consent External, "In production", scope cơ bản (§7.15) |
+| Space mới mặc định | `restricted` — chỉ thành viên |
 | TipTap trả phí | Không — chỉ mã nguồn mở, tự viết phần thiếu (§2.1) |
 | AI gửi nội dung ra ngoài | Có — Claude API + Voyage AI, có cờ tắt theo Space (§10.2) |
 
-### 12.2 Còn mở
-1. **Công ty có dùng Google Workspace không** (để chốt SMTP relay)? Ai là admin Workspace để bật relay?
-2. **Email super admin đầu tiên** (`BOOTSTRAP_SUPER_ADMIN_EMAILS`)? Mọi nhân viên nội bộ được tự tạo Space hay chỉ admin?
-3. **Nhà cung cấp VPS**: ưu tiên data center Việt Nam hay Singapore? Có yêu cầu dữ liệu phải lưu trong nước không?
-4. **Visibility mặc định của Space mới**: `internal` (mọi nhân viên xem được) hay `restricted`?
-5. **Retention**: phiên bản trang (đề xuất: giữ hết manual, auto 30 ngày rồi thưa dần) và audit log (đề xuất 2 năm)?
-6. **Mục tiêu RPO/RTO** (đề xuất 24 h / 2 h ở MVP) — có cần PITR (RPO ~5 phút) ngay không?
-7. **Error tracking**: Sentry cloud, GlitchTip self-host (thêm ~1 GB RAM trên `kb-ops-1`), hay chỉ log?
-8. **Đồng bộ Google Groups** → thành viên Space: cần ở MVP, V2, hay không?
-9. **Dữ liệu staging**: chỉ dữ liệu giả (seed) hay được copy prod đã ẩn danh?
-10. **Kênh cảnh báo vận hành** (deploy, backup lỗi, down): Slack, Telegram hay email?
-11. **Review trước khi merge** vào `main`: cần người thứ hai hay 1 dev tự merge khi CI xanh?
-12. **V3 AI — ngân sách** hằng tháng cho API (để đặt giới hạn chi phí) và có cần lưu nguyên văn câu hỏi/trả lời để cải thiện chất lượng không?
+### 12.2 Còn mở (đều có đề xuất mặc định — plan dùng đề xuất nếu chưa có quyết định)
+1. **Ai được tạo Space?** Đề xuất: mọi người nội bộ (không phải khách).
+2. **Retention**: phiên bản trang (đề xuất: giữ hết manual, auto 30 ngày rồi thưa dần) và audit log (đề xuất 2 năm).
+3. **Mục tiêu RPO/RTO**: đề xuất 24 h / 2 h ở MVP; PITR để V2.
+4. **Error tracking**: đề xuất Sentry cloud gói miễn phí (không tốn RAM server); GlitchTip self-host nếu không muốn gửi lỗi ra ngoài.
+5. **Đồng bộ Google Groups** → thành viên Space: đề xuất không làm (cần admin Workspace); quản lý thành viên trong app.
+6. **Dữ liệu staging**: đề xuất chỉ dữ liệu giả (seed).
+7. **Kênh cảnh báo vận hành**: đề xuất Telegram bot (dễ setup, không cần admin) hoặc email.
+8. **Review trước khi merge**: đề xuất 1 dev tự merge khi CI xanh; bật bắt buộc review khi có người thứ hai.
+9. **V3 AI — ngân sách** hằng tháng cho API và có lưu nguyên văn câu hỏi/trả lời không: quyết định khi bắt đầu V3.
