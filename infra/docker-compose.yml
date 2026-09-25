@@ -1,0 +1,33 @@
+name: kb-local
+
+services:
+  web:
+    image: node:22-alpine
+    working_dir: /workspace
+    command: corepack pnpm --filter @kb/web dev --hostname 0.0.0.0
+    volumes:
+      - ..:/workspace
+      - kb_node_modules:/workspace/node_modules
+    environment:
+      SUPABASE_URL: http://127.0.0.1:54321
+      SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY:-}
+      COLLAB_URL: ws://127.0.0.1:3001
+    network_mode: host
+    init: true
+
+  collab:
+    image: node:22-alpine
+    working_dir: /workspace
+    command: corepack pnpm --filter @kb/collab dev --hostname 0.0.0.0
+    volumes:
+      - ..:/workspace
+      - kb_node_modules:/workspace/node_modules
+    environment:
+      SUPABASE_URL: http://127.0.0.1:54321
+      SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY:-}
+      PORT: 3001
+    network_mode: host
+    init: true
+
+volumes:
+  kb_node_modules:
