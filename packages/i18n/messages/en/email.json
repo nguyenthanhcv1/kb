@@ -1,0 +1,7 @@
+{
+  "invitation": {
+    "accept": "Accept invitation",
+    "expires": "This invitation expires on {date}.",
+    "subject": "{inviter} invited you to the {space} space"
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "invitation": {
+    "accept": "Nhận lời mời",
+    "expires": "Lời mời hết hạn vào {date}.",
+    "subject": "{inviter} mời bạn vào không gian {space}"
+  }
+}

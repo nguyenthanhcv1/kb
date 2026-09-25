@@ -1,0 +1,15 @@
+{
+  "access": {
+    "kinds": {
+      "domain": "Domain",
+      "email": "Email"
+    },
+    "title": "Access"
+  },
+  "title": "Administration",
+  "users": {
+    "guest": "Guest",
+    "superAdmin": "Super admin",
+    "title": "Users"
+  }
+}
