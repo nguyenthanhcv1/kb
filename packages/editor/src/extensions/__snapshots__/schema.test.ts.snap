@@ -1,0 +1,202 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`editor schema > matches the snapshot 1`] = `
+{
+  "marks": {
+    "bold": {
+      "attrs": {},
+      "excludes": null,
+      "inclusive": true,
+    },
+    "code": {
+      "attrs": {},
+      "excludes": "_",
+      "inclusive": true,
+    },
+    "italic": {
+      "attrs": {},
+      "excludes": null,
+      "inclusive": true,
+    },
+    "link": {
+      "attrs": {
+        "class": null,
+        "href": null,
+        "rel": "noopener noreferrer nofollow",
+        "target": "_blank",
+        "title": null,
+      },
+      "excludes": null,
+      "inclusive": true,
+    },
+    "strike": {
+      "attrs": {},
+      "excludes": null,
+      "inclusive": true,
+    },
+    "underline": {
+      "attrs": {},
+      "excludes": null,
+      "inclusive": true,
+    },
+  },
+  "nodes": {
+    "blockquote": {
+      "atom": false,
+      "attrs": {
+        "id": null,
+      },
+      "content": "block+",
+      "group": "block",
+      "inline": false,
+      "marks": null,
+    },
+    "bulletList": {
+      "atom": false,
+      "attrs": {
+        "id": null,
+      },
+      "content": "listItem+",
+      "group": "block list",
+      "inline": false,
+      "marks": null,
+    },
+    "callout": {
+      "atom": false,
+      "attrs": {
+        "id": null,
+        "variant": "info",
+      },
+      "content": "block+",
+      "group": "block",
+      "inline": false,
+      "marks": null,
+    },
+    "codeBlock": {
+      "atom": false,
+      "attrs": {
+        "id": null,
+        "language": null,
+      },
+      "content": "text*",
+      "group": "block",
+      "inline": false,
+      "marks": "",
+    },
+    "doc": {
+      "atom": false,
+      "attrs": {},
+      "content": "block+",
+      "group": null,
+      "inline": false,
+      "marks": null,
+    },
+    "hardBreak": {
+      "atom": false,
+      "attrs": {},
+      "content": null,
+      "group": "inline",
+      "inline": true,
+      "marks": null,
+    },
+    "heading": {
+      "atom": false,
+      "attrs": {
+        "id": null,
+        "level": 1,
+      },
+      "content": "inline*",
+      "group": "block",
+      "inline": false,
+      "marks": null,
+    },
+    "horizontalRule": {
+      "atom": false,
+      "attrs": {
+        "id": null,
+      },
+      "content": null,
+      "group": "block",
+      "inline": false,
+      "marks": null,
+    },
+    "image": {
+      "atom": false,
+      "attrs": {
+        "alt": null,
+        "height": null,
+        "id": null,
+        "src": null,
+        "title": null,
+        "width": null,
+      },
+      "content": null,
+      "group": "block",
+      "inline": false,
+      "marks": null,
+    },
+    "listItem": {
+      "atom": false,
+      "attrs": {
+        "id": null,
+      },
+      "content": "paragraph block*",
+      "group": null,
+      "inline": false,
+      "marks": null,
+    },
+    "orderedList": {
+      "atom": false,
+      "attrs": {
+        "id": null,
+        "start": 1,
+        "type": null,
+      },
+      "content": "listItem+",
+      "group": "block list",
+      "inline": false,
+      "marks": null,
+    },
+    "paragraph": {
+      "atom": false,
+      "attrs": {
+        "id": null,
+      },
+      "content": "inline*",
+      "group": "block",
+      "inline": false,
+      "marks": null,
+    },
+    "taskItem": {
+      "atom": false,
+      "attrs": {
+        "checked": false,
+        "id": null,
+      },
+      "content": "paragraph block*",
+      "group": null,
+      "inline": false,
+      "marks": null,
+    },
+    "taskList": {
+      "atom": false,
+      "attrs": {
+        "id": null,
+      },
+      "content": "taskItem+",
+      "group": "block list",
+      "inline": false,
+      "marks": null,
+    },
+    "text": {
+      "atom": false,
+      "attrs": {},
+      "content": null,
+      "group": "inline",
+      "inline": false,
+      "marks": null,
+    },
+  },
+  "topNode": "doc",
+}
+`;
