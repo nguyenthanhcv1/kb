@@ -1,0 +1,88 @@
+import { type AnyExtension, getSchema } from "@tiptap/core";
+import { CodeBlockLowlight } from "@tiptap/extension-code-block-lowlight";
+import { Image } from "@tiptap/extension-image";
+import { TaskItem, TaskList } from "@tiptap/extension-list";
+import { UniqueID, type UniqueIDOptions } from "@tiptap/extension-unique-id";
+import type { Schema } from "@tiptap/pm/model";
+import { StarterKit } from "@tiptap/starter-kit";
+import { common, createLowlight } from "lowlight";
+
+import { Callout } from "./callout";
+
+export { CALLOUT_VARIANTS, Callout, type CalloutVariant } from "./callout";
+
+export const HEADING_LEVELS = [1, 2, 3] as const;
+
+/**
+ * Node types that carry a stable block ID (`attrs.id`, rendered as `data-id`).
+ * Used for deep links, comments (V2) and RAG citations (V3). New block nodes
+ * must be added here — and `EDITOR_SCHEMA_VERSION` bumped.
+ */
+export const BLOCK_ID_TYPES = [
+  "paragraph",
+  "heading",
+  "blockquote",
+  "bulletList",
+  "orderedList",
+  "listItem",
+  "taskList",
+  "taskItem",
+  "codeBlock",
+  "horizontalRule",
+  "image",
+  "callout",
+] as const;
+
+export interface CreateExtensionsOptions {
+  /**
+   * Keep ProseMirror's own undo/redo. Turn it off when the document is bound to
+   * Yjs: the Collaboration extension provides its own undo manager.
+   * @default true
+   */
+  undoRedo?: boolean;
+  /**
+   * Runtime behaviour of block ID assignment, e.g. `filterTransaction` to skip
+   * transactions coming from other collaborators, or `updateDocument: false`
+   * for read-only views. Never changes the schema.
+   */
+  uniqueId?: Partial<Pick<UniqueIDOptions, "filterTransaction" | "updateDocument">>;
+}
+
+const lowlight = createLowlight(common);
+
+/**
+ * The one TipTap extension set shared by the web editor, `kb-collab` and the
+ * search/RAG extractors. Options only toggle runtime behaviour; the resulting
+ * schema is always identical (see `getEditorSchema`).
+ *
+ * Safe to import in Node: nothing here touches the DOM until an editor view is
+ * mounted.
+ */
+export function createExtensions(options: CreateExtensionsOptions = {}): AnyExtension[] {
+  return [
+    StarterKit.configure({
+      codeBlock: false,
+      heading: { levels: [...HEADING_LEVELS] },
+      link: {
+        autolink: true,
+        defaultProtocol: "https",
+        openOnClick: false,
+      },
+      undoRedo: options.undoRedo === false ? false : {},
+    }),
+    CodeBlockLowlight.configure({ lowlight, defaultLanguage: null }),
+    TaskList,
+    TaskItem.configure({ nested: true }),
+    Image.configure({ inline: false, allowBase64: false }),
+    Callout,
+    UniqueID.configure({
+      types: [...BLOCK_ID_TYPES],
+      ...options.uniqueId,
+    }),
+  ];
+}
+
+/** ProseMirror schema of the shared extension set, e.g. for server-side parsing. */
+export function getEditorSchema(): Schema {
+  return getSchema(createExtensions());
+}
