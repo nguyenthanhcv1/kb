@@ -1,7 +1,7 @@
 # Quy trình nhiều AI agent làm việc song song
 
-> Áp dụng cho 4 agent: **`claude-1`, `claude-2`, `claude-3`** (Claude Code) và **`codex-1`** (ChatGPT Codex), cộng **người điều phối** (human).
-> Lane Platform & collab trước đây là `codex-2` (Codex), nay là `claude-3` (Claude Code). Task/PR cũ ghi `codex-2` được hiểu là `claude-3`.
+> Áp dụng cho 3 agent: **`claude-1`, `claude-2`** (Claude Code) và **`codex-1`** (ChatGPT Codex), cộng **người điều phối** (human).
+> Lane `codex-2` cũ (Platform & collab) đã bỏ; việc được chia cho `claude-1` (collab, logic editor không-UI, hạ tầng test) và `claude-2` (platform). PR/commit cũ ghi `codex-2` giữ nguyên.
 > Quy tắc tóm tắt nằm ở `AGENTS.md` §0 (Codex tự đọc `AGENTS.md`; Claude đọc `CLAUDE.md` → import `AGENTS.md`). Tài liệu này là bản đầy đủ.
 > Danh sách task, lane, vùng sở hữu: `docs/ai/tasks.yaml`.
 
@@ -21,15 +21,14 @@ Xung đột giữa các agent xảy ra ở 3 chỗ: **cùng nhận một task**,
 
 | Agent | Công cụ | Lane | Phạm vi chính |
 |---|---|---|---|
-| `claude-1` | Claude Code (tài khoản 1) | UI lõi & editor | khung app, theme, component `ui/`, editor TipTap, table block (UI, kéo thả), upload, màn hình đăng nhập |
-| `claude-2` | Claude Code (tài khoản 2) | UI tính năng | Space, thành viên, admin, cài đặt, cây trang, tìm kiếm, lịch sử, audit, What's new, email template, tài liệu người dùng, ghi chú phát hành tiếng Việt |
+| `claude-1` | Claude Code (tài khoản 1) | UI lõi & editor + collab | khung app, theme, component `ui/`, editor TipTap, table block (UI, kéo thả), upload, màn hình đăng nhập; **không-UI:** `apps/collab`, logic editor không-UI (trích xuất, parser paste, migration schema), hạ tầng test (Vitest/Playwright) |
+| `claude-2` | Claude Code (tài khoản 2) | UI tính năng + platform | Space, thành viên, admin, cài đặt, cây trang, tìm kiếm, lịch sử, audit, What's new, email template, tài liệu người dùng, ghi chú phát hành tiếng Việt; **không-UI:** monorepo tooling + root config, CI/CD, release, Docker, Coolify, backup, production, i18n tooling, runbook/ADR |
 | `codex-1` | Codex (tài khoản 1) | DB & server | Supabase (migration, RLS, pgTAP), server actions/contract, Route Handler, middleware auth, SQL tìm kiếm, bảo mật |
-| `claude-3` | Claude Code (tài khoản 3) | Platform & collab (không-UI, trước là `codex-2`) | monorepo tooling, CI/CD, Docker, Coolify, release, backup, `apps/collab`, logic editor không-UI (trích xuất, parser paste), hạ tầng test |
 | human | Bạn | Điều phối | khởi động phiên, cấp secret, thao tác UI nhà cung cấp (Coolify, Hostinger, Cloudflare, Google Cloud), review & merge, sửa `tasks.yaml` |
 
-Tải dự kiến (ngày công, từ `tasks.yaml`): claude-1 ≈ 13, claude-2 ≈ 13, claude-3 ≈ 19, codex-1 ≈ 17. Nếu chạy liên tục và merge nhanh, MVP có thể xong trong **~23 ngày làm việc** (mô phỏng theo `deps`); thực tế tính thêm thời gian review/merge của người → **~6–7 tuần**. `claude-1`/`claude-2` có ít việc hơn nên được **mượn** task không-UI có `stealable: true` của `claude-3`/`codex-1` (§6).
+Tải dự kiến (ngày công, từ `tasks.yaml`, gồm cả task đã xong): claude-1 ≈ 22, claude-2 ≈ 23, codex-1 ≈ 17 (trước khi bỏ `codex-2`: 13 / 13 / 17 + codex-2 19). Nếu chạy liên tục và merge nhanh, MVP có thể xong trong **~27 ngày làm việc** (mô phỏng theo `deps`, chưa tính mượn task; trước là ~23 với 4 agent); thực tế tính thêm thời gian review/merge của người → **~7–8 tuần**. Lane nào rảnh thì **mượn** task không-UI có `stealable: true` của lane khác (§6) — `codex-1` nên mượn task không-UI của Claude (vd T3.3b, T4.4a, T4.6) để cân tải.
 
-## 3. Thế nào là "UI" — chỉ Claude (`claude-1`, `claude-2`) được làm
+## 3. Thế nào là "UI" — chỉ Claude được làm
 
 Một thay đổi là **UI** nếu nó thuộc một trong các nhóm sau:
 - File trong `apps/web/src/app/**` **trừ** `app/api/**` và `app/auth/callback/**` (trang, layout, `loading.tsx`, `error.tsx`, `not-found.tsx`).
@@ -41,16 +40,16 @@ Một thay đổi là **UI** nếu nó thuộc một trong các nhóm sau:
 - Tài liệu người dùng `docs/user-guide/**`, `docs/glossary.md`, ghi chú phát hành `changelog/vi/**`.
 - E2E Playwright kiểm thử luồng giao diện (`apps/web/e2e/editor|table|features/**`).
 
-**Không phải UI** (`codex-1`/`claude-3` làm; `claude-1`/`claude-2` mượn được): migration/SQL, server actions, Route Handler, middleware, collab server, CI, Docker, script, hàm thuần trong `packages/editor/src/extract|table/paste.ts|table/csv.ts|migrations`, cấu hình Playwright/Vitest (`e2e/support/**`), ADR, runbook.
+**Không phải UI** (Claude làm trong lane mình, Codex làm/mượn được): migration/SQL, server actions, Route Handler, middleware, collab server, CI, Docker, script, hàm thuần trong `packages/editor/src/extract|table/paste.ts|table/csv.ts|migrations`, cấu hình Playwright/Vitest (`e2e/support/**`), ADR, runbook.
 
-Ranh giới trong một task hỗn hợp: task đã được **tách sẵn** thành `a` (server/nền tảng, `codex-1`/`claude-3`) và `b` (UI, `claude-1`/`claude-2`). Nếu lane không-UI đang làm mà thấy cần UI → dừng ở contract, ghi "Yêu cầu cho lane khác: claude-x cần …" trong PR. Nếu cần một task UI mới chưa có trong `tasks.yaml` → báo người để thêm task.
+Ranh giới trong một task hỗn hợp: task đã được **tách sẵn** thành `a` (server/nền tảng — `codex-1`, hoặc `claude-1`/`claude-2` nếu thuộc collab/platform) và `b` (UI, Claude). Nếu Codex đang làm mà thấy cần UI → dừng ở contract, ghi "Yêu cầu cho lane khác: claude-x cần …" trong PR. Nếu cần một task UI mới chưa có trong `tasks.yaml` → báo người để thêm task.
 
 ## 4. Khởi động một phiên (người làm)
 
 Mở phiên mới cho mỗi agent với prompt mẫu (thay tên agent):
 
 ```
-Bạn là `codex-1` trong dự án kb (4 agent chạy song song).
+Bạn là `codex-1` trong dự án kb (3 agent chạy song song).
 1. Đọc AGENTS.md, docs/ai/WORKFLOW.md, docs/ai/tasks.yaml.
 2. Fetch origin, xác định task tiếp theo của lane `codex-1` theo WORKFLOW §5
    (nếu có `pnpm ai:next --agent codex-1` thì dùng lệnh đó).
@@ -59,7 +58,7 @@ Chỉ làm đúng 1 task trong phiên này.
 ```
 
 - **Một phiên = một task.** Xong task (PR đã mở) → kết thúc phiên; phiên mới cho task kế tiếp. Giữ ngữ cảnh gọn, tránh agent "tiện tay" làm thêm.
-- Với Claude Code: dùng `claude-1`/`claude-2`/`claude-3` trong prompt. Với Codex: `codex-1`.
+- Với Claude Code: dùng `claude-1`/`claude-2` trong prompt. Với Codex: `codex-1`.
 - Mỗi agent chạy trong **môi trường riêng** (Claude Code on the web / Codex cloud có container riêng — khuyến nghị). Nếu chạy local trên cùng một máy: mỗi agent một **git worktree/clone riêng** và **không** chạy đồng thời 2 bộ Supabase local (trùng cổng 54321–54324); dùng một máy/VM riêng cho mỗi agent hoặc lần lượt.
 
 ## 5. Chọn task tự động
@@ -72,7 +71,7 @@ DONE        = các id xuất hiện dạng "[Txx]" trong `git log origin/main --
 IN_PROGRESS = các id có nhánh `origin/*/<id>-*`  ∪  PR đang mở có "[<id>]" trong tiêu đề
 Duyệt tasks theo THỨ TỰ TRONG FILE (thứ tự = ưu tiên), lấy task đầu tiên thoả:
    lane == tôi  và  id ∉ DONE ∪ IN_PROGRESS  và  mọi deps ∈ DONE
-   (và nếu tôi là codex-1 hoặc claude-3: ui != true — luôn đúng vì task UI chỉ nằm ở lane claude-1/claude-2)
+   (và nếu tôi là Codex: ui != true — luôn đúng vì task UI chỉ nằm ở lane Claude)
 Không có → áp dụng §6 (mượn task); vẫn không có → báo người "lane <id> đang chờ <deps>" và dừng.
 ```
 
@@ -84,7 +83,7 @@ Trường hợp `human: true`: agent làm phần code/tài liệu/script, liệt
 
 Được phép khi lane của mình không còn task `ready`:
 1. Chỉ mượn task có `stealable: true`, đang `ready`, **không** `in_progress`.
-2. Chiều được mượn: **mọi agent với task không-UI** (vd `claude-1` mượn của `claude-3`, `claude-3` ↔ `codex-1`). **`codex-1` và `claude-3` không mượn task `ui: true`.** `claude-1` ↔ `claude-2` mượn task UI của nhau chỉ khi người đồng ý.
+2. Chiều được mượn: **Claude ↔ Codex với task không-UI**, Claude ↔ Claude. **Codex không bao giờ mượn task `ui: true`.** Claude mượn task UI của Claude khác chỉ khi người đồng ý.
 3. Vùng được sửa = `owns` của **lane gốc** của task + `touches` (không phải lane của người mượn).
 4. Ghi trong thân PR: `Agent: claude-2 (mượn từ lane codex-1)`.
 5. Ưu tiên mượn task nằm trên đường găng (task có nhiều task khác phụ thuộc).
@@ -93,14 +92,14 @@ Trường hợp `human: true`: agent làm phần code/tài liệu/script, liệt
 
 | File | Luật |
 |---|---|
-| `pnpm-lock.yaml` | Không sửa tay. Thêm dependency bằng `pnpm add --filter <pkg> <dep>` **chỉ** trong package mình sở hữu. Gặp conflict: lấy bản của `main` (`git checkout origin/main -- pnpm-lock.yaml`), chạy lại `pnpm install`, commit. Dependency dùng chung toàn repo (root `package.json`) → yêu cầu `claude-3`. |
+| `pnpm-lock.yaml` | Không sửa tay. Thêm dependency bằng `pnpm add --filter <pkg> <dep>` **chỉ** trong package mình sở hữu. Gặp conflict: lấy bản của `main` (`git checkout origin/main -- pnpm-lock.yaml`), chạy lại `pnpm install`, commit. Dependency dùng chung toàn repo (root `package.json`) → yêu cầu `claude-2`. |
 | `supabase/migrations/*` | **Chỉ lane `codex-1`** tạo migration (Claude không bao giờ). Tạo bằng `supabase migration new <tên>` **ngay trước khi mở PR**. Trước khi merge, nếu `main` có migration timestamp lớn hơn của mình → đổi tên file của mình sang timestamp mới (`supabase migration new` lại rồi chép nội dung) để thứ tự luôn tăng dần. Không sửa migration đã merge. |
 | `packages/db/src/types.gen.ts` | Không sửa tay. Conflict → `pnpm db:types` sinh lại sau khi merge `main`. |
 | `CHANGELOG.md`, `.release-please-manifest.json`, version trong `package.json` | Chỉ release-please sửa. Agent không bao giờ đụng. |
 | `changelog/vi/<version>.md` | Chỉ `claude-2` viết, và chỉ trong Release PR khi người yêu cầu. |
 | File dịch `packages/i18n/messages/{vi,en}/*.json` | Mỗi namespace thuộc **một lane** (bảng 7.3). Key sắp xếp **theo alphabet** (lệnh `pnpm i18n:sort`, `i18n:check` fail nếu chưa sắp) — hai agent thêm key khác nhau hiếm khi đụng cùng dòng. Luôn thêm cả `vi` và `en` trong cùng commit. |
 | `packages/shared/src/errors.ts` | Chỉ `codex-1`. Mã lỗi xếp alphabet; mỗi mã có key `errors.<CODE>` đủ vi/en. |
-| Root config (`package.json`, `turbo.json`, `tsconfig*.json`, ESLint, `.github/**`) | Chỉ `claude-3`. Lane khác cần đổi → "Yêu cầu cho lane khác". |
+| Root config (`package.json`, `turbo.json`, `tsconfig*.json`, ESLint, `.github/**`) | Chỉ `claude-2` (ngoại lệ theo `touches` của task, vd `claude-1` sửa `e2e.yml` ở T7.1b). Lane khác cần đổi → "Yêu cầu cho lane khác". |
 | `apps/web/src/app/layout.tsx`, `components/ui/**`, theme | Chỉ `claude-1`. `claude-2` thêm component shadcn **mới** được (file mới), không sửa component có sẵn. |
 | `apps/web/src/middleware.ts` | Chỉ `codex-1`. |
 | `AGENTS.md`, `CLAUDE.md`, `docs/PLAN.md`, `docs/ai/**` | Chỉ người. Agent đề xuất bằng PR riêng, không gộp vào PR task. |
@@ -149,18 +148,20 @@ Deps `b → a` trong `tasks.yaml` là mốc để **merge** `b`; `b` được b�
 - Merge theo thứ tự: PR contract → PR nền tảng (DB, tooling) → PR UI. Ưu tiên PR đang chặn nhiều task khác.
 - Bật trên GitHub: squash merge only, "Default commit message = Pull request title and description", "Require branches to be up to date before merging", required checks (`ci`, `agent-scope`), xoá nhánh sau merge.
 - Khi hai agent vô tình đụng nhau: giữ PR có mã task đúng lane, đóng PR còn lại, ghi lại bài học vào `docs/ai/WORKFLOW.md`.
-- Thêm/sửa task (bug từ pilot, task mới): sửa `tasks.yaml` trong PR riêng; gán lane theo §3 (UI → claude-1/claude-2; DB/server → codex-1; platform/collab → claude-3).
+- Thêm/sửa task (bug từ pilot, task mới): sửa `tasks.yaml` trong PR riêng; gán lane theo §3 (UI → claude-1/claude-2; DB/server → codex-1; collab/logic editor không-UI/hạ tầng test → claude-1; platform/CI/hạ tầng → claude-2).
 
 ## 11. Lịch khởi động M0 (tuần đầu)
 
 Thứ tự merge quan trọng hơn thứ tự làm — nhiều thứ làm được song song ngay từ ngày 1:
 
-| Ngày | claude-1 | claude-2 | codex-1 | claude-3 (trước: codex-2) |
-|---|---|---|---|---|
-| 1 | chờ T0.1a → soạn trước đề xuất theme/token (không commit) | chờ T0.3a | **T0.4** Supabase local (thư mục độc lập) | **T0.1a** monorepo (merge sớm nhất có thể) |
-| 1–2 | **T0.1b** app shell | — | mượn **T0.2** (commitlint, PR template) | **T0.3a** i18n tooling |
-| 2–3 | **T0.3b** next-intl trong app | **T0.3c** glossary + skeleton dịch | **T1.1** schema lõi | **T0.5** CI → **T0.11** công cụ agent |
-| 3–5 | **T1.2b** UI đăng nhập → **T3.1** extension editor | chờ T0.6a/T1.4a → mượn task stealable nếu có | **T1.2a**, **T1.4a** (contract trước) | **T0.6a**, **T0.7**, **T0.8** (cần người) |
+> Bảng dưới đã chia lại sau khi bỏ lane `codex-2` (T0.1a, T0.2, T0.3a đã xong; nay tính vào lane `claude-2`).
+
+| Ngày | claude-1 | claude-2 | codex-1 |
+|---|---|---|---|
+| 1 | chờ T0.1a → soạn trước đề xuất theme/token (không commit) | **T0.1a** monorepo (merge sớm nhất có thể) | **T0.4** Supabase local (thư mục độc lập) |
+| 1–2 | **T0.1b** app shell | **T0.3a** i18n tooling | mượn **T0.2** (commitlint, PR template) |
+| 2–3 | **T0.3b** next-intl trong app | **T0.3c** glossary → **T0.5** CI → **T0.11** công cụ agent | **T1.1** schema lõi |
+| 3–5 | **T1.2b** UI đăng nhập → **T3.1** extension editor → **T3.3b** trích xuất | **T0.6a**, **T0.7**, **T0.8** (cần người) → **T0.6b** | **T1.2a**, **T1.4a** (contract trước) → mượn T4.4a/T4.6 nếu rảnh |
 
 Từ ngày thứ 3–4, `pnpm ai:next` tự đưa mỗi agent tới task tiếp theo; người chỉ cần mở phiên và merge.
 

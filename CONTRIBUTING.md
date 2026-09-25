@@ -72,4 +72,4 @@ Cấu hình: [`commitlint.config.mjs`](commitlint.config.mjs) (danh sách type/s
 - Song ngữ vi/en, không chuỗi hiển thị hard-code (`AGENTS.md` §1).
 - Mọi bảng bật RLS + pgTAP (`AGENTS.md` §4).
 - Chỉ thư viện mã nguồn mở trong allowlist license (`AGENTS.md` §5).
-- UI chỉ Claude Code (`claude-1`, `claude-2`) làm; `codex-1` làm DB/server, `claude-3` làm platform & collab (`AGENTS.md` §0).
+- UI chỉ Claude Code làm; `codex-1` làm DB/server; collab/platform do `claude-1`/`claude-2` làm (`AGENTS.md` §0).

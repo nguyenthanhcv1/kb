@@ -6,11 +6,11 @@
 
 ## 0. Làm việc song song nhiều agent — ĐỌC TRƯỚC KHI LÀM BẤT CỨ ĐIỀU GÌ
 
-Có 4 agent chạy song song: `claude-1`, `claude-2`, `claude-3` (Claude Code) và `codex-1` (ChatGPT Codex). Lane `claude-3` (Platform & collab) trước đây là `codex-2`. Người dùng cho biết bạn là agent nào ở tin nhắn đầu phiên ("Bạn là `codex-1`"). **Nếu chưa được cho biết, hãy hỏi — không tự chọn.**
+Có 3 agent chạy song song: `claude-1`, `claude-2` (Claude Code) và `codex-1` (ChatGPT Codex). Việc của lane `codex-2` cũ đã chia cho `claude-1` (collab, logic editor không-UI, hạ tầng test) và `claude-2` (platform: tooling, CI/CD, release, Docker, hạ tầng). Người dùng cho biết bạn là agent nào ở tin nhắn đầu phiên ("Bạn là `codex-1`"). **Nếu chưa được cho biết, hãy hỏi — không tự chọn.**
 
 1. **Chỉ làm task thuộc lane của mình** trong `docs/ai/tasks.yaml` (trừ luật "mượn task" ở `docs/ai/WORKFLOW.md` §6).
 2. **Chỉ sửa file trong vùng sở hữu của lane** (`lanes.<agent>.owns` trong `tasks.yaml`). Cần thay đổi ở vùng khác → ghi vào mục "Yêu cầu cho lane khác" trong PR, không tự sửa.
-3. **Mọi thứ thuộc UI chỉ Claude Code làm** (`claude-1`, `claude-2`; `claude-3` là lane không-UI). **Codex không bao giờ** tạo/sửa: trang, layout, component React, hook UI, CSS/Tailwind/theme, node view và menu của editor, email template, chuỗi dịch hiển thị trên giao diện (trừ `errors.json`, `audit.json`), tài liệu người dùng. Định nghĩa đầy đủ: `docs/ai/WORKFLOW.md` §3.
+3. **Mọi thứ thuộc UI chỉ Claude Code làm** (`claude-1`, `claude-2`). **Codex không bao giờ** tạo/sửa: trang, layout, component React, hook UI, CSS/Tailwind/theme, node view và menu của editor, email template, chuỗi dịch hiển thị trên giao diện (trừ `errors.json`, `audit.json`), tài liệu người dùng. Định nghĩa đầy đủ: `docs/ai/WORKFLOW.md` §3.
 4. **Một task = một nhánh = một PR nhỏ**. Nhánh: `<agent>/<task-id>-<slug>` (vd `codex-1/T1.1-core-schema`). Tiêu đề PR: Conventional Commit + mã task, vd `feat(db): core schema and RLS [T1.1]`. Thân PR theo `.github/pull_request_template.md` (có dòng `Agent:` và `Task:`).
 5. **Luôn bắt đầu từ `main` mới nhất** và merge `main` vào nhánh trước khi mở PR. Không force-push nhánh của agent khác, không sửa PR của agent khác.
 6. **Task chỉ được bắt đầu khi mọi `deps` đã merge vào `main`** (kiểm tra: `git log origin/main --oneline | grep '\[T1.1\]'`).
@@ -69,11 +69,6 @@ Knowledge base nội bộ self-host: editor dạng block (TipTap), table block �
 - `codex-1` — **DB & server**: `supabase/**` (migration, RLS, pgTAP, seed), `apps/web/src/server/**`, Route Handler `app/api/**`, auth middleware, SQL tìm kiếm.
 - **Không làm UI** (xem §0.3). Nếu task của bạn cần thay đổi UI → hoàn thành phần server/contract, ghi rõ trong Handoff và mục "Yêu cầu cho lane khác" để Claude làm.
 - Khi viết contract cho UI (`apps/web/src/server/<area>/index.ts`): export hàm có kiểu rõ ràng + schema zod cho input/output + mã lỗi từ `packages/shared/src/errors.ts`; ghi ví dụ dữ liệu trong JSDoc để Claude dựng mock.
-
-## Lane `claude-3` — Platform & collab (Claude Code, trước là `codex-2`)
-- `claude-3` — **Platform & collab**: tooling monorepo, CI/CD, Docker, Coolify, release, backup, `apps/collab/**`, logic không-UI của editor (trích xuất text, parser paste, xuất CSV), hạ tầng test.
-- Lane **không-UI**: không nhận task `ui: true`, không sửa file UI (§0.3) ngoài `touches` của task; cần UI → ghi "Yêu cầu cho lane khác" gửi `claude-1`/`claude-2`.
-- Sở hữu root config (`package.json`, `turbo.json`, `tsconfig*.json`, ESLint, `.github/**`) và dependency dùng chung toàn repo.
 
 ## Definition of Done cho mỗi PR
 - [ ] PR chỉ chứa **một task**, chỉ sửa file trong vùng lane (hoặc file "nóng" theo đúng luật §7 của WORKFLOW)
