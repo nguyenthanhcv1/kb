@@ -23,7 +23,7 @@
 | Email (SMTP) | Supabase không cung cấp SMTP. **Gmail SMTP bằng App Password của một tài khoản Workspace** (không cần admin công ty); nâng lên **Resend** với domain `thanhgo.com` khi cần — §7.14 |
 | TipTap | **Chỉ dùng phần mã nguồn mở (MIT)**; tính năng thiếu thì tự viết. CI chặn package trả phí — §2.1 |
 | AI (V3) | **Được phép** gửi nội dung tới API bên ngoài: Claude API (Anthropic) cho sinh câu trả lời, Voyage AI cho embedding; có cờ tắt AI theo Space — §10.2 |
-| Nhân lực | 1 dev fulltime (+AI) → ước lượng ~63,5 ngày công cho MVP (~3 tháng lịch) |
+| Nhân lực | 1 dev fulltime (+AI) → ước lượng ~64 ngày công (1 dev) — hoặc ~6–7 tuần lịch với 4 agent song song (docs/ai/WORKFLOW.md) cho MVP (~3 tháng lịch) |
 
 ---
 
@@ -162,6 +162,7 @@ kb/
 ├── changelog/vi/                     # <version>.md — ghi chú phát hành tiếng Việt
 ├── docs/
 │   ├── PLAN.md
+│   ├── ai/                           # WORKFLOW.md (quy trình nhiều agent), tasks.yaml (lane + task)
 │   ├── adr/                          # Architecture Decision Records
 │   ├── runbooks/                     # backup-restore, rotate-secrets, incident…
 │   └── user-guide/{vi,en}/
@@ -171,7 +172,8 @@ kb/
 │   ├── pull_request_template.md
 │   └── CODEOWNERS
 ├── CHANGELOG.md                      # release-please (en) + khối tiếng Việt được chèn
-├── CLAUDE.md
+├── AGENTS.md                         # quy tắc chung cho mọi agent (Codex đọc trực tiếp)
+├── CLAUDE.md                         # import AGENTS.md + hướng dẫn riêng Claude (UI)
 ├── release-please-config.json
 ├── .release-please-manifest.json
 ├── .env.example
@@ -874,9 +876,11 @@ Mục tiêu coverage: `packages/editor` ≥ 80 %, logic khác ≥ 60 %; mọi po
 
 ## 9. Milestones MVP
 
+> Phân công cho 4 agent chạy song song (claude-1, claude-2, codex-1, codex-2): task trong bảng dưới được tách thành phần server (`a`) và UI (`b`) và gán lane trong [`docs/ai/tasks.yaml`](ai/tasks.yaml); quy trình ở [`docs/ai/WORKFLOW.md`](ai/WORKFLOW.md). UI luôn do Claude Code làm. Nếu chạy song song đủ 4 agent, thời gian lịch ước ~6–7 tuần thay vì ~3 tháng.
+
 Ước lượng cho **1 dev fulltime (+AI)**. Mỗi milestone kết thúc bằng một release (MINOR). "Version" = release đầu tiên chứa task.
 
-### M0 — Nền tảng (→ `v0.1.0`) · ~11,5 ngày
+### M0 — Nền tảng (→ `v0.1.0`) · ~12 ngày
 
 | ID | Task | File/module | Tiêu chí hoàn thành | Phụ thuộc | Ước lượng | Version |
 |---|---|---|---|---|---|---|
@@ -889,6 +893,7 @@ Mục tiêu coverage: `packages/editor` ≥ 80 %, logic khác ≥ 60 %; mọi po
 | T0.7 | Dockerfile web/collab/migrate, HEALTHCHECK, `/api/health`, `/health`, env zod, `build-images.yml` push GHCR | `apps/*/Dockerfile`, `infra/migrate`, `packages/shared/src/env.ts` | `docker build` cả 3 image; container healthy; image web < 250 MB; thiếu env bắt buộc → crash kèm tên biến | T0.1 | 1 | 0.1.0 |
 | T0.8 | Hạ tầng staging trên Coolify (cài Coolify lên `kb-ops-1`, §7.0): Supabase service, `kb-web`, `kb-collab`, Cloudflare DNS + Origin CA + Full strict, firewall, secrets, `deploy.yml` qua Coolify API + SSH migrate | `infra/coolify/*.md`, `.github/workflows/deploy.yml` | Merge `main` → staging tự deploy, smoke test xanh; `https://kb-staging.thanhgo.com/api/health` trả sha mới; Postgres không truy cập được từ Internet | T0.7 | 2 | 0.1.0 |
 | T0.9 | Backup: image `kb-backup`, cron, Cloudflare R2 (bucket lock + lifecycle), mã hoá age, restore runbook, job kiểm thử restore | `infra/backup`, `docs/runbooks/backup-restore.md` | Có file backup trên S3; restore vào DB tạm thành công theo runbook; alert khi quá 26 h không backup | T0.8 | 1 | 0.1.0 |
+| T0.11 | Công cụ cho agent chạy song song: `pnpm ai:next --agent <id>` (chọn task theo `docs/ai/tasks.yaml` + git), `pnpm ai:status`, CI `agent-scope` (so file thay đổi với vùng sở hữu của lane trong thân PR; chặn Codex sửa file UI) | `scripts/ai/*.ts`, `.github/workflows/ci.yml` | PR của `codex-1` sửa `components/**` → check đỏ; `ai:next` trả đúng task ready đầu tiên của lane | T0.5 | 0,5 | 0.1.0 |
 | T0.10 | Spike xác minh rủi ro: (a) hook `before_user_created` trên GoTrue self-host, (b) Hocuspocus qua Cloudflare + Traefik (timeout, reconnect), (c) verify JWT Supabase trong collab, (d) Coolify preview + DNS workflow, (e) đăng nhập Google bằng tài khoản công ty qua OAuth client External của project cá nhân, (f) gửi mail bằng Gmail App Password | ADR `docs/adr/0001…0004` | Mỗi điểm có ADR kết luận + phương án dự phòng; WS giữ kết nối ≥ 30 phút qua Cloudflare | T0.8 | 1 | 0.1.0 |
 
 ### M1 — Đăng nhập, hồ sơ, Space, phân quyền (→ `v0.2.0`) · ~9,5 ngày
@@ -965,7 +970,7 @@ Mục tiêu coverage: `packages/editor` ≥ 80 %, logic khác ≥ 60 %; mọi po
 | T7.5 | Pilot `0.8.x` trên production với 1–2 phòng ban, thu phản hồi, sửa lỗi (buffer) | – | Không còn bug mức nghiêm trọng; phản hồi ghi thành issue | T7.3 | 3 | 0.8.x |
 | T7.6 | Phát hành **1.0.0**: checklist go-live (backup/restore thử trong 7 ngày qua, alert hoạt động, không bug P0/P1 mở, E2E xanh, tài liệu vi/en đủ, ghi chú phát hành vi/en), commit `Release-As: 1.0.0`, thông báo toàn công ty (song ngữ) | `changelog/vi/1.0.0.md`, `docs/runbooks/go-live.md` | Tag `v1.0.0`, app hiển thị `v1.0.0`, trang What's new có bài giới thiệu MVP | T7.5 | 0 (trong buffer) | **1.0.0** |
 
-**Tổng: ~63,5 ngày công** (≈ 3 tháng lịch, đã gồm buffer ở T7.5). Đường găng: T0.1 → T0.4 → T1.1 → T2.1 → T3.3 → T3.4 → T4.x → T5.x → T6.x → T7.x.
+**Tổng: ~64 ngày công** (≈ 3 tháng lịch, đã gồm buffer ở T7.5). Đường găng: T0.1 → T0.4 → T1.1 → T2.1 → T3.3 → T3.4 → T4.x → T5.x → T6.x → T7.x.
 
 ---
 
