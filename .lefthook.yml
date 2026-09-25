@@ -1,0 +1,18 @@
+# Git hooks (https://lefthook.dev). Cài tự động khi `pnpm install` (bỏ qua khi CI=true).
+# Cài lại thủ công: `pnpm exec lefthook install`. Bỏ qua một lần (hạn chế dùng): `LEFTHOOK=0 git commit …`.
+
+commit-msg:
+  commands:
+    commitlint:
+      run: pnpm exec commitlint --edit {1}
+
+pre-commit:
+  parallel: true
+  commands:
+    prettier:
+      glob: "*.{js,mjs,cjs,ts,tsx,json,md,yml,yaml,css}"
+      run: pnpm exec prettier --check --ignore-unknown {staged_files}
+    i18n:
+      # Script có từ T0.3a; `--if-present` để hook không lỗi trước khi có.
+      glob: "packages/i18n/messages/**/*.json"
+      run: pnpm run --if-present i18n:check

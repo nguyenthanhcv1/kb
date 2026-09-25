@@ -16,7 +16,10 @@
     "format:check": "prettier --check ."
   },
   "devDependencies": {
+    "@commitlint/cli": "^21.2.3",
+    "@commitlint/config-conventional": "^21.2.3",
     "@kb/config": "workspace:*",
+    "lefthook": "^2.1.14",
     "prettier": "^3.9.9",
     "turbo": "^2.11.4",
     "typescript": "~5.9.3"
