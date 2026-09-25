@@ -1,0 +1,153 @@
+{
+  "blockMenu": {
+    "delete": "Xoá",
+    "duplicate": "Nhân bản",
+    "handle": "Kéo để di chuyển khối, bấm để mở menu",
+    "label": "Thao tác với khối",
+    "moveDown": "Chuyển xuống",
+    "moveUp": "Chuyển lên",
+    "turnInto": "Chuyển thành"
+  },
+  "bubble": {
+    "blockType": "Kiểu khối",
+    "bold": "In đậm",
+    "code": "Mã",
+    "italic": "In nghiêng",
+    "label": "Định dạng văn bản",
+    "link": "Liên kết",
+    "strike": "Gạch ngang",
+    "underline": "Gạch chân"
+  },
+  "close": "Đóng",
+  "content": {
+    "label": "Nội dung trang"
+  },
+  "image": {
+    "cancel": "Huỷ",
+    "description": "Dán đường dẫn tới hình ảnh (bắt đầu bằng https://). Tải ảnh lên từ máy sẽ có ở bản sau.",
+    "insert": "Chèn",
+    "invalid": "Đường dẫn chưa hợp lệ. Hãy dùng liên kết bắt đầu bằng http:// hoặc https://.",
+    "label": "Đường dẫn hình ảnh",
+    "title": "Chèn hình ảnh"
+  },
+  "link": {
+    "apply": "Áp dụng",
+    "invalid": "Liên kết chưa hợp lệ.",
+    "label": "Địa chỉ liên kết",
+    "open": "Mở liên kết",
+    "placeholder": "Dán hoặc nhập liên kết",
+    "remove": "Bỏ liên kết"
+  },
+  "placeholder": {
+    "heading": "Tiêu đề {level}",
+    "paragraph": "Nhập văn bản, hoặc gõ \"/\" để chèn khối"
+  },
+  "shortcuts": {
+    "description": "Dùng bàn phím để định dạng và sắp xếp nội dung nhanh hơn.",
+    "groups": {
+      "blocks": "Khối",
+      "editing": "Soạn thảo",
+      "format": "Định dạng"
+    },
+    "items": {
+      "blockquote": "Trích dẫn",
+      "bold": "In đậm",
+      "bulletList": "Danh sách dấu chấm",
+      "code": "Mã trong dòng",
+      "codeBlock": "Khối mã",
+      "duplicate": "Nhân bản khối",
+      "heading1": "Tiêu đề 1",
+      "heading2": "Tiêu đề 2",
+      "heading3": "Tiêu đề 3",
+      "help": "Mở danh sách phím tắt",
+      "italic": "In nghiêng",
+      "link": "Thêm hoặc sửa liên kết",
+      "moveDown": "Chuyển khối xuống",
+      "moveUp": "Chuyển khối lên",
+      "orderedList": "Danh sách đánh số",
+      "paragraph": "Văn bản",
+      "redo": "Làm lại",
+      "slash": "Mở menu chèn khối",
+      "strike": "Gạch ngang",
+      "taskList": "Danh sách việc cần làm",
+      "underline": "Gạch chân",
+      "undo": "Hoàn tác"
+    },
+    "open": "Phím tắt",
+    "title": "Phím tắt"
+  },
+  "slash": {
+    "empty": "Không có khối phù hợp",
+    "groups": {
+      "basic": "Cơ bản",
+      "blocks": "Khối",
+      "lists": "Danh sách",
+      "media": "Đa phương tiện"
+    },
+    "items": {
+      "blockquote": {
+        "description": "Trích lời hoặc nguồn tham khảo",
+        "title": "Trích dẫn"
+      },
+      "bulletList": {
+        "description": "Danh sách với dấu chấm đầu dòng",
+        "title": "Danh sách dấu chấm"
+      },
+      "callout": {
+        "danger": {
+          "description": "Khung đỏ cho điều cần tránh",
+          "title": "Khung nguy hiểm"
+        },
+        "info": {
+          "description": "Khung xanh để làm nổi bật ghi chú",
+          "title": "Khung thông tin"
+        },
+        "success": {
+          "description": "Khung xanh lá cho mẹo hoặc kết quả tốt",
+          "title": "Khung thành công"
+        },
+        "warning": {
+          "description": "Khung vàng cho điều cần lưu ý",
+          "title": "Khung cảnh báo"
+        }
+      },
+      "codeBlock": {
+        "description": "Đoạn mã có tô màu cú pháp",
+        "title": "Khối mã"
+      },
+      "divider": {
+        "description": "Đường kẻ ngang phân cách nội dung",
+        "title": "Đường phân cách"
+      },
+      "heading1": {
+        "description": "Tiêu đề mục lớn",
+        "title": "Tiêu đề 1"
+      },
+      "heading2": {
+        "description": "Tiêu đề mục vừa",
+        "title": "Tiêu đề 2"
+      },
+      "heading3": {
+        "description": "Tiêu đề mục nhỏ",
+        "title": "Tiêu đề 3"
+      },
+      "image": {
+        "description": "Chèn hình ảnh từ đường dẫn",
+        "title": "Hình ảnh"
+      },
+      "orderedList": {
+        "description": "Danh sách đánh số thứ tự",
+        "title": "Danh sách đánh số"
+      },
+      "paragraph": {
+        "description": "Đoạn văn bản thường",
+        "title": "Văn bản"
+      },
+      "taskList": {
+        "description": "Danh sách có ô đánh dấu hoàn thành",
+        "title": "Việc cần làm"
+      }
+    },
+    "label": "Chèn khối"
+  }
+}
