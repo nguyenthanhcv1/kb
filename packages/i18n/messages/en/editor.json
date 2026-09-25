@@ -1,0 +1,153 @@
+{
+  "blockMenu": {
+    "delete": "Delete",
+    "duplicate": "Duplicate",
+    "handle": "Drag to move the block, click to open the menu",
+    "label": "Block actions",
+    "moveDown": "Move down",
+    "moveUp": "Move up",
+    "turnInto": "Turn into"
+  },
+  "bubble": {
+    "blockType": "Block type",
+    "bold": "Bold",
+    "code": "Code",
+    "italic": "Italic",
+    "label": "Text formatting",
+    "link": "Link",
+    "strike": "Strikethrough",
+    "underline": "Underline"
+  },
+  "close": "Close",
+  "content": {
+    "label": "Page content"
+  },
+  "image": {
+    "cancel": "Cancel",
+    "description": "Paste the address of an image (starting with https://). Uploading from your computer comes in a later release.",
+    "insert": "Insert",
+    "invalid": "This address is not valid. Use a link starting with http:// or https://.",
+    "label": "Image address",
+    "title": "Insert image"
+  },
+  "link": {
+    "apply": "Apply",
+    "invalid": "This link is not valid.",
+    "label": "Link address",
+    "open": "Open link",
+    "placeholder": "Paste or type a link",
+    "remove": "Remove link"
+  },
+  "placeholder": {
+    "heading": "Heading {level}",
+    "paragraph": "Type text, or \"/\" to insert a block"
+  },
+  "shortcuts": {
+    "description": "Use the keyboard to format and arrange content faster.",
+    "groups": {
+      "blocks": "Blocks",
+      "editing": "Editing",
+      "format": "Formatting"
+    },
+    "items": {
+      "blockquote": "Quote",
+      "bold": "Bold",
+      "bulletList": "Bulleted list",
+      "code": "Inline code",
+      "codeBlock": "Code block",
+      "duplicate": "Duplicate block",
+      "heading1": "Heading 1",
+      "heading2": "Heading 2",
+      "heading3": "Heading 3",
+      "help": "Show keyboard shortcuts",
+      "italic": "Italic",
+      "link": "Add or edit link",
+      "moveDown": "Move block down",
+      "moveUp": "Move block up",
+      "orderedList": "Numbered list",
+      "paragraph": "Text",
+      "redo": "Redo",
+      "slash": "Open the insert block menu",
+      "strike": "Strikethrough",
+      "taskList": "To-do list",
+      "underline": "Underline",
+      "undo": "Undo"
+    },
+    "open": "Keyboard shortcuts",
+    "title": "Keyboard shortcuts"
+  },
+  "slash": {
+    "empty": "No matching blocks",
+    "groups": {
+      "basic": "Basic",
+      "blocks": "Blocks",
+      "lists": "Lists",
+      "media": "Media"
+    },
+    "items": {
+      "blockquote": {
+        "description": "Quote a person or a source",
+        "title": "Quote"
+      },
+      "bulletList": {
+        "description": "A simple bulleted list",
+        "title": "Bulleted list"
+      },
+      "callout": {
+        "danger": {
+          "description": "Red panel for things to avoid",
+          "title": "Danger callout"
+        },
+        "info": {
+          "description": "Blue panel to highlight a note",
+          "title": "Info callout"
+        },
+        "success": {
+          "description": "Green panel for tips or good outcomes",
+          "title": "Success callout"
+        },
+        "warning": {
+          "description": "Yellow panel for things to watch out for",
+          "title": "Warning callout"
+        }
+      },
+      "codeBlock": {
+        "description": "Code with syntax highlighting",
+        "title": "Code block"
+      },
+      "divider": {
+        "description": "Horizontal line between sections",
+        "title": "Divider"
+      },
+      "heading1": {
+        "description": "Large section heading",
+        "title": "Heading 1"
+      },
+      "heading2": {
+        "description": "Medium section heading",
+        "title": "Heading 2"
+      },
+      "heading3": {
+        "description": "Small section heading",
+        "title": "Heading 3"
+      },
+      "image": {
+        "description": "Insert an image from a link",
+        "title": "Image"
+      },
+      "orderedList": {
+        "description": "A list with numbering",
+        "title": "Numbered list"
+      },
+      "paragraph": {
+        "description": "Plain text paragraph",
+        "title": "Text"
+      },
+      "taskList": {
+        "description": "Track tasks with checkboxes",
+        "title": "To-do list"
+      }
+    },
+    "label": "Insert block"
+  }
+}

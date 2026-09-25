@@ -1,0 +1,170 @@
+@reference "../../app/globals.css";
+
+/*
+ * Editor content styles. Colours come only from theme tokens (bg-muted, text-primary…) or the
+ * Tailwind palette with a dark: variant — never raw values — so light and dark stay in sync.
+ */
+
+.kb-editor-content {
+  @apply min-h-40 pb-24 text-base leading-7 outline-none md:pl-8;
+
+  & > * + * {
+    @apply mt-2;
+  }
+
+  & h1 {
+    @apply mt-8 mb-2 text-3xl leading-tight font-bold tracking-tight;
+  }
+  & h2 {
+    @apply mt-6 mb-1 text-2xl leading-snug font-semibold tracking-tight;
+  }
+  & h3 {
+    @apply mt-4 mb-1 text-xl leading-snug font-semibold;
+  }
+  & > :first-child {
+    @apply mt-0;
+  }
+
+  & a {
+    @apply font-medium text-primary underline underline-offset-4;
+  }
+  & strong {
+    @apply font-semibold;
+  }
+  & code:not(pre code) {
+    @apply rounded bg-muted px-1 py-0.5 font-mono text-[0.9em];
+  }
+
+  & ul:not([data-type="taskList"]) {
+    @apply list-disc pl-6;
+  }
+  & ol {
+    @apply list-decimal pl-6;
+  }
+  & li > p {
+    @apply my-0.5;
+  }
+  & ul[data-type="taskList"] {
+    @apply list-none pl-0.5;
+
+    & li {
+      @apply flex items-start gap-2;
+    }
+    & li > label {
+      @apply mt-1.5 flex shrink-0 select-none;
+    }
+    & li > label input {
+      @apply size-4 cursor-pointer accent-primary;
+    }
+    & li > div {
+      @apply min-w-0 flex-1;
+    }
+    & li[data-checked="true"] > div {
+      @apply text-muted-foreground line-through;
+    }
+  }
+
+  & blockquote {
+    @apply border-l-4 pl-4 text-muted-foreground italic;
+  }
+
+  & hr {
+    @apply my-6 border-t;
+  }
+  & hr.ProseMirror-selectednode {
+    @apply border-ring;
+  }
+
+  & img {
+    @apply h-auto max-w-full rounded-md;
+  }
+  & img.ProseMirror-selectednode {
+    @apply ring-[3px] ring-ring/50;
+  }
+
+  & pre {
+    @apply overflow-x-auto rounded-md border bg-muted p-4 font-mono text-sm leading-6;
+
+    & code {
+      @apply bg-transparent p-0;
+    }
+  }
+
+  /* Callouts (variant stored as a code, see CALLOUT_VARIANTS). */
+  & div[data-type="callout"] {
+    @apply rounded-md border-l-4 px-4 py-3;
+
+    & > * + * {
+      @apply mt-2;
+    }
+  }
+  & div[data-type="callout"][data-variant="info"] {
+    @apply border-sky-500 bg-sky-50 dark:bg-sky-950/40;
+  }
+  & div[data-type="callout"][data-variant="success"] {
+    @apply border-emerald-500 bg-emerald-50 dark:bg-emerald-950/40;
+  }
+  & div[data-type="callout"][data-variant="warning"] {
+    @apply border-amber-500 bg-amber-50 dark:bg-amber-950/40;
+  }
+  & div[data-type="callout"][data-variant="danger"] {
+    @apply border-red-500 bg-red-50 dark:bg-red-950/40;
+  }
+
+  /* Placeholder of the empty block holding the cursor (Placeholder extension). */
+  & .is-empty::before {
+    @apply pointer-events-none float-left h-0 text-muted-foreground;
+    content: attr(data-placeholder);
+  }
+
+  /* "/query" while the slash menu is open. */
+  & .suggestion {
+    @apply rounded-sm bg-accent px-0.5;
+  }
+
+  /* Syntax highlighting (lowlight / highlight.js classes). */
+  & .hljs-comment,
+  & .hljs-quote {
+    @apply text-muted-foreground italic;
+  }
+  & .hljs-keyword,
+  & .hljs-selector-tag,
+  & .hljs-built_in {
+    @apply text-violet-700 dark:text-violet-300;
+  }
+  & .hljs-string,
+  & .hljs-attr,
+  & .hljs-template-variable {
+    @apply text-emerald-700 dark:text-emerald-300;
+  }
+  & .hljs-number,
+  & .hljs-literal,
+  & .hljs-type {
+    @apply text-amber-700 dark:text-amber-300;
+  }
+  & .hljs-title,
+  & .hljs-function,
+  & .hljs-section {
+    @apply text-sky-700 dark:text-sky-300;
+  }
+  & .hljs-tag,
+  & .hljs-name,
+  & .hljs-deletion {
+    @apply text-rose-700 dark:text-rose-300;
+  }
+}
+
+/* Drag handle: pointer devices at md+ only (touch/mobile use the shortcuts and menus). */
+.kb-drag-handle {
+  @apply z-10 flex items-center transition-opacity duration-150;
+}
+@media (max-width: 767px), (hover: none) {
+  .kb-drag-handle {
+    @apply hidden!;
+  }
+}
+
+/* Block being dragged / drop target. */
+.kb-editor .ProseMirror-hideselection *::selection {
+  @apply bg-transparent;
+}

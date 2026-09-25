@@ -11,8 +11,19 @@
     "typecheck": "next typegen && tsc --noEmit"
   },
   "dependencies": {
+    "@floating-ui/dom": "^1.8.0",
+    "@kb/editor": "workspace:*",
     "@kb/i18n": "workspace:*",
     "@tailwindcss/postcss": "^4.3.3",
+    "@tiptap/core": "^3.31.3",
+    "@tiptap/extension-bubble-menu": "^3.31.3",
+    "@tiptap/extension-collaboration": "^3.31.3",
+    "@tiptap/extension-drag-handle": "^3.31.3",
+    "@tiptap/extension-drag-handle-react": "^3.31.3",
+    "@tiptap/extension-node-range": "^3.31.3",
+    "@tiptap/pm": "^3.31.3",
+    "@tiptap/react": "^3.31.3",
+    "@tiptap/y-tiptap": "^3.0.9",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^1.48.0",
@@ -24,7 +35,8 @@
     "react-dom": "^19.3.0",
     "tailwind-merge": "^3.7.0",
     "tailwindcss": "^4.3.3",
-    "tw-animate-css": "^1.4.0"
+    "tw-animate-css": "^1.4.0",
+    "yjs": "^13.6.33"
   },
   "devDependencies": {
     "@kb/config": "workspace:*",
