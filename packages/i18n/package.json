@@ -2,5 +2,32 @@
   "name": "@kb/i18n",
   "version": "0.0.0",
   "private": true,
-  "type": "module"
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./config": "./src/config.ts",
+    "./format": "./src/format.ts",
+    "./locale": "./src/locale.ts",
+    "./loader": "./src/loader.ts",
+    "./messages/*": "./messages/*"
+  },
+  "scripts": {
+    "build": "tsx scripts/gen-types.ts",
+    "lint": "eslint .",
+    "typecheck": "tsx scripts/gen-types.ts && tsc --noEmit",
+    "test": "vitest run",
+    "i18n:check": "tsx scripts/check.ts",
+    "i18n:sort": "tsx scripts/sort.ts"
+  },
+  "dependencies": {
+    "@formatjs/icu-messageformat-parser": "^3.5.20"
+  },
+  "devDependencies": {
+    "@kb/config": "workspace:*",
+    "@types/node": "^22.20.4",
+    "eslint": "^9.39.5",
+    "tsx": "^4.23.15",
+    "typescript": "~5.9.3",
+    "vitest": "^5.0.2"
+  }
 }

@@ -2,6 +2,8 @@ import js from "@eslint/js";
 import prettier from "eslint-config-prettier";
 import tseslint from "typescript-eslint";
 
+import { noLiteralString } from "./i18n.js";
+
 export const ignores = {
   ignores: ["**/dist/**", "**/.next/**", "**/coverage/**", "**/.turbo/**", "**/*.gen.ts"],
 };
@@ -23,5 +25,6 @@ export default tseslint.config(
   js.configs.recommended,
   ...tseslint.configs.recommended,
   rules,
+  ...noLiteralString,
   prettier,
 );
