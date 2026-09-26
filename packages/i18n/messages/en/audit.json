@@ -1,0 +1,39 @@
+{
+  "actions": {
+    "access_add": "Added to access allowlist",
+    "access_remove": "Removed from access allowlist",
+    "access_update": "Updated access allowlist",
+    "invitation_accept": "Accepted invitation",
+    "invitation_create": "Sent invitation",
+    "invitation_revoke": "Revoked invitation",
+    "member_add": "Added member",
+    "member_remove": "Removed member",
+    "member_role_change": "Changed member role",
+    "page_create": "Created page",
+    "page_delete": "Moved page to trash",
+    "page_move": "Moved page",
+    "page_purge": "Permanently deleted page",
+    "page_restore_from_trash": "Restored page from trash",
+    "page_update_content": "Edited page content",
+    "page_update_title": "Renamed page",
+    "settings_update": "Changed system settings",
+    "space_archive": "Archived space",
+    "space_create": "Created space",
+    "space_unarchive": "Unarchived space",
+    "space_update": "Updated space",
+    "unknown": "Other action ({action})",
+    "version_restore": "Restored version"
+  },
+  "actor": {
+    "system": "System"
+  },
+  "entityTypes": {
+    "access_entry": "Access allowlist",
+    "invitation": "Invitation",
+    "member": "Member",
+    "page": "Page",
+    "settings": "Settings",
+    "space": "Space",
+    "version": "Version"
+  }
+}
