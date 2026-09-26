@@ -12,15 +12,28 @@ insert into auth.users (id, email) values
   ('00000000-0000-0000-0000-000000000007', 'guest-outside@example.net'),
   ('00000000-0000-0000-0000-000000000008', 'deactivated@example.com');
 
-insert into public.profiles (id, email, full_name, is_guest, is_super_admin, deactivated_at) values
-  ('00000000-0000-0000-0000-000000000001', 'super@example.com', 'Super', false, true, null),
-  ('00000000-0000-0000-0000-000000000002', 'admin@example.com', 'Admin', false, false, null),
-  ('00000000-0000-0000-0000-000000000003', 'editor@example.com', 'Editor', false, false, null),
-  ('00000000-0000-0000-0000-000000000004', 'viewer@example.com', 'Viewer', false, false, null),
-  ('00000000-0000-0000-0000-000000000005', 'internal@example.com', 'Internal', false, false, null),
-  ('00000000-0000-0000-0000-000000000006', 'guest@example.net', 'Guest', true, false, null),
-  ('00000000-0000-0000-0000-000000000007', 'guest-outside@example.net', 'Outside', true, false, null),
-  ('00000000-0000-0000-0000-000000000008', 'deactivated@example.com', 'Deactivated', false, false, now());
+-- T1.2a creates profiles from auth.users. Override the fixture flags as service_role instead of
+-- inserting duplicate primary keys.
+select set_config('request.jwt.claim.role', 'service_role', true);
+
+update public.profiles as p set
+  full_name = v.full_name,
+  is_guest = v.is_guest,
+  is_super_admin = v.is_super_admin,
+  deactivated_at = v.deactivated_at
+from (values
+  ('00000000-0000-0000-0000-000000000001'::uuid, 'Super', false, true, null::timestamptz),
+  ('00000000-0000-0000-0000-000000000002'::uuid, 'Admin', false, false, null::timestamptz),
+  ('00000000-0000-0000-0000-000000000003'::uuid, 'Editor', false, false, null::timestamptz),
+  ('00000000-0000-0000-0000-000000000004'::uuid, 'Viewer', false, false, null::timestamptz),
+  ('00000000-0000-0000-0000-000000000005'::uuid, 'Internal', false, false, null::timestamptz),
+  ('00000000-0000-0000-0000-000000000006'::uuid, 'Guest', true, false, null::timestamptz),
+  ('00000000-0000-0000-0000-000000000007'::uuid, 'Outside', true, false, null::timestamptz),
+  ('00000000-0000-0000-0000-000000000008'::uuid, 'Deactivated', false, false, now())
+) as v(id, full_name, is_guest, is_super_admin, deactivated_at)
+where p.id = v.id;
+
+select set_config('request.jwt.claim.role', '', true);
 
 -- Fixture writes happen as the migration owner: no actor.
 insert into public.spaces (id, slug, name, visibility, created_by) values
