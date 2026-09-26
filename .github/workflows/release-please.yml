@@ -1,0 +1,76 @@
+# Release tự động (T0.6a, docs/PLAN.md §6, runbook docs/runbooks/release.md).
+# Mỗi push lên main: release-please mở/cập nhật Release PR "chore(release): release X.Y.Z"
+# (bump package.json, CHANGELOG.md, .release-please-manifest.json). Merge Release PR → tag vX.Y.Z +
+# GitHub Release → build-images.yml retag image X.Y.Z.
+#
+# Token: nên dùng GitHub App (vars.RELEASE_APP_ID + secrets.RELEASE_APP_PRIVATE_KEY). PR/tag tạo bằng
+# GITHUB_TOKEN KHÔNG kích hoạt workflow khác (CI, release-vi-notes trên Release PR; build-images trên tag).
+# Chưa cấu hình App → dùng GITHUB_TOKEN (cần bật "Allow GitHub Actions to create and approve pull requests").
+name: Release Please
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-please
+  cancel-in-progress: false
+
+jobs:
+  release-please:
+    name: release-please
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write # commit lên nhánh release-please--*, tạo tag + GitHub Release
+      pull-requests: write # mở/cập nhật Release PR, gắn nhãn autorelease
+      issues: write # release-please tạo nhãn "autorelease: pending/tagged" nếu chưa có
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
+      version: ${{ steps.release.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            release-please-config.json
+            .release-please-manifest.json
+
+      # release-please bắt buộc có manifest. Agent không được tạo file này (WORKFLOW §7) — người điều
+      # phối thêm `{ ".": "0.0.0" }` một lần (runbook). Trước đó job chỉ cảnh báo, không đỏ.
+      - name: Có manifest?
+        id: manifest
+        run: |
+          if [ -f .release-please-manifest.json ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::Chưa có .release-please-manifest.json — bỏ qua release-please. Xem docs/runbooks/release.md (Thiết lập lần đầu)."
+            echo "present=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Token GitHub App (nếu đã cấu hình)
+        id: app-token
+        if: steps.manifest.outputs.present == 'true' && vars.RELEASE_APP_ID != ''
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ vars.RELEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+
+      - name: release-please
+        id: release
+        if: steps.manifest.outputs.present == 'true'
+        uses: googleapis/release-please-action@v4
+        with:
+          token: ${{ steps.app-token.outputs.token || secrets.GITHUB_TOKEN }}
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+
+      - name: Tóm tắt
+        if: steps.release.outputs.release_created == 'true'
+        env:
+          TAG: ${{ steps.release.outputs.tag_name }}
+        run: echo "Đã phát hành $TAG" >> "$GITHUB_STEP_SUMMARY"
