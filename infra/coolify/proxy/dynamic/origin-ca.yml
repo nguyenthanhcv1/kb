@@ -1,0 +1,21 @@
+# Traefik dynamic configuration for the Coolify proxy (T0.8, docs/PLAN.md §7.3).
+# Copy to kb-ops-1 (and later kb-prod-1) as /data/coolify/proxy/dynamic/origin-ca.yml —
+# or paste it in Coolify › Servers › <server> › Proxy › Dynamic Configurations. Coolify mounts
+# /data/coolify/proxy as /traefik inside the proxy container; Traefik reloads the file by itself.
+#
+# The certificate is the Cloudflare Origin CA wildcard for `thanhgo.com, *.thanhgo.com`
+# (Cloudflare › SSL/TLS › Origin Server › Create Certificate). Put the two files on the server:
+#   /data/coolify/proxy/certs/origin-ca.pem   (certificate, 0644)
+#   /data/coolify/proxy/certs/origin-ca.key   (private key, 0600, root) — never in git
+# It becomes the DEFAULT certificate, so every router with `tls=true` and no cert resolver
+# (infra/coolify/staging/docker-compose.yml) serves it. Only Cloudflare trusts this certificate:
+# it works because every public hostname is proxied (orange cloud) with SSL mode "Full (strict)".
+tls:
+  certificates:
+    - certFile: /traefik/certs/origin-ca.pem
+      keyFile: /traefik/certs/origin-ca.key
+  stores:
+    default:
+      defaultCertificate:
+        certFile: /traefik/certs/origin-ca.pem
+        keyFile: /traefik/certs/origin-ca.key
