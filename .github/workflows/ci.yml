@@ -94,7 +94,7 @@ jobs:
   db:
     name: db
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     env:
       # config.toml tham chiếu env() cho Google OAuth — CI không test OAuth nên dùng giá trị giả.
       SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID: ci-dummy-client-id
@@ -110,6 +110,12 @@ jobs:
         run: supabase test db
       - name: Migration chạy lại được từ đầu (db reset)
         run: supabase db reset
+      - uses: ./.github/actions/setup
+      - name: Integration test kb-collab (role kb_collab, WebSocket thật)
+        env:
+          COLLAB_TEST_DATABASE_URL: postgresql://kb_collab:kb_collab_local@127.0.0.1:54322/postgres
+          COLLAB_TEST_ADMIN_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+        run: pnpm --filter @kb/collab exec vitest run test/
       - name: Dừng Supabase
         if: always()
         run: supabase stop --no-backup
