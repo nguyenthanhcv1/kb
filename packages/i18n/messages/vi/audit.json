@@ -1,0 +1,39 @@
+{
+  "actions": {
+    "access_add": "Thêm vào danh sách được phép truy cập",
+    "access_remove": "Gỡ khỏi danh sách được phép truy cập",
+    "access_update": "Sửa danh sách được phép truy cập",
+    "invitation_accept": "Nhận lời mời",
+    "invitation_create": "Gửi lời mời",
+    "invitation_revoke": "Thu hồi lời mời",
+    "member_add": "Thêm thành viên",
+    "member_remove": "Xoá thành viên",
+    "member_role_change": "Đổi vai trò thành viên",
+    "page_create": "Tạo trang",
+    "page_delete": "Chuyển trang vào thùng rác",
+    "page_move": "Di chuyển trang",
+    "page_purge": "Xoá vĩnh viễn trang",
+    "page_restore_from_trash": "Khôi phục trang từ thùng rác",
+    "page_update_content": "Sửa nội dung trang",
+    "page_update_title": "Đổi tên trang",
+    "settings_update": "Đổi cài đặt hệ thống",
+    "space_archive": "Lưu trữ không gian",
+    "space_create": "Tạo không gian",
+    "space_unarchive": "Bỏ lưu trữ không gian",
+    "space_update": "Sửa không gian",
+    "unknown": "Thao tác khác ({action})",
+    "version_restore": "Khôi phục phiên bản"
+  },
+  "actor": {
+    "system": "Hệ thống"
+  },
+  "entityTypes": {
+    "access_entry": "Danh sách được phép truy cập",
+    "invitation": "Lời mời",
+    "member": "Thành viên",
+    "page": "Trang",
+    "settings": "Cài đặt",
+    "space": "Không gian",
+    "version": "Phiên bản"
+  }
+}
