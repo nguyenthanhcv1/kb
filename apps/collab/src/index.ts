@@ -1,10 +1,13 @@
-import { exitOnInvalidEnv } from "@kb/shared/env";
 import { Server } from "@hocuspocus/server";
+import { exitOnInvalidEnv } from "@kb/shared/env";
 
+import { createAccessTokenVerifier } from "./auth";
+import { createDocumentStore } from "./db";
 import { type CollabEnv, loadCollabEnv } from "./env";
 import { healthExtension } from "./health";
+import { createLogger } from "./logger";
+import { createCollabServer } from "./server";
 
-// Auth, persistence and the internal API arrive in T3.4 / T3.7.
 let env: CollabEnv;
 try {
   env = loadCollabEnv();
@@ -12,15 +15,30 @@ try {
   exitOnInvalidEnv(error);
 }
 
-const server = new Server({
-  name: "kb-collab",
-  port: env.PORT,
-  quiet: true,
-  // On SIGTERM/SIGINT Hocuspocus stops accepting connections, closes the open ones (which
-  // stores every loaded document) and exits — within Coolify's 30 s stop grace period.
-  stopOnSignals: true,
-  extensions: [healthExtension(env)],
-});
+const logger = createLogger(env);
+
+// Without DATABASE_URL (local skeleton, image smoke test) only /health is served.
+const server = env.DATABASE_URL
+  ? createCollabServer({
+      env,
+      store: createDocumentStore(env.DATABASE_URL),
+      verifyToken: createAccessTokenVerifier(env),
+      logger,
+    })
+  : new Server({
+      name: "kb-collab",
+      port: env.PORT,
+      quiet: true,
+      stopOnSignals: true,
+      extensions: [
+        healthExtension(env, null),
+        {
+          async onAuthenticate() {
+            throw Object.assign(new Error("FORBIDDEN"), { reason: "FORBIDDEN" });
+          },
+        },
+      ],
+    });
 
 await server.listen();
-console.log(`kb-collab ${env.APP_VERSION} listening on :${env.PORT}`);
+logger.info({ port: env.PORT, persistence: Boolean(env.DATABASE_URL) }, "listening");
