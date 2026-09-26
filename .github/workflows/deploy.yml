@@ -1,0 +1,149 @@
+# Deploy to staging on Coolify (T0.8, docs/PLAN.md §6.5, §7.5, runbook docs/runbooks/staging.md).
+#
+# - After "Build images" succeeds for a push to main → deploy that commit (image sha-<full sha>).
+# - Manual (Actions › Deploy › Run workflow) → deploy any commit/tag whose images exist in GHCR
+#   (rollback = run it with the previous good commit).
+#
+# One Coolify "Docker Compose" resource (infra/coolify/staging/docker-compose.yml): the workflow
+# sets its KB_IMAGE_TAG and deploys it; inside, kb-migrate runs first, then kb-collab, then kb-web.
+# Success = Coolify reports "finished" AND both public health endpoints report the new sha.
+#
+# Configuration (GitHub › Settings):
+# - Environment `staging` secrets: COOLIFY_API_URL, COOLIFY_API_TOKEN, COOLIFY_APP_UUID,
+#   optional CF_ACCESS_CLIENT_ID / CF_ACCESS_CLIENT_SECRET (Cloudflare Access service token).
+# - Repository variable STAGING_DEPLOY_ENABLED=true — until then the job is skipped, so main
+#   stays green before the server exists.
+# - Optional repository variables STAGING_WEB_URL / STAGING_COLLAB_URL (defaults below).
+# Production (release → environment `production` with approval, backup before migrate) is T7.3.
+name: Deploy
+
+on:
+  workflow_run:
+    workflows: ["Build images"]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Commit sha, branch or tag to deploy (its images must exist in GHCR)
+        required: true
+        default: main
+
+permissions:
+  contents: read
+
+# One staging deploy at a time; a newer pending run replaces an older pending one, a running
+# deploy is never cancelled halfway (migrations).
+concurrency:
+  group: deploy-staging
+  cancel-in-progress: false
+
+jobs:
+  staging:
+    name: staging
+    if: >-
+      vars.STAGING_DEPLOY_ENABLED == 'true' &&
+      (github.event_name == 'workflow_dispatch' ||
+       (github.event.workflow_run.conclusion == 'success' &&
+        github.event.workflow_run.event == 'push' &&
+        github.event.workflow_run.head_branch == 'main'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: read
+    environment:
+      name: staging
+      url: ${{ vars.STAGING_WEB_URL || 'https://kb-staging.thanhgo.com' }}
+    env:
+      WEB_HEALTH_URL: ${{ vars.STAGING_WEB_URL || 'https://kb-staging.thanhgo.com' }}/api/health
+      COLLAB_HEALTH_URL: ${{ vars.STAGING_COLLAB_URL || 'https://kb-staging-collab.thanhgo.com' }}/health
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # The deploy script comes from main; the commit to deploy is resolved below.
+          ref: ${{ github.event.repository.default_branch }}
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+
+      - name: Resolve commit
+        id: target
+        env:
+          RUN_SHA: ${{ github.event.workflow_run.head_sha }}
+          INPUT_REF: ${{ inputs.ref }}
+        run: |
+          set -euo pipefail
+          if [ "$GITHUB_EVENT_NAME" = workflow_run ]; then
+            sha=$RUN_SHA
+          else
+            sha=$(git rev-parse --verify --quiet "origin/$INPUT_REF^{commit}" \
+              || git rev-parse --verify --quiet "$INPUT_REF^{commit}") \
+              || { echo "::error::unknown ref '$INPUT_REF'"; exit 1; }
+          fi
+          [[ "$sha" =~ ^[0-9a-f]{40}$ ]] || { echo "::error::bad sha '$sha'"; exit 1; }
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+          echo "tag=sha-$sha" >> "$GITHUB_OUTPUT"
+          echo "Deploying $(git log -1 --format='%h %s' "$sha")" | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check images exist in GHCR
+        env:
+          TAG: ${{ steps.target.outputs.tag }}
+          OWNER: ${{ github.repository_owner }}
+        run: |
+          set -euo pipefail
+          for name in migrate collab web; do
+            image="ghcr.io/${OWNER,,}/kb-$name:$TAG"
+            docker manifest inspect "$image" > /dev/null \
+              || { echo "::error::$image not found — did 'Build images' push it?"; exit 1; }
+            echo "found $image"
+          done
+
+      - name: Deploy on Coolify (migrate → collab → web)
+        env:
+          COOLIFY_API_URL: ${{ secrets.COOLIFY_API_URL }}
+          COOLIFY_API_TOKEN: ${{ secrets.COOLIFY_API_TOKEN }}
+          COOLIFY_APP_UUID: ${{ secrets.COOLIFY_APP_UUID }}
+          CF_ACCESS_CLIENT_ID: ${{ secrets.CF_ACCESS_CLIENT_ID }}
+          CF_ACCESS_CLIENT_SECRET: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
+          TAG: ${{ steps.target.outputs.tag }}
+        run: node scripts/deploy/coolify.mjs deploy --tag "$TAG" --timeout 1200
+
+      - name: Smoke test — kb-collab /health reports the new sha
+        env:
+          SHA: ${{ steps.target.outputs.sha }}
+        run: node scripts/deploy/coolify.mjs wait-health --url "$COLLAB_HEALTH_URL" --sha "$SHA" --timeout 300
+
+      - name: Smoke test — kb-web /api/health reports the new sha
+        env:
+          SHA: ${{ steps.target.outputs.sha }}
+        run: node scripts/deploy/coolify.mjs wait-health --url "$WEB_HEALTH_URL" --sha "$SHA" --timeout 300
+
+      - name: Smoke test — kb-collab internal API is not public
+        run: |
+          set -euo pipefail
+          base=${COLLAB_HEALTH_URL%/health}
+          code=$(curl -s -o /dev/null -w '%{http_code}' -X POST "$base/internal/documents/00000000-0000-4000-8000-000000000000/replace")
+          echo "POST $base/internal/… → $code"
+          [ "$code" = 404 ] || { echo "::error::/internal/* must answer 404 from the Internet (got $code)"; exit 1; }
+
+      - name: Summary
+        if: always()
+        env:
+          SHA: ${{ steps.target.outputs.sha }}
+        run: |
+          {
+            echo "### Staging"
+            echo "- commit: \`${SHA:-?}\`"
+            echo "- web: $WEB_HEALTH_URL"
+            echo "- collab: $COLLAB_HEALTH_URL"
+            echo "- result: ${{ job.status }}"
+          } >> "$GITHUB_STEP_SUMMARY"
