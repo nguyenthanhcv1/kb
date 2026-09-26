@@ -34,6 +34,24 @@ export {
   type SlashItem,
   type SlashItemInput,
 } from "./slash-items";
+export {
+  addRowBelow,
+  findTable,
+  getTableMenuState,
+  hasHeaderColumn,
+  hasHeaderRow,
+  TABLE_ACTION_GROUPS,
+  TABLE_ACTIONS,
+  type TableAction,
+  type TableActionGroup,
+  type TableActionId,
+  type TableAt,
+  tableCsvExport,
+  type TableMenuState,
+  TableShortcuts,
+  type TableShortcutsOptions,
+} from "./table-actions";
+export { CSV_MIME_TYPE } from "../table/csv";
 export { Placeholder } from "@tiptap/extensions";
 export type { SuggestionKeyDownProps, SuggestionProps } from "@tiptap/suggestion";
 export { normalizeImageSrc, normalizeLinkHref } from "./link";

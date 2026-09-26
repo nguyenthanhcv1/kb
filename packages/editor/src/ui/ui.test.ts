@@ -112,8 +112,9 @@ describe("slash items", () => {
         (item) => ({ divider: "horizontalRule" })[item.id] ?? item.id.replace(/\d$|\..*$/, ""),
       ),
     );
-    // listItem/taskItem come with their lists; the rest must be reachable from "/".
-    const blocks = BLOCK_ID_TYPES.filter((type) => type !== "listItem" && type !== "taskItem");
+    // List items, table rows and cells come with their parent; the rest must be reachable from "/".
+    const parts = new Set(["listItem", "taskItem", "tableRow", "tableHeader", "tableCell"]);
+    const blocks = BLOCK_ID_TYPES.filter((type) => !parts.has(type));
     expect(blocks.filter((type) => !created.has(type))).toEqual([]);
   });
 

@@ -1,8 +1,10 @@
 import type { ChainedCommands, CommandProps } from "@tiptap/core";
-import { TextSelection } from "@tiptap/pm/state";
+import { type EditorState, TextSelection } from "@tiptap/pm/state";
 import { normalizeVi } from "@kb/i18n";
 
 import { CALLOUT_VARIANTS, type CalloutVariant } from "../extensions/callout";
+import { DEFAULT_TABLE_SIZE } from "../extensions/table";
+import { findTable } from "./table-actions";
 
 export const SLASH_GROUPS = ["basic", "lists", "blocks", "media"] as const;
 export type SlashGroup = (typeof SLASH_GROUPS)[number];
@@ -21,6 +23,8 @@ export interface SlashItem {
   keywords: readonly string[];
   /** Set when the UI must ask for something before calling `run`. */
   input?: SlashItemInput;
+  /** Hides the item where it cannot be used (e.g. no table inside a table). Default: shown. */
+  available?: (state: EditorState) => boolean;
   /** Appends the block command to a chain that already removed the "/query" text. */
   run: (chain: ChainedCommands, input?: { src?: string }) => ChainedCommands;
 }
@@ -103,6 +107,15 @@ export const SLASH_ITEMS: readonly SlashItem[] = [
     group: "blocks",
     keywords: ["divider", "separator", "horizontal rule", "hr", "duong ke", "phan cach", "---"],
     run: (chain) => chain.setHorizontalRule(),
+  },
+  {
+    id: "table",
+    group: "blocks",
+    keywords: ["table", "grid", "bang", "bang bieu", "luoi", "spreadsheet"],
+    // Nested tables are allowed by the schema (pasted HTML) but not offered: they break CSV
+    // export and row/column drag.
+    available: (state) => findTable(state) === null,
+    run: (chain) => chain.insertTable({ ...DEFAULT_TABLE_SIZE }),
   },
   {
     id: "image",

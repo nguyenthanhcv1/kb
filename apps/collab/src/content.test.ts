@@ -1,3 +1,5 @@
+import { getEditorSchema } from "@kb/editor";
+import { prosemirrorJSONToYDoc } from "@tiptap/y-tiptap";
 import { describe, expect, it } from "vitest";
 import * as Y from "yjs";
 
@@ -29,6 +31,52 @@ describe("deriveContent", () => {
       content: [
         { type: "heading", attrs: { level: 2 } },
         { type: "paragraph", content: [{ type: "text", text: "Xin chào thế giới" }] },
+      ],
+    });
+  });
+
+  it("keeps tables (T4.1): cells, column widths and block ids survive Yjs, text goes to tableText", () => {
+    const cell = (type: string, text: string, attrs: Record<string, unknown> = {}) => ({
+      type,
+      attrs,
+      content: [{ type: "paragraph", content: [{ type: "text", text }] }],
+    });
+    const table = {
+      type: "table",
+      attrs: { id: "tbl" },
+      content: [
+        {
+          type: "tableRow",
+          content: [
+            cell("tableHeader", "Mã NV", { colwidth: [120], id: "h1" }),
+            cell("tableHeader", "Họ tên"),
+          ],
+        },
+        { type: "tableRow", content: [cell("tableCell", "NV-001"), cell("tableCell", "An")] },
+      ],
+    };
+    const doc = prosemirrorJSONToYDoc(
+      getEditorSchema(),
+      { type: "doc", content: [table] },
+      DOCUMENT_FIELD,
+    );
+
+    const result = deriveContent(doc);
+    expect(result.tableText).toBe("Mã NV | Họ tên\nNV-001 | An");
+    expect(result.contentText).toBe("");
+    expect(result.contentJson).toMatchObject({
+      content: [
+        {
+          type: "table",
+          attrs: { id: "tbl" },
+          content: [
+            {
+              type: "tableRow",
+              content: [{ type: "tableHeader", attrs: { colwidth: [120], id: "h1" } }, {}],
+            },
+            {},
+          ],
+        },
       ],
     });
   });

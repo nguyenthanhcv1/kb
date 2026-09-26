@@ -62,7 +62,10 @@ export const SlashCommand = Extension.create<SlashCommandOptions>({
           const $from = state.doc.resolve(range.from);
           return !$from.parent.type.spec.code;
         },
-        items: ({ query }) => this.options.items(query),
+        items: ({ query, editor }) =>
+          this.options
+            .items(query)
+            .filter((item) => !item.available || item.available(editor.state)),
         command: ({ editor, range, props }) =>
           this.options.onSelect({ editor, range, item: props }),
         render: this.options.render,

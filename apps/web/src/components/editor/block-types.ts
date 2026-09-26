@@ -16,6 +16,7 @@ import {
   PilcrowIcon,
   QuoteIcon,
   SquareCodeIcon,
+  TableIcon,
   TriangleAlertIcon,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
@@ -37,15 +38,16 @@ export const BLOCK_ICONS: Record<string, LucideIcon> = {
   "callout.warning": TriangleAlertIcon,
   "callout.danger": OctagonAlertIcon,
   divider: MinusIcon,
+  table: TableIcon,
   image: ImageIcon,
 };
 
 /**
  * Blocks offered by "Turn into" (bubble menu, block menu): blocks that can replace the current
- * one. Dividers and images are inserted, not converted.
+ * one. Dividers, tables and images are inserted, not converted.
  */
 export const TURN_INTO_ITEMS: readonly SlashItem[] = SLASH_ITEMS.filter(
-  (item) => item.id !== "divider" && !item.input,
+  (item) => item.id !== "divider" && item.id !== "table" && !item.input,
 );
 
 /** Converts the block holding the selection into `item` (lists/quotes/callouts are lifted first). */
