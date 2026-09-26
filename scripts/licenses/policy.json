@@ -1,0 +1,26 @@
+{
+  "$comment": "Chính sách license (AGENTS.md §5). Đổi allowlist = đổi quy tắc → PR riêng, người duyệt. Ngoại lệ chỉ theo TÊN package, kèm lý do; package mới cùng license vẫn bị chặn.",
+  "allowed": ["MIT", "Apache-2.0", "BSD-2-Clause", "BSD-3-Clause", "0BSD", "ISC", "MPL-2.0"],
+  "exceptions": {
+    "@img/sharp-libvips-*": {
+      "license": "LGPL-3.0-or-later",
+      "reason": "Binary libvips do sharp (tối ưu ảnh của next/image) nạp động, không sửa đổi; LGPL cho phép dùng kiểu này."
+    },
+    "argparse": {
+      "license": "Python-2.0",
+      "reason": "PSF License, permissive (tương đương BSD); phụ thuộc của js-yaml."
+    },
+    "caniuse-lite": {
+      "license": "CC-BY-4.0",
+      "reason": "Chỉ là dữ liệu trình duyệt, dùng lúc build (browserslist)."
+    },
+    "language-subtag-registry": {
+      "license": "CC0-1.0",
+      "reason": "Dữ liệu public domain; phụ thuộc của eslint-plugin-jsx-a11y."
+    },
+    "minimatch": {
+      "license": "BlueOak-1.0.0",
+      "reason": "Blue Oak Model License, permissive (tương đương MIT)."
+    }
+  }
+}

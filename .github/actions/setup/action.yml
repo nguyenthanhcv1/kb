@@ -1,0 +1,31 @@
+name: Setup
+description: pnpm + Node (theo .nvmrc) + cache pnpm store + cache Turborepo + pnpm install --frozen-lockfile
+
+inputs:
+  turbo-cache-key:
+    description: Tiền tố key cache Turborepo (mỗi job một tiền tố để không ghi đè nhau)
+    required: false
+    default: ""
+
+runs:
+  using: composite
+  steps:
+    - uses: pnpm/action-setup@v4 # version lấy từ "packageManager" trong package.json
+
+    - uses: actions/setup-node@v4
+      with:
+        node-version-file: .nvmrc
+        cache: pnpm
+
+    - name: Cache Turborepo
+      if: inputs.turbo-cache-key != ''
+      uses: actions/cache@v4
+      with:
+        path: .turbo/cache
+        key: turbo-${{ inputs.turbo-cache-key }}-${{ runner.os }}-${{ github.sha }}
+        restore-keys: |
+          turbo-${{ inputs.turbo-cache-key }}-${{ runner.os }}-
+
+    - name: Install dependencies
+      shell: bash
+      run: pnpm install --frozen-lockfile

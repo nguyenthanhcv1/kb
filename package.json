@@ -12,10 +12,12 @@
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
+    "test:scripts": "node --test \"scripts/**/*.test.mjs\"",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "i18n:check": "pnpm --filter @kb/i18n i18n:check",
-    "i18n:sort": "pnpm --filter @kb/i18n i18n:sort"
+    "i18n:sort": "pnpm --filter @kb/i18n i18n:sort",
+    "licenses:check": "node scripts/licenses/check.mjs"
   },
   "devDependencies": {
     "@commitlint/cli": "^21.2.3",

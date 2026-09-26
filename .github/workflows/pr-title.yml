@@ -1,0 +1,28 @@
+# Tiêu đề PR = commit message sau squash-merge → phải đúng Conventional Commits (commitlint.config.mjs).
+# Tách khỏi ci.yml để sửa tiêu đề (sự kiện `edited`) chỉ chạy lại check này, không chạy lại toàn bộ CI.
+name: PR title
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pr-title-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  pr-title:
+    name: pr-title
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - name: commitlint tiêu đề PR
+        env:
+          # Qua biến môi trường, không nội suy thẳng vào script (chống chèn lệnh).
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: printf '%s\n' "$PR_TITLE" | pnpm exec commitlint --verbose
