@@ -194,15 +194,25 @@ function formatDate(date: Date): string {
 
 /**
  * Safe download name for a CSV export, e.g. `csvFileName("Báo cáo Q1/2026", date)` →
- * `"Báo cáo Q1-2026 2026-09-26.csv"`. Keeps Vietnamese (any Unicode) letters in NFC, replaces
+ * `"Bao cao Q1-2026 2026-09-26.csv"`. Drops Vietnamese diacritics (docs/PLAN.md T4.5: some
+ * mail clients, zip tools and older Windows setups mangle non-ASCII names; case is kept), replaces
  * path separators and characters Windows forbids with `-`, removes control/invisible characters,
  * collapses whitespace, strips leading dots (no hidden files / `..`) and trailing dots/spaces,
  * avoids Windows reserved names and caps the base name at 100 characters. An empty title
  * falls back to `table`. The optional date is appended as `YYYY-MM-DD` in Asia/Ho_Chi_Minh.
  */
+/** `Đặc biệt` → `Dac biet`: NFD, drop combining marks, `đ/Đ` → `d/D`; keeps case (unlike normalizeVi). */
+function stripDiacritics(input: string): string {
+  return input
+    .normalize("NFD")
+    .replace(/\p{M}+/gu, "")
+    .replace(/đ/g, "d")
+    .replace(/Đ/g, "D")
+    .normalize("NFC");
+}
+
 export function csvFileName(title: string | undefined, date?: Date): string {
-  let base = (title ?? "")
-    .normalize("NFC")
+  let base = stripDiacritics(title ?? "")
     .replace(INVISIBLE_CHARS, " ")
     .replace(UNSAFE_FILE_CHARS, "-")
     .replace(/\s+/g, " ")
