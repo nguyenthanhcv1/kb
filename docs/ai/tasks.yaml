@@ -142,7 +142,7 @@ tasks:
   - { id: T0.11, lane: claude-2, title: "Công cụ agent: pnpm ai:next (chọn task), pnpm ai:status, CI agent-scope (chặn sửa file ngoài lane, chặn Codex sửa UI)", deps: [T0.5], est: 0.5, ver: 0.1.0 }
   - { id: T0.6a, lane: claude-2, title: "release-please + release-vi-notes.yml + inject-vi-changelog + build-changelog (changelog.json), /api/health trả version", deps: [T0.5], est: 1, ver: 0.1.0, touches: ["apps/web/src/app/api/health/**"] }
   - { id: T0.6b, lane: claude-2, ui: true, title: "Trang What's new + version ở footer + Settings › Giới thiệu", deps: [T0.3b, T0.6a], est: 0.5, ver: 0.1.0, touches: [apps/web/src/components/layout/app-version.tsx] }
-  - { id: T0.7,  lane: claude-2, title: "Dockerfile web/collab/migrate, HEALTHCHECK, env zod, build-images.yml (GHCR)", deps: [T0.1a], est: 1, ver: 0.1.0, touches: ["apps/web/src/app/api/health/**", apps/collab/Dockerfile] }
+  - { id: T0.7,  lane: claude-2, title: "Dockerfile web/collab/migrate, HEALTHCHECK, env zod, build-images.yml (GHCR)", deps: [T0.1a], est: 1, ver: 0.1.0, touches: ["apps/web/src/app/api/health/**", apps/collab/Dockerfile, apps/collab/package.json, "apps/collab/src/**", apps/collab/tsup.config.ts] }
   - { id: T0.8,  lane: claude-2, human: true, title: "Staging trên Coolify (Hostinger kb-ops-1), Cloudflare DNS/Origin CA, firewall, secrets, deploy.yml", deps: [T0.7], est: 2, ver: 0.1.0 }
   - { id: T0.9,  lane: claude-2, human: true, title: "Backup pg_dump → Cloudflare R2, lifecycle, restore runbook + job kiểm thử restore", deps: [T0.8], est: 1, ver: 0.1.0 }
   - { id: T0.10, lane: claude-1, human: true, title: "Spike: GoTrue hook, WS qua Cloudflare/Traefik, JWT trong collab, preview + DNS, OAuth công ty, Gmail App Password", deps: [T0.8], est: 1, ver: 0.1.0, touches: ["docs/adr/**", "infra/**"] }
@@ -162,8 +162,8 @@ tasks:
   - { id: T1.7b, lane: claude-2, ui: true, title: "UI /admin/access và /admin/users", deps: [T1.7a, T1.4b], est: 0.5, ver: 0.2.0 }
 
   # ---------- M2 — Cây trang (v0.3.0) ----------
-  - { id: T2.1,  lane: codex-1, title: "Schema pages + page_documents rỗng, fractional index, trigger, RLS, audit, pgTAP", deps: [T1.1, T1.6a], est: 1.5, ver: 0.3.0 }
-  - { id: T2.2,  lane: codex-1, title: "Server actions trang: tạo/đổi tên/di chuyển/xoá mềm/khôi phục/xoá vĩnh viễn", deps: [T2.1], est: 1, ver: 0.3.0 }
+  - { id: T2.1,  lane: codex-1, title: "Schema pages + page_documents rỗng, fractional index, trigger, RLS, audit, pgTAP", deps: [T1.1, T1.6a], est: 1.5, ver: 0.3.0, stealable: true }
+  - { id: T2.2,  lane: codex-1, title: "Server actions trang: tạo/đổi tên/di chuyển/xoá mềm/khôi phục/xoá vĩnh viễn", deps: [T2.1], est: 1, ver: 0.3.0, stealable: true, touches: [.github/workflows/ci.yml, apps/web/vitest.config.ts] }
   - { id: T2.3,  lane: claude-2, ui: true, title: "Sidebar tree: lazy load, kéo thả (dnd-kit), menu ngữ cảnh, breadcrumb", deps: [T2.2, T1.4b], est: 2, ver: 0.3.0 }
   - { id: T2.4,  lane: claude-2, ui: true, title: "Route trang /s/[space]/p/[ref], tiêu đề/icon, thùng rác", deps: [T2.2, T1.4b], est: 1, ver: 0.3.0 }
   - { id: T2.5,  lane: claude-2, ui: true, title: "Realtime cây trang (Supabase Realtime)", deps: [T2.3], est: 0.5, ver: 0.3.0 }
@@ -171,9 +171,9 @@ tasks:
   # ---------- M3 — Editor & Yjs (v0.4.0) ----------
   - { id: T3.1,  lane: claude-1, ui: true, title: "packages/editor: bộ extension dùng chung, UniqueID, EDITOR_SCHEMA_VERSION", deps: [T0.1b], est: 1.5, ver: 0.4.0 }
   - { id: T3.2,  lane: claude-1, ui: true, title: "UI editor: slash menu, bubble menu, drag handle, phím tắt", deps: [T3.1, T0.3b], est: 2, ver: 0.4.0 }
-  - { id: T3.3a, lane: codex-1, title: "page_documents đầy đủ + role kb_collab + grant/policy + pgTAP", deps: [T2.1], est: 0.5, ver: 0.4.0 }
+  - { id: T3.3a, lane: codex-1, title: "page_documents đầy đủ + role kb_collab + grant/policy + pgTAP", deps: [T2.1], est: 0.5, ver: 0.4.0, stealable: true }
   - { id: T3.3b, lane: claude-1, title: "Bộ trích xuất JSON → text/headings/table/word count (packages/editor/src/extract)", deps: [T3.1], est: 0.5, ver: 0.4.0, stealable: true }
-  - { id: T3.4,  lane: claude-1, title: "kb-collab: auth, read-only viewer, Database extension fetch/store, health, shutdown", deps: [T3.3a, T3.3b], est: 2, ver: 0.4.0 }
+  - { id: T3.4,  lane: claude-1, title: "kb-collab: auth, read-only viewer, Database extension fetch/store, health, shutdown", deps: [T3.3a, T3.3b], est: 2, ver: 0.4.0, touches: [.env.example, .github/workflows/ci.yml, "packages/i18n/messages/*/errors.json"] }
   - { id: T3.5,  lane: claude-1, ui: true, title: "Client collab: HocuspocusProvider, refresh token, trạng thái kết nối, SSR read-only", deps: [T3.4, T3.2, T2.4], est: 1.5, ver: 0.4.0 }
   - { id: T3.6a, lane: codex-1, title: "Bucket attachments + RLS storage + bảng attachments + contract upload", deps: [T2.1], est: 0.5, ver: 0.4.0 }
   - { id: T3.6b, lane: claude-1, ui: true, title: "UI upload ảnh/tệp trong editor (kéo thả, paste ảnh, chặn base64)", deps: [T3.6a, T3.5], est: 1, ver: 0.4.0 }
