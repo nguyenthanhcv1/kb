@@ -12,15 +12,29 @@ insert into auth.users (id, email) values
   ('00000000-0000-0000-0000-000000000007', 'guest-outside@example.net'),
   ('00000000-0000-0000-0000-000000000008', 'deactivated@example.com');
 
-insert into public.profiles (id, email, is_guest, is_super_admin, deactivated_at) values
-  ('00000000-0000-0000-0000-000000000001', 'super@example.com', false, true, null),
-  ('00000000-0000-0000-0000-000000000002', 'admin@example.com', false, false, null),
-  ('00000000-0000-0000-0000-000000000003', 'editor@example.com', false, false, null),
-  ('00000000-0000-0000-0000-000000000004', 'viewer@example.com', false, false, null),
-  ('00000000-0000-0000-0000-000000000005', 'internal@example.com', false, false, null),
-  ('00000000-0000-0000-0000-000000000006', 'guest@example.net', true, false, null),
-  ('00000000-0000-0000-0000-000000000007', 'guest-outside@example.net', true, false, null),
-  ('00000000-0000-0000-0000-000000000008', 'deactivated@example.com', false, false, now());
+-- `auth.users` insert above already created a `public.profiles` row for each id via the
+-- `auth_users_create_profile` trigger (T1.2a), computed from the (empty) access_allowlist. This
+-- fixture needs specific roles/flags, so it overrides them as `service_role` — the one caller the
+-- `profiles_guard_privileged_fields` trigger lets touch `is_guest`/`is_super_admin`/`deactivated_at`.
+select set_config('request.jwt.claim.role', 'service_role', true);
+
+update public.profiles as p set
+  is_guest = v.is_guest,
+  is_super_admin = v.is_super_admin,
+  deactivated_at = v.deactivated_at
+from (values
+  ('00000000-0000-0000-0000-000000000001'::uuid, false, true, null::timestamptz),
+  ('00000000-0000-0000-0000-000000000002'::uuid, false, false, null::timestamptz),
+  ('00000000-0000-0000-0000-000000000003'::uuid, false, false, null::timestamptz),
+  ('00000000-0000-0000-0000-000000000004'::uuid, false, false, null::timestamptz),
+  ('00000000-0000-0000-0000-000000000005'::uuid, false, false, null::timestamptz),
+  ('00000000-0000-0000-0000-000000000006'::uuid, true, false, null::timestamptz),
+  ('00000000-0000-0000-0000-000000000007'::uuid, true, false, null::timestamptz),
+  ('00000000-0000-0000-0000-000000000008'::uuid, false, false, now())
+) as v(id, is_guest, is_super_admin, deactivated_at)
+where p.id = v.id;
+
+select set_config('request.jwt.claim.role', '', true);
 
 insert into public.spaces (id, slug, name, visibility, created_by) values
   ('10000000-0000-0000-0000-000000000001', 'restricted', 'Restricted', 'restricted', '00000000-0000-0000-0000-000000000002'),
