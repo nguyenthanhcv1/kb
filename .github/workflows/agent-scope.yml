@@ -1,0 +1,36 @@
+# CI `agent-scope` (T0.11): PR chỉ được sửa file trong vùng của task ghi ở thân PR
+# (owns của lane gốc + touches, docs/ai/tasks.yaml) và Codex không bao giờ sửa file UI (WORKFLOW §3).
+# Tách khỏi ci.yml để sửa thân PR (dòng Agent:/Task:, sự kiện `edited`) chỉ chạy lại check này.
+# Branch protection: yêu cầu check `agent-scope` (WORKFLOW §10).
+name: Agent scope
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: agent-scope-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  agent-scope:
+    name: agent-scope
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # cần lịch sử để tính merge-base giữa base và head
+      - uses: ./.github/actions/setup
+      - name: So file thay đổi với vùng của lane
+        env:
+          # Qua biến môi trường, không nội suy thẳng vào script (chống chèn lệnh).
+          PR_BODY: ${{ github.event.pull_request.body }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_AUTHOR_TYPE: ${{ github.event.pull_request.user.type }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: pnpm ai:scope
