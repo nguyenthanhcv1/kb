@@ -24,3 +24,39 @@ export class CollabAuthError extends Error {
     this.reason = reason;
   }
 }
+
+/**
+ * Codes of the internal API (`POST /internal/documents/:id/replace`, T3.7) in `{ code }` JSON
+ * bodies. Only kb-web reads them; `apps/web/src/server/collab` maps them to user-facing codes
+ * (`errors.<CODE>`) before anything reaches the UI.
+ */
+export const INTERNAL_API_ERROR_CODES = [
+  /** Missing/invalid HMAC headers, expired timestamp or replayed nonce. */
+  "UNAUTHORIZED",
+  /** Unknown route, or the request came through the public proxy (see internal-api.ts). */
+  "NOT_FOUND",
+  "METHOD_NOT_ALLOWED",
+  /** COLLAB_INTERNAL_SECRET is not configured on kb-collab. */
+  "INTERNAL_API_DISABLED",
+  "PAYLOAD_TOO_LARGE",
+  /** Bad page id, bad JSON, or content that does not fit the shared editor schema. */
+  "VALIDATION_FAILED",
+  /** No `page_documents` row for the page (never created, or purged). */
+  "PAGE_NOT_FOUND",
+  /** Stored document written by a newer EDITOR_SCHEMA_VERSION than this server. */
+  "DOCUMENT_SCHEMA_TOO_NEW",
+  /** Unexpected failure while loading or changing the document. */
+  "REPLACE_FAILED",
+] as const;
+export type InternalApiErrorCode = (typeof INTERNAL_API_ERROR_CODES)[number];
+
+/** Thrown by the Database `fetch` hook so callers can tell "no such page" from other failures. */
+export class DocumentLoadError extends Error {
+  readonly code: "PAGE_NOT_FOUND" | "DOCUMENT_SCHEMA_TOO_NEW";
+
+  constructor(code: DocumentLoadError["code"], message: string) {
+    super(message);
+    this.name = "DocumentLoadError";
+    this.code = code;
+  }
+}

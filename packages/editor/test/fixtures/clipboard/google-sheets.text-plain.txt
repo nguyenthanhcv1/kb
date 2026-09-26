@@ -1,0 +1,5 @@
+Sản phẩm	Số lượng	Đơn giá	Ghi chú
+Cà phê sữa đá	120	25,000	"Bán chạy
+nhất tuần"
+Trà đào cam sả	85	30,000	
+Tổng cộng		5,550,000	

@@ -1,0 +1,86 @@
+<html xmlns:v="urn:schemas-microsoft-com:vml"
+xmlns:o="urn:schemas-microsoft-com:office:office"
+xmlns:x="urn:schemas-microsoft-com:office:excel"
+xmlns="http://www.w3.org/TR/REC-html40">
+
+<head>
+<meta name=ProgId content=Excel.Sheet>
+<meta name=Generator content="Microsoft Excel 16">
+<meta http-equiv=Content-Type content="text/html; charset=utf-8">
+<style>
+<!--table
+	{mso-displayed-decimal-separator:"\,";
+	mso-displayed-thousand-separator:"\.";}
+.font5
+	{color:black;
+	font-size:12.0pt;
+	font-family:Calibri, sans-serif;}
+td
+	{padding-top:1px;
+	padding-right:1px;
+	padding-left:1px;
+	mso-ignore:padding;
+	color:black;
+	font-size:12.0pt;
+	font-family:Calibri, sans-serif;
+	mso-generic-font-family:auto;
+	mso-font-charset:0;
+	mso-number-format:General;
+	text-align:general;
+	vertical-align:bottom;
+	border:none;
+	mso-background-source:auto;
+	mso-pattern:auto;
+	white-space:nowrap;}
+.xl63
+	{background:#FFC000;
+	mso-pattern:black none;}
+.xl64
+	{font-weight:700;
+	background:#DDEBF7;
+	mso-pattern:black none;}
+.xl65
+	{mso-number-format:"0%";}
+-->
+</style>
+</head>
+
+<body link="#0563C1" vlink="#954F72">
+
+<table border=0 cellpadding=0 cellspacing=0 width=259 style='border-collapse:
+ collapse;width:194pt'>
+<!--StartFragment-->
+ <col width=87 style='width:65pt'>
+ <col width=86 span=2 style='width:65pt'>
+ <tr height=21 style='height:16.0pt'>
+  <td height=21 class=xl64 width=87 style='height:16.0pt;width:65pt'>Họ và tên</td>
+  <td class=xl64 width=86 style='width:65pt'>Phòng ban</td>
+  <td class=xl64 width=86 style='width:65pt'>Tỷ lệ</td>
+ </tr>
+ <tr height=21 style='height:16.0pt'>
+  <td height=21 style='height:16.0pt'>Nguyễn Văn Ấn</td>
+  <td rowspan=2 class=xl63>Kỹ thuật</td>
+  <td class=xl65 align=right x:num="0.85">85%</td>
+ </tr>
+ <tr height=21 style='height:16.0pt'>
+  <td height=21 style='height:16.0pt'>Trần Thị Bích Ngọc</td>
+  <td class=xl65 align=right x:num="1">100%</td>
+ </tr>
+ <tr height=21 style='height:16.0pt'>
+  <td height=21 style='height:16.0pt'>Lê Hoàng Yến</td>
+  <td></td>
+  <td align=right x:num="-3,5">-3,5</td>
+ </tr>
+<!--EndFragment-->
+ <![if supportMisalignedColumns]>
+ <tr height=0 style='display:none'>
+  <td width=87 style='width:65pt'></td>
+  <td width=86 style='width:65pt'></td>
+  <td width=86 style='width:65pt'></td>
+ </tr>
+ <![endif]>
+</table>
+
+</body>
+
+</html>

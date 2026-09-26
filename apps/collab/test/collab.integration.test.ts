@@ -1,6 +1,7 @@
 /**
  * kb-collab against a real database (T3.4 acceptance): wrong token rejected, viewer updates
- * ignored, content survives a restart, shutdown flushes pending edits.
+ * ignored, content survives a restart, shutdown flushes pending edits; internal API replace
+ * (T3.7) reaches connected clients and is stored with the actor.
  *
  * Needs a migrated Supabase database (`supabase db start`, seed applied):
  *   COLLAB_TEST_DATABASE_URL=postgresql://kb_collab:kb_collab_local@127.0.0.1:54322/postgres
@@ -22,11 +23,13 @@ import * as Y from "yjs";
 import { createAccessTokenVerifier } from "../src/auth";
 import { DOCUMENT_FIELD } from "../src/content";
 import { createDocumentStore } from "../src/db";
+import { signRequest } from "../src/internal-signature";
 import { type CollabContext, createCollabServer } from "../src/server";
 
 const DATABASE_URL = process.env.COLLAB_TEST_DATABASE_URL;
 const ADMIN_URL = process.env.COLLAB_TEST_ADMIN_DATABASE_URL;
 const JWT_SECRET = "collab-integration-test-secret-0123456789";
+const INTERNAL_SECRET = "collab-integration-internal-secret-0123456789";
 
 const ids = {
   admin: randomUUID(),
@@ -58,6 +61,7 @@ async function startServer(options: { debounce?: number; maxDebounce?: number } 
       GIT_SHA: "test",
       APP_ENV: "test",
       ALLOWED_ORIGINS: undefined,
+      COLLAB_INTERNAL_SECRET: INTERNAL_SECRET,
     },
     store: createDocumentStore(DATABASE_URL!, { max: 2 }),
     verifyToken: createAccessTokenVerifier({ SUPABASE_JWT_SECRET: JWT_SECRET }),
@@ -297,5 +301,59 @@ describe.skipIf(!DATABASE_URL || !ADMIN_URL)("kb-collab with Postgres", () => {
     await stopServer(server);
     expect((await row()).content_text).toContain("Trước khi tắt");
     disconnect(editor);
+  });
+
+  it("replaces content through the internal API for every connected client", async () => {
+    const server = await startServer();
+    const editor = await connect(server, await token(ids.editor));
+    const viewer = await connect(server, await token(ids.viewer));
+    expect(textOf(editor.doc)).toContain("Xin chào thế giới");
+
+    const path = `/internal/documents/${ids.page}/replace`;
+    const body = JSON.stringify({
+      content: {
+        type: "doc",
+        content: [{ type: "paragraph", content: [{ type: "text", text: "Nội dung khôi phục" }] }],
+      },
+      actorId: ids.admin,
+      reason: "restore",
+    });
+    const response = await fetch(`http://127.0.0.1:${server.address.port}${path}`, {
+      method: "POST",
+      body,
+      headers: {
+        "content-type": "application/json",
+        ...signRequest(INTERNAL_SECRET, { method: "POST", path, body }),
+      },
+    });
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({ pageId: ids.page, connections: 2 });
+
+    for (const client of [editor, viewer]) {
+      const text = await until(
+        async () => textOf(client.doc),
+        (value) => value.includes("Nội dung khôi phục") && !value.includes("Xin chào"),
+      );
+      expect(text).toContain("Nội dung khôi phục");
+      expect(text).not.toContain("Xin chào thế giới");
+    }
+
+    const stored = await until(row, (r) => r.content_text === "Nội dung khôi phục");
+    expect(stored).toMatchObject({ content_text: "Nội dung khôi phục", last_edited_by: ids.admin });
+    const { rows } = await admin.query(
+      "select count(*)::int as n from public.audit_logs where action = 'page.update_content' and entity_id = $1 and actor_id = $2",
+      [ids.page, ids.admin],
+    );
+    expect(rows[0].n).toBe(1);
+
+    const unsigned = await fetch(`http://127.0.0.1:${server.address.port}${path}`, {
+      method: "POST",
+      body,
+    });
+    expect(unsigned.status).toBe(401);
+
+    disconnect(editor);
+    disconnect(viewer);
+    await stopServer(server);
   });
 });

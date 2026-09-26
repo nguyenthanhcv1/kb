@@ -6,8 +6,9 @@ import { type AccessTokenVerifier, createOriginCheck, parseDocumentName } from "
 import { deriveContent } from "./content";
 import type { DocumentStore, SpaceRole } from "./db";
 import type { CollabEnv } from "./env";
-import { CollabAuthError } from "./errors";
+import { CollabAuthError, DocumentLoadError } from "./errors";
 import { healthExtension } from "./health";
+import { internalApiExtension } from "./internal-api";
 import type { Logger } from "./logger";
 
 /** Per-connection context returned by onAuthenticate. */
@@ -15,10 +16,15 @@ export interface CollabContext {
   userId: string;
   pageId: string;
   role: SpaceRole;
+  /** Set on direct connections opened by the internal API (T3.7). */
+  source?: "internal-api";
 }
 
 export interface CollabServerDeps {
-  env: Pick<CollabEnv, "PORT" | "APP_VERSION" | "GIT_SHA" | "APP_ENV" | "ALLOWED_ORIGINS">;
+  env: Pick<
+    CollabEnv,
+    "PORT" | "APP_VERSION" | "GIT_SHA" | "APP_ENV" | "ALLOWED_ORIGINS" | "COLLAB_INTERNAL_SECRET"
+  >;
   store: DocumentStore;
   verifyToken: AccessTokenVerifier;
   logger: Logger;
@@ -53,6 +59,7 @@ export function createCollabServer({
     stopOnSignals: true,
     extensions: [
       healthExtension(env, store),
+      internalApiExtension({ secret: env.COLLAB_INTERNAL_SECRET, logger }),
       {
         async onAuthenticate({
           token,
@@ -109,14 +116,16 @@ export function createCollabServer({
           const pageId = parseDocumentName(documentName);
           if (!pageId) throw new Error(`invalid document name ${documentName}`);
           const stored = await store.fetch(pageId);
-          if (!stored) throw new Error(`no page_documents row for ${pageId}`);
+          if (!stored) {
+            throw new DocumentLoadError("PAGE_NOT_FOUND", `no page_documents row for ${pageId}`);
+          }
           if (stored.schemaVersion > EDITOR_SCHEMA_VERSION) {
             // Written by a newer server: loading and re-saving here could drop unknown nodes.
             logger.error(
               { documentName, stored: stored.schemaVersion, server: EDITOR_SCHEMA_VERSION },
               "document newer than server",
             );
-            throw new Error("DOCUMENT_SCHEMA_TOO_NEW");
+            throw new DocumentLoadError("DOCUMENT_SCHEMA_TOO_NEW", "DOCUMENT_SCHEMA_TOO_NEW");
           }
           // Older schema versions will be migrated here (packages/editor/src/migrations) once a
           // schema change needs one. v1 → v2 (T4.1 table nodes) only adds nodes: v1 documents
