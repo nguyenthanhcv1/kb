@@ -1,4 +1,5 @@
 import {
+  type AppEnv,
   baseEnvSchema,
   optionalString,
   optionalUrl,
@@ -9,6 +10,8 @@ import {
   requireWhenDeployed,
 } from "@kb/shared/env";
 import { z } from "zod";
+
+import webPackage from "../../package.json";
 
 /**
  * Validated server environment of kb-web (docs/PLAN.md §7.6). Parsed once at startup from
@@ -67,9 +70,24 @@ export function webEnv(): WebEnv {
   return cached;
 }
 
+/**
+ * Version of the release this build belongs to: `apps/web/package.json`, bumped by release-please
+ * (`extra-files` in release-please-config.json). Imported (not read from disk) so it is bundled
+ * into the standalone server and cannot go missing in the Docker image.
+ */
+export const PACKAGE_VERSION: string = webPackage.version;
+
+export type AppInfo = {
+  /** `APP_VERSION` from the image build (`0.3.0`, `0.3.0-abc1234` on main), else {@link PACKAGE_VERSION}. */
+  version: string;
+  sha: string;
+  env: AppEnv;
+};
+
 /** Build/release identity for `/api/health` and the footer. Never throws. */
-export function appInfo() {
-  const base = baseEnvSchema.safeParse(process.env);
+export function appInfo(env: Record<string, string | undefined> = process.env): AppInfo {
+  const base = baseEnvSchema.safeParse(env);
   const info = base.success ? base.data : baseEnvSchema.parse({});
-  return { version: info.APP_VERSION, sha: info.GIT_SHA, env: info.APP_ENV };
+  const version = env.APP_VERSION?.trim() || PACKAGE_VERSION;
+  return { version, sha: info.GIT_SHA, env: info.APP_ENV };
 }

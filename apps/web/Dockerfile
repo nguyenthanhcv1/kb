@@ -13,6 +13,12 @@ FROM base AS pruner
 WORKDIR /repo
 COPY . .
 RUN pnpm dlx turbo@2.11.4 prune @kb/web --docker
+# `turbo prune` only keeps workspace packages; the web build also runs the root task
+# `//#changelog:build` (scripts/release, CHANGELOG.md, changelog/vi → What's new data).
+RUN mkdir -p out/full/scripts out/full/changelog \
+ && cp -r scripts/release out/full/scripts/ \
+ && cp -r changelog/. out/full/changelog/ \
+ && if [ -f CHANGELOG.md ]; then cp CHANGELOG.md out/full/; fi
 
 FROM base AS builder
 WORKDIR /repo
@@ -20,14 +26,14 @@ COPY --from=pruner /repo/out/json/ .
 RUN --mount=type=cache,id=pnpm-store,target=/root/.local/share/pnpm/store \
     pnpm install --frozen-lockfile
 COPY --from=pruner /repo/out/full/ .
-ARG APP_VERSION=0.0.0-dev
+ARG APP_VERSION=
 ARG GIT_SHA=unknown
 ENV APP_VERSION=${APP_VERSION} GIT_SHA=${GIT_SHA}
 RUN pnpm turbo run build --filter=@kb/web && mkdir -p apps/web/public
 
 FROM ${NODE_IMAGE} AS runner
 WORKDIR /app
-ARG APP_VERSION=0.0.0-dev
+ARG APP_VERSION=
 ARG GIT_SHA=unknown
 ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1 PORT=3000 HOSTNAME=0.0.0.0 \
     APP_VERSION=${APP_VERSION} GIT_SHA=${GIT_SHA}

@@ -1,0 +1,65 @@
+# Ghi chú phát hành tiếng Việt trên Release PR (T0.6a, docs/PLAN.md §6.3, docs/runbooks/release.md).
+# - Thiếu changelog/vi/<version>.md → check đỏ (Release PR không merge được khi check này là bắt buộc).
+# - Có → chèn khối "### Tiếng Việt" vào CHANGELOG.md và commit lại nhánh Release PR. Idempotent:
+#   release-please dựng lại nhánh (mất commit này) → workflow chạy lại và chèn lại.
+# PR không phải Release PR: job bị bỏ qua (skipped = đạt với branch protection).
+name: Release vi notes
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-vi-notes-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  release-vi-notes:
+    name: release-vi-notes
+    if: >-
+      startsWith(github.head_ref, 'release-please--') &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write # commit CHANGELOG.md lên nhánh Release PR
+    steps:
+      # Commit bằng GITHUB_TOKEN không kích hoạt lại CI trên commit mới → dùng GitHub App nếu có
+      # (cùng App với release-please.yml). Lần chạy do commit này kích hoạt sẽ thấy "không đổi".
+      - name: Token GitHub App (nếu đã cấu hình)
+        id: app-token
+        if: vars.RELEASE_APP_ID != ''
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ vars.RELEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          token: ${{ steps.app-token.outputs.token || secrets.GITHUB_TOKEN }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+
+      # Script không có dependency → không cần pnpm install. Version lấy từ .release-please-manifest.json
+      # của nhánh Release PR (release-please đã bump).
+      - name: Kiểm tra changelog/vi/<version>.md và chèn vào CHANGELOG.md
+        run: node scripts/release/inject-vi-changelog.mjs
+
+      - name: Commit CHANGELOG.md (nếu đổi)
+        run: |
+          if git diff --quiet -- CHANGELOG.md; then
+            echo "CHANGELOG.md đã có ghi chú tiếng Việt mới nhất."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
+          git add CHANGELOG.md
+          git commit -m "chore(release): add Vietnamese release notes to CHANGELOG.md"
+          git push origin "HEAD:${GITHUB_HEAD_REF}"
