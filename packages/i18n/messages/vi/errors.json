@@ -1,12 +1,15 @@
 {
   "AUDIT_LOG_IMMUTABLE": "Nhật ký hoạt động không thể sửa hoặc xoá.",
   "AUDIT_QUERY_FAILED": "Không tải được nhật ký hoạt động. Vui lòng thử lại.",
+  "CLIENT_OUTDATED": "Ứng dụng đã có phiên bản mới. Vui lòng tải lại trang.",
   "FORBIDDEN": "Bạn không có quyền thực hiện thao tác này.",
+  "ORIGIN_NOT_ALLOWED": "Kết nối từ địa chỉ này không được phép.",
   "PAGE_DELETED": "Trang đang nằm trong thùng rác.",
   "PAGE_MOVE_CYCLE": "Không thể di chuyển trang vào bên trong chính nó hoặc trang con của nó.",
   "PAGE_NOT_IN_TRASH": "Chỉ xoá vĩnh viễn được trang đang ở trong thùng rác.",
   "PAGE_PARENT_DELETED": "Trang cha đang nằm trong thùng rác.",
   "PAGE_PARENT_NOT_FOUND": "Không tìm thấy trang cha.",
   "PAGE_PARENT_SPACE_MISMATCH": "Trang cha phải thuộc cùng không gian.",
+  "UNAUTHORIZED": "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.",
   "VALIDATION_FAILED": "Dữ liệu không hợp lệ."
 }
