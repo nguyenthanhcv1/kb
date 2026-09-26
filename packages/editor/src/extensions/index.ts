@@ -8,8 +8,15 @@ import { StarterKit } from "@tiptap/starter-kit";
 import { common, createLowlight } from "lowlight";
 
 import { Callout } from "./callout";
+import { createTableExtensions } from "./table";
 
 export { CALLOUT_VARIANTS, Callout, type CalloutVariant } from "./callout";
+export {
+  createTableExtensions,
+  DEFAULT_TABLE_SIZE,
+  TABLE_CELL_MIN_WIDTH,
+  TABLE_NODE_NAMES,
+} from "./table";
 
 export const HEADING_LEVELS = [1, 2, 3] as const;
 
@@ -31,6 +38,10 @@ export const BLOCK_ID_TYPES = [
   "horizontalRule",
   "image",
   "callout",
+  "table",
+  "tableRow",
+  "tableHeader",
+  "tableCell",
 ] as const;
 
 export interface CreateExtensionsOptions {
@@ -75,6 +86,7 @@ export function createExtensions(options: CreateExtensionsOptions = {}): AnyExte
     TaskItem.configure({ nested: true }),
     Image.configure({ inline: false, allowBase64: false }),
     Callout,
+    ...createTableExtensions(),
     UniqueID.configure({
       types: [...BLOCK_ID_TYPES],
       ...options.uniqueId,

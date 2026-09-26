@@ -167,6 +167,54 @@ exports[`editor schema > matches the snapshot 1`] = `
       "inline": false,
       "marks": null,
     },
+    "table": {
+      "atom": false,
+      "attrs": {
+        "id": null,
+      },
+      "content": "tableRow+",
+      "group": "block",
+      "inline": false,
+      "marks": null,
+    },
+    "tableCell": {
+      "atom": false,
+      "attrs": {
+        "align": null,
+        "colspan": 1,
+        "colwidth": null,
+        "id": null,
+        "rowspan": 1,
+      },
+      "content": "block+",
+      "group": null,
+      "inline": false,
+      "marks": null,
+    },
+    "tableHeader": {
+      "atom": false,
+      "attrs": {
+        "align": null,
+        "colspan": 1,
+        "colwidth": null,
+        "id": null,
+        "rowspan": 1,
+      },
+      "content": "block+",
+      "group": null,
+      "inline": false,
+      "marks": null,
+    },
+    "tableRow": {
+      "atom": false,
+      "attrs": {
+        "id": null,
+      },
+      "content": "(tableCell | tableHeader)*",
+      "group": null,
+      "inline": false,
+      "marks": null,
+    },
     "taskItem": {
       "atom": false,
       "attrs": {

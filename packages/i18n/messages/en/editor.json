@@ -47,9 +47,11 @@
     "groups": {
       "blocks": "Blocks",
       "editing": "Editing",
-      "format": "Formatting"
+      "format": "Formatting",
+      "table": "Table"
     },
     "items": {
+      "addRowBelow": "Insert row below",
       "blockquote": "Quote",
       "bold": "Bold",
       "bulletList": "Bulleted list",
@@ -64,11 +66,14 @@
       "link": "Add or edit link",
       "moveDown": "Move block down",
       "moveUp": "Move block up",
+      "nextCell": "Next cell (in the last cell: add a row)",
       "orderedList": "Numbered list",
       "paragraph": "Text",
+      "previousCell": "Previous cell",
       "redo": "Redo",
       "slash": "Open the insert block menu",
       "strike": "Strikethrough",
+      "tableMenu": "Open table tools",
       "taskList": "To-do list",
       "underline": "Underline",
       "undo": "Undo"
@@ -142,6 +147,10 @@
       "paragraph": {
         "description": "Plain text paragraph",
         "title": "Text"
+      },
+      "table": {
+        "description": "Table with a header row; add or remove rows and columns",
+        "title": "Table"
       },
       "taskList": {
         "description": "Track tasks with checkboxes",

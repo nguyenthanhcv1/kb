@@ -9,6 +9,7 @@ import {
   SLASH_ITEMS,
   SlashCommand,
   type SlashItem,
+  TableShortcuts,
 } from "@kb/editor/ui";
 import type { AnyExtension, JSONContent } from "@tiptap/core";
 import { EditorContent, useEditor } from "@tiptap/react";
@@ -23,6 +24,7 @@ import { FormattingBubbleMenu } from "./bubble-menu";
 import { ImageDialog } from "./image-dialog";
 import { ShortcutsDialog } from "./shortcuts-dialog";
 import { renderSlashMenu } from "./slash-menu";
+import { TableMenu } from "./table-menu";
 
 import "./editor.css";
 
@@ -36,13 +38,15 @@ export type BlockEditorProps = {
   extensions?: AnyExtension[];
   /** Forwarded to `createExtensions` (turn `undoRedo` off when bound to Yjs). */
   extensionOptions?: CreateExtensionsOptions;
+  /** Page title, e.g. for the file name of a table exported as CSV. */
+  title?: string;
   className?: string;
 };
 
 /**
  * Block editor: shared schema from `@kb/editor` + slash menu, formatting bubble menu, drag
- * handle with block menu, keyboard shortcuts (Mod-/ lists them) and placeholders — every
- * visible string through next-intl (`editor` namespace).
+ * handle with block menu, table toolbar, keyboard shortcuts (Mod-/ lists them) and placeholders —
+ * every visible string through next-intl (`editor` and `table` namespaces).
  */
 export function BlockEditor({
   content,
@@ -50,12 +54,15 @@ export function BlockEditor({
   onChange,
   extensions = [],
   extensionOptions,
+  title,
   className,
 }: BlockEditorProps) {
   const t = useTranslations("editor");
   const text = useBlockText();
   const [linkRequested, setLinkRequested] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  /** Incremented by Alt-F10 in a table: the table toolbar takes keyboard focus. */
+  const [tableMenuRequest, setTableMenuRequest] = useState(0);
   /** Slash item waiting for its image URL (dialog open while set). */
   const [pendingImage, setPendingImage] = useState<SlashItem | null>(null);
 
@@ -107,6 +114,12 @@ export function BlockEditor({
           return true;
         },
       }),
+      TableShortcuts.configure({
+        onMenuShortcut: () => {
+          setTableMenuRequest((count) => count + 1);
+          return true;
+        },
+      }),
       ...extensions,
     ],
     editorProps: {
@@ -140,6 +153,7 @@ export function BlockEditor({
             onLinkRequestHandled={() => setLinkRequested(false)}
           />
           <BlockHandle editor={editor} />
+          <TableMenu editor={editor} pageTitle={title} focusRequest={tableMenuRequest} />
         </>
       )}
       <ShortcutsDialog open={shortcutsOpen} onOpenChange={setShortcutsOpen} />

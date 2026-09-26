@@ -15,6 +15,8 @@ import { BLOCK_ID_TYPES, getEditorSchema } from "./index";
  */
 const SCHEMA_FINGERPRINTS: Record<number, string> = {
   1: "767dc01fea72e07c52b7808286dd3d4130a2482b481c29b545297e9157ec47a4",
+  // T4.1: table, tableRow, tableHeader, tableCell (additive — v1 documents load unchanged).
+  2: "864d36d1216cab63f330f98fd130e1422d4f66deaeb3c163ba44b2b493aa8e91",
 };
 
 function describeSchema(schema: Schema) {
@@ -115,6 +117,25 @@ describe("editor schema", () => {
         { type: "callout", attrs: { variant: "warning" }, content: [paragraph("careful")] },
         { type: "horizontalRule" },
         { type: "image", attrs: { src: "https://example.com/a.png", alt: "a" } },
+        {
+          type: "table",
+          content: [
+            {
+              type: "tableRow",
+              content: [
+                { type: "tableHeader", content: [paragraph("Mã")] },
+                { type: "tableHeader", attrs: { colwidth: [120] }, content: [paragraph("Tên")] },
+              ],
+            },
+            {
+              type: "tableRow",
+              content: [
+                { type: "tableCell", content: [paragraph("1")] },
+                { type: "tableCell", attrs: { colspan: 1 }, content: [paragraph("An")] },
+              ],
+            },
+          ],
+        },
       ],
     });
 

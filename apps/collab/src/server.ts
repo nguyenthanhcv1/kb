@@ -128,7 +128,8 @@ export function createCollabServer({
             throw new DocumentLoadError("DOCUMENT_SCHEMA_TOO_NEW", "DOCUMENT_SCHEMA_TOO_NEW");
           }
           // Older schema versions will be migrated here (packages/editor/src/migrations) once a
-          // schema change needs one; version 1 is the first.
+          // schema change needs one. v1 → v2 (T4.1 table nodes) only adds nodes: v1 documents
+          // load unchanged and are stored as v2 on the next save.
           return stored.ydoc;
         },
 

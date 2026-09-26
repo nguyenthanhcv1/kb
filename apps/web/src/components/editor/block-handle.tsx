@@ -41,6 +41,8 @@ export function BlockHandle({ editor }: { editor: Editor }) {
   const shortcut = useShortcutLabel();
   const posRef = useRef<number | null>(null);
   const [open, setOpen] = useState(false);
+  /** Tables are not converted into other blocks: no "Turn into" for them. */
+  const [convertible, setConvertible] = useState(true);
 
   const setLocked = (locked: boolean) => editor.commands.setMeta("lockDragHandle", locked);
 
@@ -54,8 +56,9 @@ export function BlockHandle({ editor }: { editor: Editor }) {
     <DragHandle
       editor={editor}
       className="kb-drag-handle"
-      onNodeChange={({ pos }) => {
+      onNodeChange={({ node, pos }) => {
         posRef.current = pos >= 0 ? pos : null;
+        setConvertible(node?.type.name !== "table");
       }}
     >
       <DropdownMenu
@@ -87,33 +90,37 @@ export function BlockHandle({ editor }: { editor: Editor }) {
           }}
         >
           <DropdownMenuLabel className="sr-only">{t("label")}</DropdownMenuLabel>
-          <DropdownMenuSub>
-            <DropdownMenuSubTrigger>
-              <Repeat2Icon aria-hidden />
-              {t("turnInto")}
-            </DropdownMenuSubTrigger>
-            <DropdownMenuSubContent className="max-h-72 overflow-y-auto">
-              {TURN_INTO_ITEMS.map((item) => {
-                const Icon = BLOCK_ICONS[item.id];
-                return (
-                  <DropdownMenuItem
-                    key={item.id}
-                    onSelect={() =>
-                      runOnBlock((pos) => {
-                        const selection = TextSelection.near(editor.state.doc.resolve(pos + 1));
-                        editor.view.dispatch(editor.state.tr.setSelection(selection));
-                        turnInto(editor, item);
-                      })
-                    }
-                  >
-                    {Icon && <Icon aria-hidden />}
-                    {text.title(item)}
-                  </DropdownMenuItem>
-                );
-              })}
-            </DropdownMenuSubContent>
-          </DropdownMenuSub>
-          <DropdownMenuSeparator />
+          {convertible && (
+            <>
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger>
+                  <Repeat2Icon aria-hidden />
+                  {t("turnInto")}
+                </DropdownMenuSubTrigger>
+                <DropdownMenuSubContent className="max-h-72 overflow-y-auto">
+                  {TURN_INTO_ITEMS.map((item) => {
+                    const Icon = BLOCK_ICONS[item.id];
+                    return (
+                      <DropdownMenuItem
+                        key={item.id}
+                        onSelect={() =>
+                          runOnBlock((pos) => {
+                            const selection = TextSelection.near(editor.state.doc.resolve(pos + 1));
+                            editor.view.dispatch(editor.state.tr.setSelection(selection));
+                            turnInto(editor, item);
+                          })
+                        }
+                      >
+                        {Icon && <Icon aria-hidden />}
+                        {text.title(item)}
+                      </DropdownMenuItem>
+                    );
+                  })}
+                </DropdownMenuSubContent>
+              </DropdownMenuSub>
+              <DropdownMenuSeparator />
+            </>
+          )}
           <DropdownMenuItem onSelect={() => runOnBlock((pos) => moveBlock(editor, pos, "up"))}>
             <ArrowUpIcon aria-hidden />
             {t("moveUp")}
