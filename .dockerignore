@@ -1,0 +1,16 @@
+# Build context = repo root for every image (apps/web, apps/collab, infra/migrate).
+**/node_modules
+**/.next
+**/dist
+**/.turbo
+**/coverage
+**/*.tsbuildinfo
+.git
+.github
+.env
+.env.*
+!.env.example
+supabase/.temp
+supabase/.branches
+**/*.log
+.DS_Store
