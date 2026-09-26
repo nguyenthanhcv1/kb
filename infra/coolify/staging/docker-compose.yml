@@ -1,0 +1,136 @@
+# kb staging on Coolify (kb-ops-1) — T0.8, docs/runbooks/staging.md, docs/adr/0001-staging-deploy-coolify-compose.md
+#
+# One Coolify resource of type "Docker Compose" (build pack "Docker Compose", source = this repo,
+# branch main, compose file /infra/coolify/staging/docker-compose.yml). Supabase is a separate
+# Coolify service (template "Supabase") with "Connect to predefined network" enabled, so both sit
+# on the `coolify` network.
+#
+# - No image is built on the server: images come from GHCR (.github/workflows/build-images.yml).
+#   KB_IMAGE_TAG is set by .github/workflows/deploy.yml through the Coolify API (sha-<full sha>).
+# - Order on every deploy: kb-migrate (one shot, must exit 0) → kb-collab (healthy) → kb-web.
+# - Routing is defined by the Traefik labels below. Leave the "Domains" fields of these services
+#   EMPTY in Coolify, otherwise Coolify adds its own routers (without the /internal restriction).
+# - TLS: Cloudflare Origin CA wildcard installed as Traefik's default certificate
+#   (infra/coolify/proxy/dynamic/origin-ca.yml), Cloudflare SSL mode "Full (strict)". No ACME.
+# - Every `${VAR:?}` must be set in Coolify (Environment Variables, mark secrets "locked").
+#   The list with where each value comes from: infra/coolify/staging/env.example.
+
+services:
+  kb-migrate:
+    image: ghcr.io/nguyenthanhcv1/kb-migrate:${KB_IMAGE_TAG:?}
+    # One shot: applies supabase/migrations (forward-only) and exits. Coolify may show this
+    # container as "exited"; that is expected.
+    restart: "no"
+    environment:
+      # postgres role on the Supabase DB container, internal network only:
+      # postgresql://postgres:<SERVICE_PASSWORD_POSTGRES>@supabase-db-<uuid>:5432/postgres
+      DATABASE_URL: ${MIGRATE_DATABASE_URL:?}
+    networks:
+      - coolify
+
+  kb-collab:
+    image: ghcr.io/nguyenthanhcv1/kb-collab:${KB_IMAGE_TAG:?}
+    restart: unless-stopped
+    depends_on:
+      kb-migrate:
+        condition: service_completed_successfully
+    # SIGTERM → close connections, store every document, exit (docs/PLAN.md §7.2).
+    stop_grace_period: 30s
+    environment:
+      APP_ENV: staging
+      PORT: "3001"
+      LOG_LEVEL: ${COLLAB_LOG_LEVEL:-info}
+      # Role kb_collab (password set once by the runbook), internal network only.
+      DATABASE_URL: ${COLLAB_DATABASE_URL:?}
+      SUPABASE_JWT_SECRET: ${SUPABASE_JWT_SECRET:?}
+      # Same value as kb-web, ≥ 32 characters (openssl rand -hex 32).
+      COLLAB_INTERNAL_SECRET: ${COLLAB_INTERNAL_SECRET:?}
+      ALLOWED_ORIGINS: ${COLLAB_ALLOWED_ORIGINS:-https://kb-staging.thanhgo.com,https://kb-pr-*.thanhgo.com}
+      REDIS_URL: ${REDIS_URL:-}
+      SENTRY_DSN: ${SENTRY_DSN:-}
+    expose:
+      - "3001"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3001/health || exit 1"]
+      interval: 15s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+    networks:
+      coolify:
+        # kb-web calls the internal API at http://kb-collab:3001 (COLLAB_INTERNAL_URL).
+        aliases:
+          - kb-collab
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=coolify
+      # Public router: ONLY the WebSocket endpoint (/) and /health. /internal/* (T3.7) and every
+      # other path get Traefik's 404 — the internal API is reachable only on the Docker network.
+      # No compress/buffering middleware on this router (WebSocket).
+      - traefik.http.routers.kb-staging-collab.rule=Host(`kb-staging-collab.thanhgo.com`) && (Path(`/`) || Path(`/health`))
+      - traefik.http.routers.kb-staging-collab.entrypoints=https
+      - traefik.http.routers.kb-staging-collab.tls=true
+      - traefik.http.routers.kb-staging-collab.service=kb-staging-collab
+      - traefik.http.routers.kb-staging-collab-http.rule=Host(`kb-staging-collab.thanhgo.com`)
+      - traefik.http.routers.kb-staging-collab-http.entrypoints=http
+      - traefik.http.routers.kb-staging-collab-http.middlewares=kb-staging-https-redirect
+      - traefik.http.routers.kb-staging-collab-http.service=kb-staging-collab
+      - traefik.http.services.kb-staging-collab.loadbalancer.server.port=3001
+
+  kb-web:
+    image: ghcr.io/nguyenthanhcv1/kb-web:${KB_IMAGE_TAG:?}
+    restart: unless-stopped
+    depends_on:
+      kb-migrate:
+        condition: service_completed_successfully
+      kb-collab:
+        condition: service_healthy
+    environment:
+      APP_ENV: staging
+      PORT: "3000"
+      APP_URL: ${APP_URL:-https://kb-staging.thanhgo.com}
+      SUPABASE_URL: ${SUPABASE_URL:-https://kb-staging-api.thanhgo.com}
+      SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY:?}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:?}
+      COLLAB_PUBLIC_URL: ${COLLAB_PUBLIC_URL:-wss://kb-staging-collab.thanhgo.com}
+      COLLAB_INTERNAL_URL: http://kb-collab:3001
+      COLLAB_INTERNAL_SECRET: ${COLLAB_INTERNAL_SECRET:?}
+      DEFAULT_LOCALE: vi
+      DEFAULT_TIME_ZONE: Asia/Ho_Chi_Minh
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM: ${SMTP_FROM:-}
+      SMTP_REPLY_TO: ${SMTP_REPLY_TO:-}
+      BOOTSTRAP_SUPER_ADMIN_EMAILS: ${BOOTSTRAP_SUPER_ADMIN_EMAILS:-}
+      SENTRY_DSN: ${SENTRY_DSN:-}
+    expose:
+      - "3000"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000/api/health || exit 1"]
+      interval: 15s
+      timeout: 3s
+      retries: 3
+      start_period: 20s
+    networks:
+      - coolify
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=coolify
+      - traefik.http.routers.kb-staging-web.rule=Host(`kb-staging.thanhgo.com`)
+      - traefik.http.routers.kb-staging-web.entrypoints=https
+      - traefik.http.routers.kb-staging-web.tls=true
+      - traefik.http.routers.kb-staging-web.service=kb-staging-web
+      - traefik.http.routers.kb-staging-web-http.rule=Host(`kb-staging.thanhgo.com`)
+      - traefik.http.routers.kb-staging-web-http.entrypoints=http
+      - traefik.http.routers.kb-staging-web-http.middlewares=kb-staging-https-redirect
+      - traefik.http.routers.kb-staging-web-http.service=kb-staging-web
+      - traefik.http.services.kb-staging-web.loadbalancer.server.port=3000
+      - traefik.http.middlewares.kb-staging-https-redirect.redirectscheme.scheme=https
+      - traefik.http.middlewares.kb-staging-https-redirect.redirectscheme.permanent=true
+
+networks:
+  # Coolify's shared network: Traefik and (with "Connect to predefined network") Supabase.
+  coolify:
+    external: true
