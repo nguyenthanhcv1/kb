@@ -104,8 +104,9 @@ jobs:
       - uses: supabase/setup-cli@v1
         with:
           version: 2.118.0 # giữ khớp supabase/README.md
-      - name: Khởi động Postgres, chạy migration + seed
-        run: supabase db start
+      - name: Khởi động Postgres + PostgREST/Kong, chạy migration + seed
+        # Chỉ db, rest, kong: đủ cho pgTAP và integration test qua supabase-js.
+        run: supabase start -x gotrue,realtime,storage-api,imgproxy,mailpit,postgres-meta,studio,edge-runtime,logflare,vector,supavisor
       - name: pgTAP (gồm test "mọi bảng bật RLS")
         run: supabase test db
       - name: Migration chạy lại được từ đầu (db reset)
@@ -116,6 +117,13 @@ jobs:
           COLLAB_TEST_DATABASE_URL: postgresql://kb_collab:kb_collab_local@127.0.0.1:54322/postgres
           COLLAB_TEST_ADMIN_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
         run: pnpm --filter @kb/collab exec vitest run test/
+      - name: Integration test server actions trang (supabase-js → PostgREST → RLS)
+        env:
+          PAGES_TEST_SUPABASE_URL: http://127.0.0.1:54321
+          # JWT secret mặc định của Supabase local (không phải secret thật).
+          PAGES_TEST_JWT_SECRET: super-secret-jwt-token-with-at-least-32-characters-long
+          PAGES_TEST_ADMIN_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+        run: pnpm --filter @kb/web exec vitest run src/server/pages/pages.integration.test.ts
       - name: Dừng Supabase
         if: always()
         run: supabase stop --no-backup
