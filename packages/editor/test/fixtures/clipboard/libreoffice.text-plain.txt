@@ -1,0 +1,6 @@
+Mã đơn	Trạng thái	Phí ship
+GHN-001	"Đang giao
+chờ xác nhận"	
+GHN-002		
+GHN-003	Giao thành công	32,500
+		0

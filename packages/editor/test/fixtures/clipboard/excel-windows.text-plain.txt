@@ -1,0 +1,6 @@
+Báo cáo doanh thu quý 3		
+Khu vực	Doanh thu (VNĐ)	Ghi chú
+Hà Nội	1,234,567.00	"Tăng trưởng tốt
+(so với quý 2)"
+	987,654.50	 
+Thành phố Hồ Chí Minh	2,500,000.00	  Đạt 120% kế hoạch
