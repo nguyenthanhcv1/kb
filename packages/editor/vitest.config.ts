@@ -5,6 +5,6 @@ export default defineConfig({
     // Node by default: the schema must load on the server (kb-collab, search extraction)
     // without a DOM. Tests that need an editor view opt into happy-dom per file.
     environment: "node",
-    include: ["src/**/*.test.ts"],
+    include: ["src/**/*.test.ts", "test/**/*.test.ts"],
   },
 });
