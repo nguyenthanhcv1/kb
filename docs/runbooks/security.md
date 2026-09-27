@@ -31,7 +31,7 @@ Bộ đếm nằm trong Postgres (`app.rate_limit_hits`, cửa sổ cố định
 | `search`          | do T5.2 đặt      | RPC tìm kiếm gọi `app.consume_rate_limit('search', <n>, <cửa sổ>)` |
 
 - Thêm giới hạn mới: gọi `perform app.consume_rate_limit('<bucket>', <n>, interval '<cửa sổ>')` trong hàm/trigger `SECURITY DEFINER` của thao tác đó, kèm test pgTAP (`supabase/tests/rate_limits.test.sql`).
-- Dọn bộ đếm cũ: pg_cron `kb-prune-rate-limit-hits` hằng đêm (`app.prune_rate_limit_hits()`).
+- Bộ đếm tự dọn: mỗi lần tính, các cửa sổ đã hết hạn của cùng người + bucket bị xoá (không cần job định kỳ).
 - Mở khoá tay cho một người (hiếm): `delete from app.rate_limit_hits where subject = '<user id>' and bucket = '<bucket>';` (role `postgres`).
 - Lớp ngoài: Supabase Auth có rate limit riêng cho đăng nhập (`supabase/config.toml` `[auth.rate_limit]`); Cloudflare chặn DDoS/bot.
 - [ ] Cloudflare › Security › WAF › Rate limiting rules (gói Free có 1 rule): `kb-staging.thanhgo.com` và (sau T7.3) domain prod, đường dẫn bắt đầu `/auth/` hoặc `/login`, **100 request / 10 giây / IP** → Block 10 giây. IP thật của người dùng: Traefik chỉ nhận kết nối từ dải Cloudflare (`infra/scripts/firewall-cloudflare.sh`), header `CF-Connecting-IP` tin được.

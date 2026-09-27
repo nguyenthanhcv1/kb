@@ -51,6 +51,10 @@ begin
 
   v_start := to_timestamp(floor(extract(epoch from now()) / v_window_seconds) * v_window_seconds);
 
+  -- Self-cleaning (no scheduled job): finished windows of this caller and bucket go away.
+  delete from app.rate_limit_hits
+  where bucket = p_bucket and subject = v_subject and window_start < v_start;
+
   insert into app.rate_limit_hits as h (bucket, subject, window_start, hits)
   values (p_bucket, v_subject, v_start, 1)
   on conflict (bucket, subject, window_start) do update set hits = h.hits + 1
@@ -67,24 +71,9 @@ $$;
 comment on function app.consume_rate_limit(text, integer, interval) is
   'Counts one hit of the current actor in a bucket; raises RATE_LIMITED (P0001) above p_limit per p_window.';
 
--- Nightly clean-up of finished windows (kept one day for investigation).
-create or replace function app.prune_rate_limit_hits()
-returns integer
-language sql
-security definer
-set search_path = ''
-as $$
-  with deleted as (
-    delete from app.rate_limit_hits where window_start < now() - interval '1 day' returning 1
-  )
-  select count(*)::integer from deleted
-$$;
-
 revoke all on function app.consume_rate_limit(text, integer, interval) from public;
-revoke all on function app.prune_rate_limit_hits() from public;
 -- Server code and future RPCs may use it for their own buckets; the subject is always the caller.
 grant execute on function app.consume_rate_limit(text, integer, interval) to authenticated, service_role;
-grant execute on function app.prune_rate_limit_hits() to service_role;
 
 -- ---------------------------------------------------------------------------
 -- Invitations: at most 30 sent or re-sent per admin and hour (each send is an email).
@@ -109,16 +98,3 @@ revoke all on function app.rate_limit_invitations() from public;
 create trigger invitations_rate_limit
 before insert or update of token_hash on public.invitations
 for each row execute function app.rate_limit_invitations();
-
--- Schedule the clean-up next to the other nightly jobs when pg_cron is available (see the
--- page_versions retention job).
-do $$
-begin
-  if exists (select 1 from pg_catalog.pg_extension where extname = 'pg_cron') then
-    perform cron.schedule('kb-prune-rate-limit-hits', '40 19 * * *',
-                          'select app.prune_rate_limit_hits()');
-  else
-    raise notice 'pg_cron not installed, schedule app.prune_rate_limit_hits() elsewhere';
-  end if;
-end;
-$$;

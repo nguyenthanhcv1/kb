@@ -58,10 +58,21 @@ select throws_ok($$ select app.consume_rate_limit('search', 2, interval '1 minut
 
 select throws_ok($$ select * from app.rate_limit_hits $$, '42501', null,
   'clients cannot read the counters');
-select throws_ok($$ select app.prune_rate_limit_hits() $$, '42501', null,
-  'clients cannot run the clean-up');
 
 reset role;
+
+-- Finished windows are removed on the next hit of the same caller and bucket.
+update app.rate_limit_hits set window_start = window_start - interval '1 hour'
+where bucket = 'search' and subject = '00000000-0000-0000-0000-000000000003';
+set local role authenticated;
+select app.consume_rate_limit('search', 2, interval '1 minute');
+reset role;
+select is(
+  (select count(*)::int from app.rate_limit_hits
+   where bucket = 'search' and subject = '00000000-0000-0000-0000-000000000003'),
+  1, 'old windows are cleaned up by the next hit'
+);
+
 select set_config('request.jwt.claim.sub', '', true);
 
 -- No actor (migrations, maintenance as superuser) is never limited.
