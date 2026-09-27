@@ -32,7 +32,9 @@
     "mainNavigation": "Main navigation",
     "openSidebar": "Open sidebar",
     "sidebarEmpty": "No Spaces yet.",
-    "skipToContent": "Skip to main content"
+    "skipToContent": "Skip to main content",
+    "version": "v{version}",
+    "versionLink": "Version {version} — see what's new"
   },
   "theme": {
     "dark": "Dark",

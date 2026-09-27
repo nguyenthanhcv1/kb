@@ -1,6 +1,11 @@
 {
+  "description": "Những thay đổi trong từng phiên bản của KB, mới nhất ở trên.",
+  "empty": "Chưa có phiên bản nào được phát hành.",
+  "englishOnly": "Phiên bản này chưa có ghi chú tiếng Việt — đang hiển thị bản tiếng Anh.",
   "features": "Tính năng mới",
   "fixes": "Sửa lỗi",
+  "noNotes": "Phiên bản này không có thay đổi nào dành cho người dùng.",
   "releasedOn": "Phát hành ngày {date}",
-  "title": "Có gì mới"
+  "title": "Có gì mới",
+  "version": "Phiên bản {version}"
 }

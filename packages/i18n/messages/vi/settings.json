@@ -1,7 +1,22 @@
 {
   "about": {
+    "collab": "Máy chủ cộng tác",
+    "collabUnavailable": "Không lấy được thông tin",
+    "collabVersion": "{version} · schema editor {schemaVersion}",
+    "commit": "Commit",
+    "description": "Phiên bản KB đang chạy.",
+    "environment": "Môi trường",
+    "environments": {
+      "local": "Máy phát triển",
+      "preview": "Bản xem trước",
+      "production": "Chính thức",
+      "staging": "Thử nghiệm (staging)",
+      "test": "Kiểm thử"
+    },
     "title": "Giới thiệu",
-    "version": "Phiên bản {version}"
+    "version": "Phiên bản {version}",
+    "web": "Ứng dụng web",
+    "whatsNew": "Xem có gì mới"
   },
   "language": {
     "label": "Ngôn ngữ"
