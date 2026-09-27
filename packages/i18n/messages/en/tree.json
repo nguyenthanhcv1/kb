@@ -2,12 +2,33 @@
   "actions": {
     "addSubpage": "Add subpage",
     "copyLink": "Copy link",
+    "more": "Options for {title}",
     "moveTo": "Move to…",
     "moveToTrash": "Move to trash",
     "rename": "Rename"
   },
+  "breadcrumb": {
+    "label": "Breadcrumb",
+    "more": "More parent pages"
+  },
   "collapse": "Collapse",
+  "copyLinkFailed": "Could not copy the link.",
+  "dismiss": "Dismiss",
+  "dnd": {
+    "cancel": "Stopped dragging {title}.",
+    "drop": "Dropped {title}.",
+    "instructions": "Drag with the mouse or touch and hold to reorder pages. With the keyboard: Alt+Shift+Up/Down to reorder, Alt+Shift+Right/Left to nest under or move out of the parent page.",
+    "over": "{title} is over {over}.",
+    "start": "Dragging {title}."
+  },
+  "empty": "No pages yet.",
   "expand": "Expand",
+  "label": "Pages in {space}",
+  "linkCopied": "Link copied.",
+  "loading": "Loading…",
+  "moved": "Moved {title}.",
   "newPage": "New page",
+  "renameLabel": "Page title",
+  "trashed": "Moved {title} to the trash.",
   "untitled": "Untitled"
 }

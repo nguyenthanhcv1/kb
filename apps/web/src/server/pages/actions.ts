@@ -5,12 +5,16 @@ import { createClient } from "@/lib/supabase/server";
 import {
   createPage,
   type CreatePageInput,
+  listChildPages,
+  type ListChildPagesInput,
+  listPageAncestors,
   movePage,
   type MovePageInput,
   PageError,
   type PageErrorCode,
   type PageIdInput,
   type PageSummary,
+  type PageTreeNode,
   purgePage,
   renamePage,
   type RenamePageInput,
@@ -33,6 +37,20 @@ async function run<T>(action: (supabase: Awaited<ReturnType<typeof createClient>
     console.error("[pages] unexpected error", error);
     return { ok: false, code: "PAGE_ACTION_FAILED" } as const;
   }
+}
+
+/** Live children of `parentId` (`null` = roots) in order — the sidebar tree loads one level at a time. */
+export async function listChildPagesAction(
+  input: ListChildPagesInput,
+): Promise<PageActionResult<PageTreeNode[]>> {
+  return run((supabase) => listChildPages(supabase, input));
+}
+
+/** Ancestors of a page, root first (breadcrumb). */
+export async function listPageAncestorsAction(
+  input: PageIdInput,
+): Promise<PageActionResult<PageSummary[]>> {
+  return run((supabase) => listPageAncestors(supabase, input));
 }
 
 export async function createPageAction(

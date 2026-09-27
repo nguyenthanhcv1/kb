@@ -12,6 +12,9 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/sortable": "^10.0.0",
+    "@dnd-kit/utilities": "^3.2.2",
     "@floating-ui/dom": "^1.8.0",
     "@kb/editor": "workspace:*",
     "@kb/i18n": "workspace:*",

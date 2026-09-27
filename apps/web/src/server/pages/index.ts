@@ -234,6 +234,33 @@ export async function listChildPages(
   return pages.map((page) => ({ ...page, hasChildren: withChildren.has(page.id) }));
 }
 
+/** Longest ancestor chain {@link listPageAncestors} follows (guards against bad data). */
+export const PAGE_ANCESTORS_MAX_DEPTH = 64;
+
+/**
+ * Ancestors of a page, root first, without the page itself (breadcrumb). The chain stops at the
+ * first ancestor the caller cannot see. Example: for "Nghỉ phép" under "Hướng dẫn" →
+ * `[{ id: "2000…0001", title: "Hướng dẫn", parentId: null, … }]`.
+ */
+export async function listPageAncestors(
+  supabase: SupabaseClient,
+  input: PageIdInput,
+): Promise<PageSummary[]> {
+  const { pageId } = parseInput(pageIdInputSchema, input);
+  const page = await requirePage(supabase, pageId);
+  const ancestors: PageSummary[] = [];
+  const seen = new Set([page.id]);
+  let parentId = page.parentId;
+  while (parentId && !seen.has(parentId) && ancestors.length < PAGE_ANCESTORS_MAX_DEPTH) {
+    seen.add(parentId);
+    const parent = await getPageSummary(supabase, parentId);
+    if (!parent) break;
+    ancestors.unshift(parent);
+    parentId = parent.parentId;
+  }
+  return ancestors;
+}
+
 /** Trashed pages of a Space, newest first (editors and admins only; others get []). */
 export async function listTrash(
   supabase: SupabaseClient,

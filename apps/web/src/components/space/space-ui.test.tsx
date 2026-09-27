@@ -26,6 +26,8 @@ const actions = vi.hoisted(() => ({
   archiveSpace: vi.fn(),
 }));
 vi.mock("@/server/space/actions", () => actions);
+// The page tree (T2.3) has its own tests; here it would call the page Server Actions.
+vi.mock("@/components/tree/page-tree", () => ({ PageTree: () => null }));
 
 const { ArchiveSpaceSection } = await import("./archive-space-section");
 const { CreateSpaceDialog } = await import("./create-space-dialog");

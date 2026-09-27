@@ -4,14 +4,19 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
 
+import { PageTree } from "@/components/tree/page-tree";
 import { cn } from "@/components/ui/utils";
 import type { SpaceSummary } from "@/server/space";
 
 import { CreateSpaceDialog } from "./create-space-dialog";
+import { canEditSpaceContent } from "./permissions";
 import { SpaceIcon } from "./space-icon";
 
 type SpaceNavProps = {
-  spaces: Pick<SpaceSummary, "id" | "slug" | "name" | "icon">[];
+  /** `role` decides whether the page tree of the current Space offers editing. */
+  spaces: (Pick<SpaceSummary, "id" | "slug" | "name" | "icon"> & {
+    role?: SpaceSummary["role"];
+  })[];
   /** Internal users only (`canCreateSpace`); guests never see the create button. */
   canCreate: boolean;
 };
@@ -24,7 +29,7 @@ export function isSpacePath(pathname: string, slug: string): boolean {
 /**
  * Sidebar section listing the Spaces the user can view (links to `/s/<slug>`, current one
  * marked with `aria-current`), plus the create button for internal users. The page tree of the
- * current Space (T2.3) goes under its entry.
+ * current Space (T2.3) shows under its entry.
  */
 export function SpaceNav({ spaces, canCreate }: SpaceNavProps) {
   const t = useTranslations("space");
@@ -62,6 +67,15 @@ export function SpaceNav({ spaces, canCreate }: SpaceNavProps) {
                   <SpaceIcon icon={space.icon} name={space.name} size="sm" />
                   <span className="truncate">{space.name}</span>
                 </Link>
+                {active && (
+                  <div className="pt-0.5 pb-1 pl-1">
+                    <PageTree
+                      key={space.id}
+                      space={space}
+                      canEdit={canEditSpaceContent(space.role)}
+                    />
+                  </div>
+                )}
               </li>
             );
           })}
