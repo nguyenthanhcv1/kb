@@ -66,6 +66,7 @@
   },
   "settings": "Cài đặt không gian",
   "settingsPage": {
+    "audit": "Nhật ký hoạt động",
     "backToSpace": "Quay lại không gian",
     "general": "Chung",
     "generalDescription": "Tên, đường dẫn, biểu tượng và quyền xem của không gian.",

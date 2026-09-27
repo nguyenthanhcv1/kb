@@ -66,6 +66,7 @@
   },
   "settings": "Space settings",
   "settingsPage": {
+    "audit": "Activity log",
     "backToSpace": "Back to space",
     "general": "General",
     "generalDescription": "The space's name, URL, icon and who can view it.",
