@@ -9,6 +9,13 @@ import { updateSession } from "./lib/supabase/middleware";
 const PUBLIC_PATHS = ["/login", "/access-denied", "/auth/callback"];
 
 /**
+ * Need a session, but not `app.has_active_access`: a guest signs up through a pending invitation
+ * and only gets a membership once they accept it on `/invite/<token>` (T1.5a). Signed-out
+ * visitors still go to `/login?next=/invite/<token>`, which returns here after Google sign-in.
+ */
+const SESSION_ONLY_PATHS = ["/invite"];
+
+/**
  * Auth gate for every app route (see docs/ai/tasks.yaml T1.2a). Also refreshes the Supabase
  * session cookie (Server Components can only read cookies, not write them) and keeps
  * `BOOTSTRAP_SUPER_ADMIN_EMAILS` synced into the DB (see `server/auth/bootstrap.ts`) — cheap
@@ -20,8 +27,10 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
     console.error("[auth] bootstrap sync failed", error);
   });
 
-  const { response, user, accessRevoked } = await updateSession(request);
   const { pathname, search } = request.nextUrl;
+  const { response, user, accessRevoked } = await updateSession(request, {
+    checkAccess: !isPublicPath(pathname, SESSION_ONLY_PATHS),
+  });
 
   if (!user && !isPublicPath(pathname, PUBLIC_PATHS)) {
     const loginUrl = new URL("/login", request.url);

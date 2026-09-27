@@ -1,7 +1,12 @@
 {
   "invitation": {
     "accept": "Nhận lời mời",
+    "body": "{inviter} đã mời bạn tham gia không gian {space}. Quyền của bạn: {role}.",
     "expires": "Lời mời hết hạn vào {date}.",
+    "greeting": "Xin chào,",
+    "ignore": "Nếu bạn không mong đợi lời mời này, bạn có thể bỏ qua email.",
+    "linkFallback": "Nếu nút không hoạt động, hãy mở liên kết sau:",
+    "signInHint": "Hãy đăng nhập bằng Google với địa chỉ {email} để nhận lời mời.",
     "subject": "{inviter} mời bạn vào không gian {space}"
   }
 }
