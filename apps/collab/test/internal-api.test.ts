@@ -47,6 +47,9 @@ function memoryStore(docs: Map<string, Uint8Array>) {
       docs.set(input.pageId, input.state);
       return true;
     },
+    async prunePageVersions() {
+      return 0;
+    },
     async ping() {},
     async close() {},
   };

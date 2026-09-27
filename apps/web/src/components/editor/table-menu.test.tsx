@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
 import { createExtensions } from "@kb/editor";
 import { TableShortcuts } from "@kb/editor/ui";
+import { CellSelection } from "@tiptap/pm/tables";
 import enTable from "@kb/i18n/messages/en/table.json";
 import viEditor from "@kb/i18n/messages/vi/editor.json";
 import viTable from "@kb/i18n/messages/vi/table.json";
@@ -61,6 +62,26 @@ function selectText(editor: Editor, text: string) {
     editor.commands.setTextSelection(pos);
   });
 }
+
+/** Selects the cells from the one holding `from` to the one holding `to` (a CellSelection). */
+function selectCells(editor: Editor, from: string, to: string) {
+  const cellPos = (text: string) => {
+    let found = -1;
+    editor.state.doc.descendants((node, p) => {
+      if (found < 0 && node.type.spec.tableRole === "cell" && node.textContent === text) found = p;
+    });
+    return found;
+  };
+  act(() => {
+    const { doc } = editor.state;
+    editor.view.dispatch(
+      editor.state.tr.setSelection(CellSelection.create(doc, cellPos(from), cellPos(to))),
+    );
+  });
+}
+
+/** shadcn's dropdown ignores a reopen during its ~150 ms close animation. */
+const waitForMenuClosed = () => vi.waitFor(() => expect(screen.queryByRole("menu")).toBeNull());
 
 const rows = (editor: Editor) => {
   let count = 0;
@@ -152,6 +173,52 @@ describe("TableMenu", () => {
     await user.click(headerRow);
     const json: JSONContent = editor.getJSON();
     expect(json.content?.[0]?.content?.[0]?.content?.[0]?.type).toBe("tableHeader");
+  });
+
+  it("merges a cell selection and splits it back from the menu", async () => {
+    const user = userEvent.setup();
+    const { editor } = await setup();
+    selectCells(editor, "1", "An");
+    screen.getByRole("button", { name: "Tuỳ chọn bảng" }).focus();
+    await user.keyboard("{Enter}");
+    const merge = await screen.findByRole("menuitem", { name: "Gộp ô" });
+    expect(screen.getByRole("menuitem", { name: "Tách ô" }).getAttribute("aria-disabled")).toBe(
+      "true",
+    );
+    await user.click(merge);
+    const merged = editor.state.doc.firstChild!.child(1).firstChild!;
+    expect(merged.attrs).toMatchObject({ colspan: 2, rowspan: 1 });
+
+    await waitForMenuClosed();
+    selectText(editor, "1");
+    screen.getByRole("button", { name: "Tuỳ chọn bảng" }).focus();
+    await user.keyboard("{Enter}");
+    await user.click(await screen.findByRole("menuitem", { name: "Tách ô" }));
+    expect(editor.state.doc.firstChild!.child(1).childCount).toBe(2);
+  });
+
+  it("colours the selected cells from the colour submenu with the keyboard (en)", async () => {
+    const user = userEvent.setup();
+    const { editor } = await setup({ locale: "en" });
+    selectCells(editor, "1", "An");
+    screen.getByRole("button", { name: "Table options" }).focus();
+    await user.keyboard("{Enter}");
+    const trigger = await screen.findByRole("menuitem", { name: "Cell color" });
+    trigger.focus();
+    await user.keyboard("{ArrowRight}");
+    const blue = await screen.findByRole("menuitemradio", { name: "Blue" });
+    const none = screen.getByRole("menuitemradio", { name: "No color" });
+    expect(none.getAttribute("aria-checked")).toBe("true");
+    blue.focus();
+    await user.keyboard("{Enter}");
+    const row = editor.state.doc.firstChild!.child(1);
+    expect([row.child(0).attrs.backgroundColor, row.child(1).attrs.backgroundColor]).toEqual([
+      "blue",
+      "blue",
+    ]);
+    // Header cells are untouched; the cell renders the code, never a colour value.
+    expect(editor.state.doc.firstChild!.child(0).child(0).attrs.backgroundColor).toBeNull();
+    expect(editor.view.dom.querySelector('td[data-background-color="blue"]')).toBeTruthy();
   });
 
   it("downloads the table as CSV named after the page title", async () => {

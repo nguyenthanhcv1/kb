@@ -18,16 +18,40 @@
     "web": "Ứng dụng web",
     "whatsNew": "Xem có gì mới"
   },
+  "errors": {
+    "avatarUrlInvalid": "Nhập địa chỉ ảnh bắt đầu bằng http:// hoặc https://.",
+    "localeInvalid": "Ngôn ngữ không được hỗ trợ.",
+    "nameTooLong": "Tên hiển thị tối đa {max} ký tự.",
+    "timeZoneInvalid": "Múi giờ không hợp lệ."
+  },
+  "form": {
+    "saved": "Đã lưu",
+    "saving": "Đang lưu…"
+  },
   "language": {
+    "hint": "Áp dụng cho toàn bộ giao diện, trên mọi thiết bị bạn đăng nhập.",
     "label": "Ngôn ngữ"
+  },
+  "preferences": {
+    "description": "Ngôn ngữ giao diện và múi giờ dùng để hiển thị ngày giờ.",
+    "title": "Ngôn ngữ và múi giờ"
   },
   "profile": {
     "avatar": "Ảnh đại diện",
+    "avatarUrl": "Địa chỉ ảnh đại diện",
+    "avatarUrlHint": "Liên kết tới ảnh (http:// hoặc https://). Để trống để hiển thị chữ viết tắt tên.",
+    "avatarUrlPlaceholder": "https://…",
+    "description": "Tên và ảnh mọi người thấy khi bạn sửa trang hoặc được nhắc đến.",
     "displayName": "Tên hiển thị",
+    "displayNameHint": "Để trống để hiển thị email.",
+    "displayNamePlaceholder": "Ví dụ: Nguyễn Văn An",
     "title": "Hồ sơ"
   },
   "timeZone": {
-    "label": "Múi giờ"
+    "label": "Múi giờ",
+    "option": "({offset}) {zone}",
+    "preview": "Giờ hiện tại theo múi giờ này: {time}",
+    "useDevice": "Dùng múi giờ của thiết bị"
   },
   "title": "Cài đặt"
 }
