@@ -29,7 +29,15 @@
     "version_restore": "Khôi phục phiên bản"
   },
   "actor": {
-    "system": "Hệ thống"
+    "system": "Hệ thống",
+    "unknown": "Người dùng không xác định"
+  },
+  "details": {
+    "expiresAt": "Hết hạn {date}",
+    "fieldChange": "{field}: {from} → {to}",
+    "left": "Tự rời khỏi không gian",
+    "role": "Vai trò: {role}",
+    "roleChange": "{from} → {to}"
   },
   "entityTypes": {
     "access_entry": "Danh sách được phép truy cập",
@@ -40,5 +48,32 @@
     "space": "Không gian",
     "user": "Người dùng",
     "version": "Phiên bản"
+  },
+  "fields": {
+    "ai_enabled": "Hỏi đáp AI",
+    "description": "Mô tả",
+    "icon": "Biểu tượng",
+    "name": "Tên",
+    "slug": "Đường dẫn",
+    "visibility": "Ai được xem"
+  },
+  "page": {
+    "allActions": "Tất cả thao tác",
+    "clearFilter": "Xem mọi thao tác",
+    "description": "Các thay đổi của không gian, thành viên và lời mời, mới nhất trước. Không thể sửa hay xoá mục nhật ký.",
+    "empty": "Chưa có hoạt động nào được ghi lại.",
+    "emptyFiltered": "Không có hoạt động nào khớp bộ lọc.",
+    "errorTitle": "Không tải được nhật ký hoạt động",
+    "filterLabel": "Thao tác",
+    "listLabel": "Các mục nhật ký",
+    "newest": "Về mục mới nhất",
+    "older": "Mục cũ hơn",
+    "paginationLabel": "Các trang nhật ký",
+    "title": "Nhật ký hoạt động"
+  },
+  "values": {
+    "empty": "(trống)",
+    "off": "Tắt",
+    "on": "Bật"
   }
 }
