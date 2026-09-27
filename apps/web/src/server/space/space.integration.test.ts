@@ -52,7 +52,7 @@ async function clientFor(userId: string): Promise<SpaceDb> {
   // `auth.getUser()` would call GoTrue (not needed here): answer from the JWT subject instead.
   return {
     auth: { getUser: async () => ({ data: { user: { id: userId } } }) },
-    from: (table) => client.from(table),
+    from: (table: string) => client.from(table),
   } as unknown as SpaceDb;
 }
 
