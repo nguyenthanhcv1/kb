@@ -8,7 +8,7 @@ Quy trình từng bước cho người: [`docs/runbooks/staging.md`](../../docs/
 | `staging/env.example`         | Biến cần đặt trong Coolify cho resource trên, lấy giá trị từ đâu                                                                                                                    |
 | `proxy/dynamic/origin-ca.yml` | Cấu hình động Traefik: chứng chỉ Cloudflare Origin CA làm default certificate                                                                                                       |
 
-Liên quan: `infra/scripts/firewall-cloudflare.sh` (firewall máy chủ), `.github/workflows/deploy.yml` + `scripts/deploy/coolify.mjs` (deploy qua API Coolify).
+Liên quan: `infra/scripts/firewall-cloudflare.sh` (firewall máy chủ), `.github/workflows/deploy.yml` + `scripts/deploy/coolify.mjs` (deploy qua API Coolify), `infra/backup/docker-compose.yml` (resource Coolify `kb-backup`, runbook `docs/runbooks/backup-restore.md`).
 
 Kiểm tra file compose trước khi commit (cần biến giả vì `${VAR:?}` là bắt buộc):
 

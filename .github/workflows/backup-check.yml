@@ -1,0 +1,153 @@
+# Backup checks from outside the production server (T0.9, docs/PLAN.md §7.8,
+# runbook docs/runbooks/backup-restore.md).
+#
+# - freshness (daily): the newest object under <prefix>/daily/ in R2 is younger than 26 h.
+#   Independent of the server and of Uptime Kuma: a failed run e-mails the repo admins.
+# - restore-test (monthly, or manual): newest daily backup → decrypt → restore into a throwaway
+#   Supabase Postgres on the runner → verify.sql (tables, counts, RLS, grants) → decode 20 random
+#   Yjs documents with yjs (scripts/backup/verify-ydoc.mjs) → ping RESTORE_TEST_HEARTBEAT_URL.
+#
+# Configuration (GitHub › Settings):
+# - Environment `backup` (deployment branches: main only) secrets: S3_ENDPOINT, S3_BUCKET,
+#   S3_ACCESS_KEY, S3_SECRET_KEY (R2 token "kb-backup-reader", Object Read only),
+#   BACKUP_AGE_IDENTITY (age private key), optional RESTORE_TEST_HEARTBEAT_URL.
+# - Repository variable BACKUP_CHECK_ENABLED=true — until then both jobs are skipped.
+# - Optional repository variables: BACKUP_PREFIX (default prod), BACKUP_IMAGE_TAG (default main),
+#   RESTORE_TEST_PG_IMAGE (the Supabase Postgres image of production), RESTORE_TEST_MIN_PAGES.
+name: Backup check
+
+on:
+  schedule:
+    - cron: "17 1 * * *" # every day 08:17 ICT (backup runs at 02:00 ICT)
+    - cron: "37 2 3 * *" # 3rd of every month 09:37 ICT
+  workflow_dispatch:
+    inputs:
+      restore_test:
+        description: Also run the restore test
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: backup-check
+  cancel-in-progress: false
+
+env:
+  IMAGE: ghcr.io/${{ github.repository_owner }}/kb-backup:${{ vars.BACKUP_IMAGE_TAG || 'main' }}
+  BACKUP_PREFIX: ${{ vars.BACKUP_PREFIX || 'prod' }}
+
+jobs:
+  freshness:
+    name: freshness (< 26 h)
+    if: vars.BACKUP_CHECK_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      packages: read
+    environment: backup
+    steps:
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Newest backup is younger than 26 h
+        env:
+          S3_ENDPOINT: ${{ secrets.S3_ENDPOINT }}
+          S3_BUCKET: ${{ secrets.S3_BUCKET }}
+          S3_ACCESS_KEY: ${{ secrets.S3_ACCESS_KEY }}
+          S3_SECRET_KEY: ${{ secrets.S3_SECRET_KEY }}
+        run: |
+          set -euo pipefail
+          name=$(docker run --rm -e S3_ENDPOINT -e S3_BUCKET -e S3_ACCESS_KEY -e S3_SECRET_KEY -e BACKUP_PREFIX "$IMAGE" check)
+          echo "Newest backup: \`$BACKUP_PREFIX/daily/$name\`" >> "$GITHUB_STEP_SUMMARY"
+
+  restore-test:
+    name: restore test
+    if: >-
+      vars.BACKUP_CHECK_ENABLED == 'true' &&
+      ((github.event_name == 'workflow_dispatch' && inputs.restore_test) ||
+       github.event.schedule == '37 2 3 * *')
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      packages: read
+    environment: backup
+    env:
+      PG_IMAGE: ${{ vars.RESTORE_TEST_PG_IMAGE || 'public.ecr.aws/supabase/postgres:15.8.1.085' }}
+      # Throwaway cluster on the runner; this password protects nothing.
+      RESTORE_ADMIN_URL: postgresql://supabase_admin:restore-test@127.0.0.1:5432/postgres
+      RESTORE_TEST_MIN_PAGES: ${{ vars.RESTORE_TEST_MIN_PAGES || '0' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      # yjs for the Yjs decode check comes from the workspace (apps/collab).
+      - uses: ./.github/actions/setup
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Start a throwaway Supabase Postgres
+        run: |
+          set -euo pipefail
+          docker run -d --name restore-db -p 127.0.0.1:5432:5432 -e POSTGRES_PASSWORD=restore-test "$PG_IMAGE"
+          for i in $(seq 1 90); do
+            docker run --rm --network host --entrypoint psql "$IMAGE" "$RESTORE_ADMIN_URL" -Atc 'select 1' > /dev/null 2>&1 && exit 0
+            sleep 2
+          done
+          docker logs restore-db
+          exit 1
+
+      - name: Restore the newest daily backup and run verify.sql
+        id: restore
+        env:
+          S3_ENDPOINT: ${{ secrets.S3_ENDPOINT }}
+          S3_BUCKET: ${{ secrets.S3_BUCKET }}
+          S3_ACCESS_KEY: ${{ secrets.S3_ACCESS_KEY }}
+          S3_SECRET_KEY: ${{ secrets.S3_SECRET_KEY }}
+          BACKUP_AGE_IDENTITY: ${{ secrets.BACKUP_AGE_IDENTITY }}
+        run: |
+          set -euo pipefail
+          summary=$(docker run --rm --network host \
+            -e S3_ENDPOINT -e S3_BUCKET -e S3_ACCESS_KEY -e S3_SECRET_KEY -e BACKUP_PREFIX \
+            -e BACKUP_AGE_IDENTITY -e RESTORE_ADMIN_URL -e RESTORE_TEST_MIN_PAGES \
+            "$IMAGE" restore-test --keep | tail -n 1)
+          echo "summary=$summary" >> "$GITHUB_OUTPUT"
+
+      - name: Decode 20 random Yjs documents
+        run: |
+          set -euo pipefail
+          docker run --rm --network host -e RESTORE_ADMIN_URL "$IMAGE" export-ydoc --limit 20 > ydoc.tsv
+          node scripts/backup/verify-ydoc.mjs < ydoc.tsv | tee ydoc.json
+          rm -f ydoc.tsv
+
+      - name: Heartbeat
+        env:
+          RESTORE_TEST_HEARTBEAT_URL: ${{ secrets.RESTORE_TEST_HEARTBEAT_URL }}
+        run: |
+          [ -z "$RESTORE_TEST_HEARTBEAT_URL" ] || curl -fsS -m 15 --retry 3 -o /dev/null "$RESTORE_TEST_HEARTBEAT_URL"
+
+      - name: Summary
+        if: always()
+        env:
+          SUMMARY: ${{ steps.restore.outputs.summary }}
+        run: |
+          {
+            echo "### Restore test"
+            echo "- result: ${{ job.status }}"
+            echo "- image: \`$IMAGE\` → \`$PG_IMAGE\`"
+            echo "- counts: \`${SUMMARY:-n/a}\`"
+            echo "- ydoc: \`$(cat ydoc.json 2>/dev/null || echo n/a)\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Remove the throwaway database
+        if: always()
+        run: docker rm -f restore-db > /dev/null 2>&1 || true
