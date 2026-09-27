@@ -1,176 +1,125 @@
 # Quy trình nhiều AI agent làm việc song song
 
-> Áp dụng cho 3 agent: **`claude-1`, `claude-2`** (Claude Code) và **`codex-1`** (ChatGPT Codex), cộng **người điều phối** (human).
-> Lane `codex-2` cũ (Platform & collab) đã bỏ; việc được chia cho `claude-1` (collab, logic editor không-UI, hạ tầng test) và `claude-2` (platform). PR/commit cũ ghi `codex-2` giữ nguyên.
+> Áp dụng cho mọi agent (Claude Code, ChatGPT Codex, …) và **người điều phối** (human).
+> **Không còn lane**: mọi task nằm trong **một hàng đợi chung** `docs/ai/tasks.yaml`, sắp theo thứ tự thực hiện; agent nào vào cũng làm được bất kỳ task nào, sửa được file nào task cần.
 > Quy tắc tóm tắt nằm ở `AGENTS.md` §0 (Codex tự đọc `AGENTS.md`; Claude đọc `CLAUDE.md` → import `AGENTS.md`). Tài liệu này là bản đầy đủ.
-> Danh sách task, lane, vùng sở hữu: `docs/ai/tasks.yaml`.
+> Lịch sử: trước đây task được chia lane `claude-1`/`claude-2`/`codex-1` (và `codex-2` cũ). PR/commit cũ ghi các tên đó giữ nguyên.
 
 ## 1. Nguyên lý chống xung đột
 
-Xung đột giữa các agent xảy ra ở 3 chỗ: **cùng nhận một task**, **cùng sửa một file**, và **phụ thuộc chưa sẵn sàng**. Quy trình chặn cả ba bằng thiết kế, không dựa vào việc agent "cẩn thận":
+Xung đột giữa các agent xảy ra ở 3 chỗ: **cùng nhận một task**, **cùng sửa một file**, và **phụ thuộc chưa sẵn sàng**:
 
 | Nguy cơ | Cơ chế chặn |
 |---|---|
-| Hai agent làm cùng task | **Lane cố định**: mỗi task được gán sẵn cho đúng một agent trong `tasks.yaml`. Không có "hàng đợi chung" để tranh nhau. Mượn task (§6) chỉ khi đã kiểm tra không ai nhận. |
-| Hai agent sửa cùng file | **Vùng sở hữu**: mỗi lane sở hữu một tập glob. Chỉ sửa file của lane mình (+ `touches` của task). File dùng chung có luật riêng (§7). CI `agent-scope` chặn PR vi phạm. |
-| Làm trước khi phụ thuộc xong | Task chỉ `ready` khi mọi `deps` đã **merge vào `main`**. UI cần dữ liệu thì dùng **contract + mock** (§8) thay vì chờ. |
-| Trạng thái lệch nhau | **Không có file trạng thái dùng chung** để sửa. Trạng thái suy ra từ git/GitHub (commit trên `main`, nhánh, PR) — nguồn sự thật duy nhất, không bao giờ conflict. |
+| Hai agent làm cùng task | **Nhận task ngay** bằng nhánh + draft PR `[Txx]` (§4). `pnpm ai:next` bỏ qua task đã có nhánh/PR. Agent sau thấy task đã bị nhận → lấy task ready kế tiếp. |
+| Hai agent sửa cùng file | **Một task = một PR nhỏ**, merge nhanh; file "nóng" có luật riêng (§5); luôn merge `main` mới nhất trước khi xin review. Khi chọn task, ưu tiên task **không cùng khu vực** với task đang có người làm (§4). |
+| Làm trước khi phụ thuộc xong | Task chỉ `ready` khi mọi `deps` đã **merge vào `main`**; CI `agent-scope` đỏ nếu deps chưa merge. Task giao diện cần dữ liệu dùng **contract + mock** (§6). |
+| Trạng thái lệch nhau | **Không có file trạng thái dùng chung**. Trạng thái suy ra từ git/GitHub (commit trên `main`, nhánh, PR) — nguồn sự thật duy nhất. |
 | Merge chồng chéo | **Người merge**, từng PR một, bật "Require branches to be up to date" → PR sau phải merge `main` mới nhất và CI xanh lại. |
 
 ## 2. Vai trò
 
-| Agent | Công cụ | Lane | Phạm vi chính |
-|---|---|---|---|
-| `claude-1` | Claude Code (tài khoản 1) | UI lõi & editor + collab | khung app, theme, component `ui/`, editor TipTap, table block (UI, kéo thả), upload, màn hình đăng nhập; **không-UI:** `apps/collab`, logic editor không-UI (trích xuất, parser paste, migration schema), hạ tầng test (Vitest/Playwright) |
-| `claude-2` | Claude Code (tài khoản 2) | UI tính năng + platform | Space, thành viên, admin, cài đặt, cây trang, tìm kiếm, lịch sử, audit, What's new, email template, tài liệu người dùng, ghi chú phát hành tiếng Việt; **không-UI:** monorepo tooling + root config, CI/CD, release, Docker, Coolify, backup, production, i18n tooling, runbook/ADR |
-| `codex-1` | Codex (tài khoản 1) | DB & server | Supabase (migration, RLS, pgTAP), server actions/contract, Route Handler, middleware auth, SQL tìm kiếm, bảo mật |
-| human | Bạn | Điều phối | khởi động phiên, cấp secret, thao tác UI nhà cung cấp (Coolify, Hostinger, Cloudflare, Google Cloud), review & merge, sửa `tasks.yaml` |
+| Ai | Làm gì |
+|---|---|
+| Agent (Claude Code, Codex, …) | Lấy task ready kế tiếp trong hàng đợi, làm đến khi mở PR. Không giới hạn khu vực: DB, server, UI, editor, collab, CI, hạ tầng, tài liệu. |
+| Người điều phối (human) | Khởi động phiên, cấp secret, thao tác UI nhà cung cấp (Coolify, Hostinger, Cloudflare, Google Cloud), review & merge, sửa `tasks.yaml`, làm các task `manual: true`. |
 
-Tải dự kiến (ngày công, từ `tasks.yaml`, gồm cả task đã xong): claude-1 ≈ 22, claude-2 ≈ 23, codex-1 ≈ 17 (trước khi bỏ `codex-2`: 13 / 13 / 17 + codex-2 19). Nếu chạy liên tục và merge nhanh, MVP có thể xong trong **~27 ngày làm việc** (mô phỏng theo `deps`, chưa tính mượn task; trước là ~23 với 4 agent); thực tế tính thêm thời gian review/merge của người → **~7–8 tuần**. Lane nào rảnh thì **mượn** task không-UI có `stealable: true` của lane khác (§6) — `codex-1` nên mượn task không-UI của Claude (vd T3.3b, T4.4a, T4.6) để cân tải.
+Tên agent (`Agent:` trong thân PR, tiền tố nhánh) là **tên tự do** để truy vết, vd `claude`, `codex`, `claude-2`. Không cần đăng ký trước.
 
-## 3. Thế nào là "UI" — chỉ Claude được làm
+Ước lượng còn lại: `pnpm ai:status` (tổng ngày công đã xong/tổng). Số agent chạy song song tuỳ người điều phối — càng nhiều agent thì càng hay gặp task `blocked`; đường găng do `deps` quyết định.
 
-Một thay đổi là **UI** nếu nó thuộc một trong các nhóm sau:
-- File trong `apps/web/src/app/**` **trừ** `app/api/**` và `app/auth/callback/**` (trang, layout, `loading.tsx`, `error.tsx`, `not-found.tsx`).
-- `apps/web/src/components/**`, `apps/web/src/hooks/**` và hook React bất kỳ dùng cho hiển thị.
-- CSS, `globals.css`, Tailwind config, theme token, `components.json` (shadcn), icon, font, ảnh tĩnh giao diện.
-- Editor: `packages/editor/src/extensions/**` (schema + node view + menu), `packages/editor/src/ui/**`, `packages/editor/src/table/drag.ts` (tương tác kéo thả).
-- `packages/emails/**` (template email hiển thị).
-- Chuỗi hiển thị trong `packages/i18n/messages/**` **trừ** `errors.json` và `audit.json` (Codex được thêm key lỗi/audit do server trả về, luôn đủ `vi` + `en`).
-- Tài liệu người dùng `docs/user-guide/**`, `docs/glossary.md`, ghi chú phát hành `changelog/vi/**`.
-- E2E Playwright kiểm thử luồng giao diện (`apps/web/e2e/editor|table|features/**`).
+## 3. Thứ tự task
 
-**Không phải UI** (Claude làm trong lane mình, Codex làm/mượn được): migration/SQL, server actions, Route Handler, middleware, collab server, CI, Docker, script, hàm thuần trong `packages/editor/src/extract|table/paste.ts|table/csv.ts|migrations`, cấu hình Playwright/Vitest (`e2e/support/**`), ADR, runbook.
+- `tasks.yaml` là **danh sách tuần tự**: thứ tự trong file = thứ tự ưu tiên thực hiện. Mỗi task luôn đứng **sau** mọi `deps` của nó (công cụ báo lỗi nếu sai).
+- Task được nhóm theo milestone (M0 → M7). Trong một milestone: phần nền tảng/server (`a`) đứng trước phần giao diện (`b`), task mở khoá nhiều task khác đứng trước.
+- Agent **không** tự đảo thứ tự. Thấy thứ tự không hợp lý → đề xuất trong PR riêng cho người.
+- Task `ui: true` có giao diện → phải theo **Chuẩn UI** (`AGENTS.md`). Task `human: true` có bước người làm (§4). Task `manual: true` chỉ người làm, agent không nhận.
 
-Ranh giới trong một task hỗn hợp: task đã được **tách sẵn** thành `a` (server/nền tảng — `codex-1`, hoặc `claude-1`/`claude-2` nếu thuộc collab/platform) và `b` (UI, Claude). Nếu Codex đang làm mà thấy cần UI → dừng ở contract, ghi "Yêu cầu cho lane khác: claude-x cần …" trong PR. Nếu cần một task UI mới chưa có trong `tasks.yaml` → báo người để thêm task.
+## 4. Khởi động phiên và chọn task
 
-## 4. Khởi động một phiên (người làm)
-
-Mở phiên mới cho mỗi agent với prompt mẫu (thay tên agent):
+Prompt mẫu cho mỗi phiên (thay tên agent):
 
 ```
-Bạn là `codex-1` trong dự án kb (3 agent chạy song song).
+Bạn là agent `codex` trong dự án kb (nhiều agent chạy song song, dùng chung một hàng đợi task).
 1. Đọc AGENTS.md, docs/ai/WORKFLOW.md, docs/ai/tasks.yaml.
-2. Fetch origin, xác định task tiếp theo của lane `codex-1` theo WORKFLOW §5
-   (nếu có `pnpm ai:next --agent codex-1` thì dùng lệnh đó).
+2. Chạy `pnpm ai:next` để lấy task ready kế tiếp chưa ai nhận.
 3. Báo cho tôi task bạn chọn và kế hoạch ngắn, rồi làm luôn đến khi mở PR.
 Chỉ làm đúng 1 task trong phiên này.
 ```
 
-- **Một phiên = một task.** Xong task (PR đã mở) → kết thúc phiên; phiên mới cho task kế tiếp. Giữ ngữ cảnh gọn, tránh agent "tiện tay" làm thêm.
-- Với Claude Code: dùng `claude-1`/`claude-2` trong prompt. Với Codex: `codex-1`.
-- Mỗi agent chạy trong **môi trường riêng** (Claude Code on the web / Codex cloud có container riêng — khuyến nghị). Nếu chạy local trên cùng một máy: mỗi agent một **git worktree/clone riêng** và **không** chạy đồng thời 2 bộ Supabase local (trùng cổng 54321–54324); dùng một máy/VM riêng cho mỗi agent hoặc lần lượt.
-
-## 5. Chọn task tự động
-
-Thuật toán (agent tự làm; từ T0.11 có lệnh `pnpm ai:next --agent <id>` làm hộ):
+Thuật toán (`pnpm ai:next` làm hộ):
 
 ```
 git fetch origin --prune
 DONE        = các id xuất hiện dạng "[Txx]" trong `git log origin/main --format=%s`
 IN_PROGRESS = các id có nhánh `origin/*/<id>-*`  ∪  PR đang mở có "[<id>]" trong tiêu đề
-Duyệt tasks theo THỨ TỰ TRONG FILE (thứ tự = ưu tiên), lấy task đầu tiên thoả:
-   lane == tôi  và  id ∉ DONE ∪ IN_PROGRESS  và  mọi deps ∈ DONE
-   (và nếu tôi là Codex: ui != true — luôn đúng vì task UI chỉ nằm ở lane Claude)
-Không có → áp dụng §6 (mượn task); vẫn không có → báo người "lane <id> đang chờ <deps>" và dừng.
+Duyệt tasks theo THỨ TỰ TRONG FILE, lấy task đầu tiên thoả:
+   id ∉ DONE ∪ IN_PROGRESS  và  mọi deps ∈ DONE  và  manual != true
+Không có → báo người "đang chờ <deps>" và dừng.
 ```
 
-**Nhận task ngay khi chọn** (để agent khác thấy): tạo nhánh `<agent>/<id>-<slug>` từ `origin/main`, commit đầu tiên (có thể là khung file) và **push ngay**, rồi mở **draft PR** tiêu đề `<type>(<scope>): <mô tả> [<id>]`. Môi trường ép tên nhánh (Claude Code on the web) → draft PR có `[<id>]` là dấu hiệu nhận task.
+- `pnpm ai:next --all` liệt kê mọi task ready theo thứ tự; `--skip T1.3` bỏ qua một task. Được chọn task ready **sau** task đầu tiên khi task đầu đụng cùng khu vực/file với một PR đang mở (giảm conflict) — ghi lý do trong PR.
+- **Nhận task ngay khi chọn** (để agent khác thấy): tạo nhánh `<agent>/<id>-<slug>` từ `origin/main`, commit đầu tiên (có thể là khung file), **push ngay**, rồi mở **draft PR** tiêu đề `<type>(<scope>): <mô tả> [<id>]`. Môi trường ép tên nhánh (Claude Code on the web: `claude/<phiên>`) → draft PR có `[<id>]` là dấu hiệu nhận task.
+- Trước khi push lần đầu, chạy lại `pnpm ai:next` (hoặc xem PR đang mở): nếu task vừa bị agent khác nhận → bỏ nhánh của mình, lấy task kế tiếp. Nếu hai PR vẫn trùng task → người giữ PR mở trước, đóng PR sau.
+- **Một phiên = một task.** Xong task (PR đã mở) → kết thúc phiên; phiên mới cho task kế tiếp.
+- Mỗi agent chạy trong **môi trường riêng** (Claude Code on the web / Codex cloud có container riêng — khuyến nghị). Nếu chạy local trên cùng một máy: mỗi agent một **git worktree/clone riêng** và **không** chạy đồng thời 2 bộ Supabase local (trùng cổng 54321–54324).
+- Task `human: true`: agent làm phần code/tài liệu/script, liệt kê **chính xác** các bước người phải làm (màn hình nào, nhập gì, secret tên gì) trong PR mục "Việc cho người"; task chỉ tính xong khi người làm xong và PR merge.
 
-Trường hợp `human: true`: agent làm phần code/tài liệu/script, liệt kê **chính xác** các bước người phải làm (màn hình nào, nhập gì, secret tên gì) trong PR mục "Việc cho người"; task chỉ tính xong khi người làm xong và PR merge.
-
-## 6. Mượn task (work-stealing) khi lane rảnh
-
-Được phép khi lane của mình không còn task `ready`:
-1. Chỉ mượn task có `stealable: true`, đang `ready`, **không** `in_progress`.
-2. Chiều được mượn: **Claude ↔ Codex với task không-UI**, Claude ↔ Claude. **Codex không bao giờ mượn task `ui: true`.** Claude mượn task UI của Claude khác chỉ khi người đồng ý.
-3. Vùng được sửa = `owns` của **lane gốc** của task + `touches` (không phải lane của người mượn).
-4. Ghi trong thân PR: `Agent: claude-2 (mượn từ lane codex-1)`.
-5. Ưu tiên mượn task nằm trên đường găng (task có nhiều task khác phụ thuộc).
-
-## 7. File dùng chung ("file nóng") và cách tránh conflict
+## 5. File dùng chung ("file nóng") và cách tránh conflict
 
 | File | Luật |
 |---|---|
-| `pnpm-lock.yaml` | Không sửa tay. Thêm dependency bằng `pnpm add --filter <pkg> <dep>` **chỉ** trong package mình sở hữu. Gặp conflict: lấy bản của `main` (`git checkout origin/main -- pnpm-lock.yaml`), chạy lại `pnpm install`, commit. Dependency dùng chung toàn repo (root `package.json`) → yêu cầu `claude-2`. |
-| `supabase/migrations/*` | **Chỉ lane `codex-1`** tạo migration (Claude không bao giờ). Tạo bằng `supabase migration new <tên>` **ngay trước khi mở PR**. Trước khi merge, nếu `main` có migration timestamp lớn hơn của mình → đổi tên file của mình sang timestamp mới (`supabase migration new` lại rồi chép nội dung) để thứ tự luôn tăng dần. Không sửa migration đã merge. |
+| `pnpm-lock.yaml` | Không sửa tay. Thêm dependency bằng `pnpm add --filter <pkg> <dep>`. Gặp conflict: lấy bản của `main` (`git checkout origin/main -- pnpm-lock.yaml`), chạy lại `pnpm install`, commit. |
+| `supabase/migrations/*` | Tạo bằng `supabase migration new <tên>` **ngay trước khi mở PR**. Trước khi merge, nếu `main` có migration timestamp lớn hơn của mình → đổi tên file của mình sang timestamp mới để thứ tự luôn tăng dần. Không sửa migration đã merge. |
 | `packages/db/src/types.gen.ts` | Không sửa tay. Conflict → `pnpm db:types` sinh lại sau khi merge `main`. |
-| `CHANGELOG.md`, `.release-please-manifest.json`, version trong `package.json` | Chỉ release-please sửa. Agent không bao giờ đụng. |
-| `changelog/vi/<version>.md` | Chỉ `claude-2` viết, và chỉ trong Release PR khi người yêu cầu. |
-| File dịch `packages/i18n/messages/{vi,en}/*.json` | Mỗi namespace thuộc **một lane** (bảng 7.3). Key sắp xếp **theo alphabet** (lệnh `pnpm i18n:sort`, `i18n:check` fail nếu chưa sắp) — hai agent thêm key khác nhau hiếm khi đụng cùng dòng. Luôn thêm cả `vi` và `en` trong cùng commit. |
-| `packages/shared/src/errors.ts` | Chỉ `codex-1`. Mã lỗi xếp alphabet; mỗi mã có key `errors.<CODE>` đủ vi/en. |
-| Root config (`package.json`, `turbo.json`, `tsconfig*.json`, ESLint, `.github/**`) | Chỉ `claude-2` (ngoại lệ theo `touches` của task, vd `claude-1` sửa `e2e.yml` ở T7.1b). Lane khác cần đổi → "Yêu cầu cho lane khác". |
-| `apps/web/src/app/layout.tsx`, `components/ui/**`, theme | Chỉ `claude-1`. `claude-2` thêm component shadcn **mới** được (file mới), không sửa component có sẵn. |
-| `apps/web/src/middleware.ts` | Chỉ `codex-1`. |
+| `CHANGELOG.md`, `.release-please-manifest.json`, version trong `package.json` | Chỉ release-please sửa. Agent không bao giờ đụng (CI `agent-scope` chặn). |
+| `changelog/vi/<version>.md` | Chỉ viết trong Release PR khi người yêu cầu. |
+| File dịch `packages/i18n/messages/{vi,en}/*.json` | Key sắp xếp **theo alphabet** (`pnpm i18n:sort`, `i18n:check` fail nếu chưa sắp) — hai PR thêm key khác nhau hiếm khi đụng cùng dòng. Luôn thêm cả `vi` và `en` trong cùng commit. Dùng key đã có trước khi tạo key mới; chữ dùng chung (Lưu, Huỷ…) đặt ở `common`. |
+| `packages/shared/src/errors.ts` | Mã lỗi xếp alphabet; mỗi mã có key `errors.<CODE>` đủ vi/en. |
+| Component có sẵn trong `apps/web/src/components/ui/**`, theme, `layout.tsx` | Dùng chung cho mọi màn hình: sửa nhỏ, tương thích ngược; đổi hành vi/giao diện chung thì nêu rõ trong PR. Component shadcn mới → `pnpm dlx shadcn add <name>`. |
 | `AGENTS.md`, `CLAUDE.md`, `docs/PLAN.md`, `docs/ai/**` | Chỉ người. Agent đề xuất bằng PR riêng, không gộp vào PR task. |
 
-### 7.1 Khi vẫn gặp conflict
+### 5.1 Khi vẫn gặp conflict
 1. `git fetch origin && git merge origin/main` (không rebase nhánh đã push, không force-push).
-2. Conflict trong file của lane mình → tự giải quyết, chạy lại toàn bộ kiểm tra.
-3. Conflict trong file của lane khác → **không tự quyết**: lấy bản `main` cho file đó, nếu thay đổi của mình vẫn cần thì chuyển thành "Yêu cầu cho lane khác".
+2. Giải quyết conflict, giữ cả hai thay đổi khi có thể; chạy lại toàn bộ kiểm tra.
+3. Hai bên đổi cùng một logic và không giữ được cả hai → hỏi người, không tự bỏ thay đổi của PR khác.
 4. Conflict ở file sinh tự động → sinh lại (lockfile, types, changelog.json).
 
-### 7.2 Merge `main` thường xuyên
+### 5.2 Merge `main` thường xuyên
 Mỗi khi bắt đầu phiên và trước khi chuyển PR từ draft sang ready: merge `origin/main` vào nhánh. PR mở lâu > 1 ngày phải merge lại `main` trước khi xin review.
 
-### 7.3 Namespace i18n theo lane
-| Lane | Namespace |
-|---|---|
-| `claude-1` | `common`, `auth`, `editor`, `table` |
-| `claude-2` | `nav`, `space`, `tree`, `search`, `history`, `settings`, `admin`, `email`, `whatsNew` |
-| `codex-1` | `errors`, `audit` |
+## 6. Contract-first giữa server (`a`) và giao diện (`b`)
 
-Cần key trong namespace của lane khác (vd `claude-2` cần chữ "Lưu" trong `common`) → dùng key đã có; chưa có thì tạo key trong namespace của mình, ghi chú để `claude-1` gom vào `common` sau.
+Task hỗn hợp được **tách sẵn** thành `a` (server/nền tảng) và `b` (giao diện). Hai phần có thể do hai agent khác nhau làm song song:
+1. Task `a` **mở PR contract sớm**: `apps/web/src/server/<area>/index.ts` export hàm có chữ ký đầy đủ + schema zod input/output + mã lỗi từ `packages/shared/src/errors.ts`, JSDoc có ví dụ dữ liệu; thân hàm có thể `throw new Error('NOT_IMPLEMENTED')`. PR contract dùng tiêu đề `… [T1.4a-contract]`, được merge trước; task chỉ tính `done` khi PR cài đặt `[T1.4a]` merge.
+2. Task `b` dựng giao diện theo contract; khi `a` chưa xong dùng mock `apps/web/src/server/<area>/mock.ts` (chỉ dữ liệu giả, không logic thật). Khi `a` merge → xoá mock ở PR của `b`.
+3. Đổi contract sau khi giao diện đã dùng là thay đổi phá vỡ: giữ hàm cũ (`@deprecated`) + thêm hàm mới, chuyển nơi gọi sang hàm mới, rồi xoá hàm cũ ở PR sau. Tốt nhất là thiết kế contract đủ ngay từ đầu.
 
-## 8. Contract-first giữa server (Codex) và UI (Claude)
+Deps `b → a` trong `tasks.yaml` là mốc để **merge** `b` (CI `agent-scope` đỏ tới khi `a` merge); `b` được bắt đầu sớm hơn nếu PR contract của `a` đã merge (ghi rõ trong PR `b`).
 
-Để UI không phải chờ server và không ai sửa code của ai:
-1. Task `a` (Codex) **mở PR contract sớm**: `apps/web/src/server/<area>/index.ts` export hàm có chữ ký đầy đủ + schema zod input/output + mã lỗi, thân hàm có thể `throw new Error('NOT_IMPLEMENTED')`. PR nhỏ này được merge trước, phần cài đặt đi PR sau (cùng mã task, tiêu đề `[T1.4a]` + "contract" trong mô tả; task chỉ tính `done` khi PR cài đặt merge — PR contract dùng tiêu đề `… [T1.4a-contract]`).
-2. Task `b` (Claude) dựng UI theo contract; khi `a` chưa xong dùng mock `apps/web/src/server/<area>/mock.ts` (file mới do Claude tạo, được phép — thuộc `touches` ngầm định của mọi task `b`; chỉ chứa dữ liệu giả, **không** chứa logic thật). Khi `a` merge → xoá mock ở PR của `b`.
-3. Đổi contract sau khi UI đã dùng là thay đổi phá vỡ: Codex **không** tự sửa code UI gọi tới contract; Codex giữ hàm cũ (đánh dấu `@deprecated`) + thêm hàm mới, ghi "Yêu cầu cho lane khác"; Claude chuyển UI sang hàm mới ở PR riêng; Codex xoá hàm cũ sau đó. Tốt nhất là thiết kế contract đủ ngay từ đầu.
+## 7. Vòng đời một task
 
-Deps `b → a` trong `tasks.yaml` là mốc để **merge** `b`; `b` được bắt đầu sớm hơn nếu PR contract của `a` đã merge (ghi rõ trong PR `b`).
-
-## 9. Vòng đời một task
-
-1. **Chọn & nhận** (§5): nhánh + draft PR `[Txx]`.
-2. **Đọc** mô tả + tiêu chí hoàn thành ở `docs/PLAN.md` §9, Handoff của các PR `deps` (xem bằng `git log origin/main --grep '\[Txx\]' --format=%B` — repo cấu hình squash merge dùng **tiêu đề + mô tả PR** làm commit message nên Handoff nằm luôn trong git log).
-3. **Làm** trong vùng cho phép; commit nhỏ, message Conventional Commits.
-4. **Kiểm tra** trước khi chuyển ready: `pnpm lint && pnpm typecheck && pnpm test && pnpm i18n:check` (+ `pnpm db:reset && pnpm db:test` nếu đụng DB, + E2E liên quan). Tự rà diff: có file ngoài vùng không? có chuỗi cứng không? có bảng thiếu RLS không?
-5. **PR ready**: điền template (Agent, Task, tóm tắt, cách kiểm thử, ảnh chụp nếu UI, Handoff, Yêu cầu cho lane khác, Việc cho người).
-6. **Review**: người review; có thể nhờ agent khác loại review chéo (Claude review PR Codex và ngược lại) — reviewer chỉ **comment**, không push vào nhánh người khác.
-7. **Merge** (người): squash, theo thứ tự phụ thuộc; sau merge, các PR khác đang mở sẽ phải cập nhật `main`.
+1. **Chọn & nhận** (§4): nhánh + draft PR `[Txx]`.
+2. **Đọc** mô tả + tiêu chí hoàn thành ở `docs/PLAN.md` §9, Handoff của các PR `deps` (xem bằng `git log origin/main --grep '\[Txx\]' --format=%B` — squash merge dùng **tiêu đề + mô tả PR** làm commit message nên Handoff nằm luôn trong git log).
+3. **Làm**; commit nhỏ, message Conventional Commits. Chỉ làm đúng task — việc phát hiện thêm ghi vào Handoff để người thêm task.
+4. **Kiểm tra** trước khi chuyển ready: `pnpm lint && pnpm typecheck && pnpm test && pnpm i18n:check` (+ `pnpm db:reset && pnpm db:test` nếu đụng DB, + E2E liên quan). Tự rà diff: có chuỗi cứng không? có bảng thiếu RLS không? có file ngoài phạm vi task không?
+5. **PR ready**: điền template (Agent, Task, tóm tắt, cách kiểm thử, ảnh chụp nếu UI, Handoff, Việc cho người).
+6. **Review**: người review; có thể nhờ agent khác review chéo — reviewer chỉ **comment**, không push vào nhánh người khác.
+7. **Merge** (người): squash, theo thứ tự phụ thuộc; sau merge, các PR khác đang mở phải cập nhật `main`.
 8. **Kết thúc phiên** agent. Phiên mới → task tiếp theo.
 
-## 10. Việc của người điều phối
+## 8. Việc của người điều phối
 
-- Hằng ngày: `pnpm ai:status` (từ T0.11; trước đó xem danh sách PR) → biết lane nào đang chờ gì.
-- Merge theo thứ tự: PR contract → PR nền tảng (DB, tooling) → PR UI. Ưu tiên PR đang chặn nhiều task khác.
+- Hằng ngày: `pnpm ai:status` → task nào đang làm, ready, đang chờ gì, task kế tiếp.
+- Merge theo thứ tự: PR contract → PR nền tảng (DB, tooling) → PR giao diện. Ưu tiên PR đang chặn nhiều task khác.
 - Bật trên GitHub: squash merge only, "Default commit message = Pull request title and description", "Require branches to be up to date before merging", required checks (`ci`, `agent-scope`), xoá nhánh sau merge.
-- Khi hai agent vô tình đụng nhau: giữ PR có mã task đúng lane, đóng PR còn lại, ghi lại bài học vào `docs/ai/WORKFLOW.md`.
-- Thêm/sửa task (bug từ pilot, task mới): sửa `tasks.yaml` trong PR riêng; gán lane theo §3 (UI → claude-1/claude-2; DB/server → codex-1; collab/logic editor không-UI/hạ tầng test → claude-1; platform/CI/hạ tầng → claude-2).
+- Khi hai agent vô tình nhận cùng task: giữ PR mở trước, đóng PR còn lại, ghi lại bài học vào `docs/ai/WORKFLOW.md`.
+- Thêm/sửa task (bug từ pilot, task mới): sửa `tasks.yaml` trong PR riêng (`Agent: human`), chèn task vào đúng vị trí ưu tiên (sau mọi deps của nó). Task hỗn hợp server + giao diện nên tách `a`/`b` để hai agent làm song song.
 
-## 11. Lịch khởi động M0 (tuần đầu)
-
-Thứ tự merge quan trọng hơn thứ tự làm — nhiều thứ làm được song song ngay từ ngày 1:
-
-> Bảng dưới đã chia lại sau khi bỏ lane `codex-2` (T0.1a, T0.2, T0.3a đã xong; nay tính vào lane `claude-2`).
-
-| Ngày | claude-1 | claude-2 | codex-1 |
-|---|---|---|---|
-| 1 | chờ T0.1a → soạn trước đề xuất theme/token (không commit) | **T0.1a** monorepo (merge sớm nhất có thể) | **T0.4** Supabase local (thư mục độc lập) |
-| 1–2 | **T0.1b** app shell | **T0.3a** i18n tooling | mượn **T0.2** (commitlint, PR template) |
-| 2–3 | **T0.3b** next-intl trong app | **T0.3c** glossary → **T0.5** CI → **T0.11** công cụ agent | **T1.1** schema lõi |
-| 3–5 | **T1.2b** UI đăng nhập → **T3.1** extension editor → **T3.3b** trích xuất | **T0.6a**, **T0.7**, **T0.8** (cần người) → **T0.6b** | **T1.2a**, **T1.4a** (contract trước) → mượn T4.4a/T4.6 nếu rảnh |
-
-Từ ngày thứ 3–4, `pnpm ai:next` tự đưa mỗi agent tới task tiếp theo; người chỉ cần mở phiên và merge.
-
-## 12. Khác biệt Claude Code và Codex cần lưu ý
+## 9. Khác biệt Claude Code và Codex cần lưu ý
 
 | | Claude Code | ChatGPT Codex |
 |---|---|---|
 | File hướng dẫn tự đọc | `CLAUDE.md` (import `AGENTS.md`), `CLAUDE.md` lồng trong thư mục con | `AGENTS.md` ở gốc và `AGENTS.md` lồng trong thư mục con |
-| Làm UI | **Có** (duy nhất) | **Không bao giờ** |
 | Tên nhánh | có thể bị môi trường ép → dựa vào `[Txx]` trong tiêu đề PR | tự đặt `<agent>/<id>-<slug>` |
-
-Để chặn Codex ở cấp thư mục, T0.1a/T0.1b tạo thêm `AGENTS.md` ngắn trong `apps/web/src/app/`, `apps/web/src/components/`, `packages/editor/src/extensions/`, `packages/emails/` với nội dung: "Thư mục UI — chỉ Claude Code (`claude-1`/`claude-2`) được sửa. Codex: không sửa file nào ở đây; ghi yêu cầu vào PR." (Ngoại lệ trong `app/`: `api/**`, `auth/callback/**` có `AGENTS.md` riêng cho phép `codex-1`.)
+| Ảnh chụp màn hình (task `ui: true`) | chụp bằng Playwright/Chromium trong container | chụp bằng Playwright nếu môi trường có trình duyệt; không có → ghi rõ trong PR để người chụp |

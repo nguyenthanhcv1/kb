@@ -12,7 +12,7 @@ export const localeCookieName = "NEXT_LOCALE";
 
 /**
  * Every message namespace (one JSON file per namespace per locale, see docs/PLAN.md §5.2).
- * Order is alphabetical. A namespace is owned by one lane (docs/ai/WORKFLOW.md §7.3).
+ * Order is alphabetical. Any task may add keys to any namespace (docs/ai/WORKFLOW.md §5).
  */
 export const namespaces = [
   "admin",
