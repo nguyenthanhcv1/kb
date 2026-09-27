@@ -35,7 +35,7 @@ describe("deriveContent", () => {
     });
   });
 
-  it("keeps tables (T4.1): cells, column widths and block ids survive Yjs, text goes to tableText", () => {
+  it("keeps tables (T4.1, T4.2): cells, column widths, colours and block ids survive Yjs, text goes to tableText", () => {
     const cell = (type: string, text: string, attrs: Record<string, unknown> = {}) => ({
       type,
       attrs,
@@ -49,7 +49,7 @@ describe("deriveContent", () => {
           type: "tableRow",
           content: [
             cell("tableHeader", "Mã NV", { colwidth: [120], id: "h1" }),
-            cell("tableHeader", "Họ tên"),
+            cell("tableHeader", "Họ tên", { backgroundColor: "blue" }),
           ],
         },
         { type: "tableRow", content: [cell("tableCell", "NV-001"), cell("tableCell", "An")] },
@@ -72,7 +72,13 @@ describe("deriveContent", () => {
           content: [
             {
               type: "tableRow",
-              content: [{ type: "tableHeader", attrs: { colwidth: [120], id: "h1" } }, {}],
+              content: [
+                {
+                  type: "tableHeader",
+                  attrs: { colwidth: [120], id: "h1", backgroundColor: null },
+                },
+                { type: "tableHeader", attrs: { backgroundColor: "blue" } },
+              ],
             },
             {},
           ],

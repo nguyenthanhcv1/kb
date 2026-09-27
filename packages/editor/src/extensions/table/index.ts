@@ -1,5 +1,16 @@
 import type { AnyExtension } from "@tiptap/core";
-import { Table, TableCell, TableHeader, TableRow } from "@tiptap/extension-table";
+import { Table, TableRow } from "@tiptap/extension-table";
+
+import { TableCellWithAttrs, TableHeaderWithAttrs } from "./cell-attrs";
+
+export {
+  CELL_BACKGROUND_ATTR,
+  CELL_BACKGROUND_COLORS,
+  CELL_BACKGROUND_DATA_ATTR,
+  type CellBackgroundColor,
+  isCellBackgroundColor,
+  nearestCellBackgroundColor,
+} from "./cell-attrs";
 
 /**
  * Node names of the table block (ProseMirror `tableRole`s table / row / header_cell / cell).
@@ -24,8 +35,9 @@ export const DEFAULT_TABLE_SIZE = { rows: 3, cols: 3, withHeaderRow: true } as c
  *
  * - Cells hold blocks (`block+`) and carry `colspan`, `rowspan`, `colwidth` (px widths set by
  *   dragging a column border, stored in the document so they survive reloads and sync over Yjs)
- *   and `align`. Merge/split and the cell `backgroundColor` attribute come with T4.2 — extend
- *   `TableCell`/`TableHeader` here (e.g. `cell-attrs.ts` next to this file).
+ *   and `align`, plus `backgroundColor` (T4.2, `cell-attrs.ts`: a palette code such as `blue`).
+ *   Merging a rectangular cell selection and splitting a merged cell are the prosemirror-tables
+ *   commands `mergeCells` / `splitCell`.
  * - Every table node gets a block ID through `BLOCK_ID_TYPES` (deep links to a cell, comments).
  * - Tab / Shift-Tab move between cells; Tab in the last cell appends a row.
  *
@@ -43,7 +55,7 @@ export function createTableExtensions(): AnyExtension[] {
       allowTableNodeSelection: false,
     }),
     TableRow,
-    TableHeader,
-    TableCell,
+    TableHeaderWithAttrs,
+    TableCellWithAttrs,
   ];
 }

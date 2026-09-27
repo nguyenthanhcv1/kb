@@ -6,4 +6,4 @@
  * (`CLIENT_OUTDATED`), and stored documents record the version they were
  * written with so they can be migrated on load.
  */
-export const EDITOR_SCHEMA_VERSION = 2;
+export const EDITOR_SCHEMA_VERSION = 3;
