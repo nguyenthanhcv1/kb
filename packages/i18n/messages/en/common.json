@@ -1,4 +1,8 @@
 {
+  "actions": {
+    "cancel": "Cancel",
+    "save": "Save"
+  },
   "app": {
     "name": "KB",
     "tagline": "Internal knowledge base"
@@ -8,10 +12,6 @@
     "digest": "Error code: {digest}",
     "retry": "Try again",
     "title": "Something went wrong"
-  },
-  "home": {
-    "description": "Pick a Space in the sidebar to get started.",
-    "title": "Welcome to KB"
   },
   "locale": {
     "label": "Language",
@@ -31,7 +31,7 @@
     "closeSidebar": "Close sidebar",
     "mainNavigation": "Main navigation",
     "openSidebar": "Open sidebar",
-    "sidebarEmpty": "No Spaces yet.",
+    "sidebarEmpty": "No spaces yet.",
     "skipToContent": "Skip to main content",
     "version": "v{version}",
     "versionLink": "Version {version} — see what's new"

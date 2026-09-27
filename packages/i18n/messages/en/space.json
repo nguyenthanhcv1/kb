@@ -1,14 +1,79 @@
 {
   "archive": "Archive",
+  "archiveSection": {
+    "action": "Archive space",
+    "archiving": "Archiving…",
+    "confirm": "Archive",
+    "confirmDescription": "The space “{name}” and every page in it will be hidden from everyone, including its admins. Only a super admin can restore it.",
+    "confirmTitle": "Archive this space?",
+    "description": "Hide the space and every page in it from everyone.",
+    "title": "Archive"
+  },
   "create": "Create space",
+  "createDialog": {
+    "description": "You will be the admin of the new space and can add members later.",
+    "submit": "Create",
+    "submitting": "Creating…"
+  },
+  "forbidden": {
+    "description": "Only admins of this space can change its settings.",
+    "title": "You cannot open these settings"
+  },
+  "form": {
+    "description": "Description",
+    "descriptionPlaceholder": "What is this space for?",
+    "icon": "Icon",
+    "iconHint": "One emoji, e.g. 📘. Leave empty to use the first letter of the name.",
+    "iconTooLong": "The icon must be a single emoji or at most 8 characters.",
+    "name": "Name",
+    "namePlaceholder": "e.g. Engineering",
+    "nameRequired": "Enter a name for the space.",
+    "optional": "optional",
+    "slug": "URL",
+    "slugHint": "Address: /s/{slug}. Lowercase letters without accents, digits and hyphens, 2–50 characters.",
+    "slugInvalid": "The URL may only contain lowercase letters (a–z), digits and hyphens, 2–50 characters long.",
+    "visibility": "Who can view",
+    "visibilityHint": {
+      "internal": "Every internal user can view it. Guests only see it once they are added.",
+      "restricted": "Only members who were added can see it. Default for new spaces."
+    }
+  },
+  "home": {
+    "emptyDescription": "The page tree of this space will appear here.",
+    "emptyTitle": "No pages yet"
+  },
   "invite": "Invite members",
+  "list": {
+    "description": "The spaces you can view.",
+    "empty": "No spaces yet.",
+    "emptyCreate": "Create the first space to start writing docs with your team.",
+    "emptyGuest": "You have not been added to any space yet. Ask the person who invited you to check.",
+    "role": "Your role: {role}"
+  },
   "members": "Members",
+  "nav": {
+    "all": "All spaces",
+    "heading": "Spaces"
+  },
+  "notFound": {
+    "backToList": "Back to spaces",
+    "title": "Space not found"
+  },
   "roles": {
     "admin": "Full access",
     "editor": "Can edit",
     "viewer": "Can view"
   },
   "settings": "Space settings",
+  "settingsPage": {
+    "backToSpace": "Back to space",
+    "general": "General",
+    "generalDescription": "The space's name, URL, icon and who can view it.",
+    "navLabel": "Settings sections",
+    "save": "Save changes",
+    "saved": "Changes saved.",
+    "saving": "Saving…"
+  },
   "title": "Spaces",
   "unarchive": "Unarchive",
   "visibility": {

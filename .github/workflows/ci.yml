@@ -124,6 +124,12 @@ jobs:
           PAGES_TEST_JWT_SECRET: super-secret-jwt-token-with-at-least-32-characters-long
           PAGES_TEST_ADMIN_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
         run: pnpm --filter @kb/web exec vitest run src/server/pages/pages.integration.test.ts
+      - name: Integration test contract Space (supabase-js → PostgREST → RLS)
+        env:
+          SPACES_TEST_SUPABASE_URL: http://127.0.0.1:54321
+          SPACES_TEST_JWT_SECRET: super-secret-jwt-token-with-at-least-32-characters-long
+          SPACES_TEST_ADMIN_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+        run: pnpm --filter @kb/web exec vitest run src/server/space/space.integration.test.ts
       - name: Integration test thành viên + lời mời (PostgREST → RLS, SMTP → Mailpit)
         env:
           MEMBERS_TEST_SUPABASE_URL: http://127.0.0.1:54321

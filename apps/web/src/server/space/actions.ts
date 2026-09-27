@@ -6,10 +6,12 @@ import {
   SpaceError,
   archiveSpace as archiveSpaceCore,
   createSpace as createSpaceCore,
+  getSpaceBySlug as getSpaceBySlugCore,
   listSpaces as listSpacesCore,
   updateSpace as updateSpaceCore,
   type ArchiveSpaceInput,
   type CreateSpaceInput,
+  type GetSpaceBySlugInput,
   type ListSpacesInput,
   type ListSpacesOutput,
   type Space,
@@ -51,6 +53,15 @@ export async function listSpaces(
   return runAction(async () => {
     const supabase = await createClient();
     return listSpacesCore(asSpaceDb(supabase), input);
+  });
+}
+
+export async function getSpaceBySlug(
+  input: GetSpaceBySlugInput,
+): Promise<SpaceActionResult<Space | null>> {
+  return runAction(async () => {
+    const supabase = await createClient();
+    return getSpaceBySlugCore(asSpaceDb(supabase), input);
   });
 }
 

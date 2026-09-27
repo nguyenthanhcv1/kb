@@ -1,4 +1,8 @@
 {
+  "actions": {
+    "cancel": "Huỷ",
+    "save": "Lưu"
+  },
   "app": {
     "name": "KB",
     "tagline": "Kho tri thức nội bộ"
@@ -8,10 +12,6 @@
     "digest": "Mã lỗi: {digest}",
     "retry": "Thử lại",
     "title": "Có lỗi xảy ra"
-  },
-  "home": {
-    "description": "Chọn một Space ở thanh bên để bắt đầu.",
-    "title": "Chào mừng đến với KB"
   },
   "locale": {
     "label": "Ngôn ngữ",
@@ -31,7 +31,7 @@
     "closeSidebar": "Đóng thanh bên",
     "mainNavigation": "Điều hướng chính",
     "openSidebar": "Mở thanh bên",
-    "sidebarEmpty": "Chưa có Space nào.",
+    "sidebarEmpty": "Chưa có không gian nào.",
     "skipToContent": "Bỏ qua, tới nội dung chính",
     "version": "v{version}",
     "versionLink": "Phiên bản {version} — xem có gì mới"

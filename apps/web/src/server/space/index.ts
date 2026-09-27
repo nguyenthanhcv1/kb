@@ -128,6 +128,12 @@ export const updateSpaceInputSchema = z.object({
 });
 export type UpdateSpaceInput = z.input<typeof updateSpaceInputSchema>;
 
+export const getSpaceBySlugInputSchema = z.object({
+  /** The `/s/[spaceSlug]` URL segment. Any string: a malformed slug is simply not found. */
+  slug: z.string(),
+});
+export type GetSpaceBySlugInput = z.input<typeof getSpaceBySlugInputSchema>;
+
 export const archiveSpaceInputSchema = z.object({
   id: z.guid(),
 });
@@ -242,6 +248,8 @@ export interface SpaceDb {
 const PG_UNIQUE_VIOLATION = "23505";
 const PG_INSUFFICIENT_PRIVILEGE = "42501";
 
+const callerProfileSchema = z.object({ is_super_admin: z.boolean(), is_guest: z.boolean() });
+
 async function requireUserId(db: SpaceDb): Promise<string> {
   const {
     data: { user },
@@ -272,9 +280,7 @@ export async function listSpaces(
     throw new SpaceError("SPACE_WRITE_FAILED", { cause: profileResult.error });
   if (memberResult.error) throw new SpaceError("SPACE_WRITE_FAILED", { cause: memberResult.error });
 
-  const profile = z
-    .object({ is_super_admin: z.boolean(), is_guest: z.boolean() })
-    .parse(profileResult.data);
+  const profile = callerProfileSchema.parse(profileResult.data);
   const memberships = z
     .array(z.object({ space_id: z.guid(), role: z.enum(SPACE_ROLES) }))
     .parse(memberResult.data ?? []);
@@ -294,16 +300,76 @@ export async function listSpaces(
 
   const rows = z.array(spaceRowSchema).parse(data ?? []);
   const spaces = rows.flatMap((row) => {
-    const role: SpaceRole | null = profile.is_super_admin
-      ? "admin"
-      : (roleByMemberSpace.get(row.id) ??
-        (row.visibility === "internal" && !profile.is_guest ? "viewer" : null));
+    const role = resolveRole(profile, roleByMemberSpace.get(row.id), row.visibility);
     // RLS already filters to visible rows only; `role === null` should not happen, but skip
     // defensively rather than surface a Space the UI would not know how to label.
     return role ? [mapSpaceRow(row, role)] : [];
   });
 
   return { spaces };
+}
+
+/** Same precedence as `app.space_role`: super admin > member role > internal-visibility viewer. */
+function resolveRole(
+  profile: z.infer<typeof callerProfileSchema>,
+  memberRole: SpaceRole | undefined,
+  visibility: SpaceVisibility,
+): SpaceRole | null {
+  if (profile.is_super_admin) return "admin";
+  if (memberRole) return memberRole;
+  return visibility === "internal" && !profile.is_guest ? "viewer" : null;
+}
+
+/**
+ * One active Space by its URL slug, with the caller's role — for the `/s/[spaceSlug]` pages
+ * (added in T1.4b). Returns `null` (never throws `SPACE_NOT_FOUND`) when the slug is malformed,
+ * the Space is archived, does not exist, or the caller cannot view it: RLS answers all of these
+ * the same way, so the UI renders one "not found" state without leaking existence.
+ *
+ * ```ts
+ * const space = await getSpaceBySlug(supabase, { slug: "design" });
+ * // → { id: "0b9a…", slug: "design", name: "Design", icon: "🎨", role: "viewer", … } | null
+ * ```
+ *
+ * @throws {SpaceError} `FORBIDDEN` (not signed in), `SPACE_WRITE_FAILED` (query failed).
+ */
+export async function getSpaceBySlug(
+  db: SpaceDb,
+  input: GetSpaceBySlugInput,
+): Promise<Space | null> {
+  const parsed = getSpaceBySlugInputSchema.safeParse(input);
+  if (!parsed.success) throw new SpaceError("VALIDATION_FAILED", { cause: parsed.error });
+  const userId = await requireUserId(db);
+  // Slugs are stored lower-case (DB check); a URL typed in another case still resolves (citext).
+  const slug = parsed.data.slug.toLowerCase();
+  if (!slugSchema.safeParse(slug).success) return null;
+
+  const { data, error } = await db
+    .from("spaces")
+    .select(
+      "id, slug, name, description, icon, visibility, ai_enabled, created_by, created_at, updated_at",
+    )
+    .eq("slug", slug)
+    .is("archived_at", null)
+    .maybeSingle();
+  if (error) throw new SpaceError("SPACE_WRITE_FAILED", { cause: error });
+  if (!data) return null;
+  const row = spaceRowSchema.parse(data);
+
+  const [profileResult, memberResult] = await Promise.all([
+    db.from("profiles").select("is_super_admin, is_guest").eq("id", userId).single(),
+    db.from("space_members").select("space_id, role").eq("user_id", userId).eq("space_id", row.id),
+  ]);
+  if (profileResult.error)
+    throw new SpaceError("SPACE_WRITE_FAILED", { cause: profileResult.error });
+  if (memberResult.error) throw new SpaceError("SPACE_WRITE_FAILED", { cause: memberResult.error });
+
+  const profile = callerProfileSchema.parse(profileResult.data);
+  const [membership] = z
+    .array(z.object({ space_id: z.guid(), role: z.enum(SPACE_ROLES) }))
+    .parse(memberResult.data ?? []);
+  const role = resolveRole(profile, membership?.role, row.visibility);
+  return role ? mapSpaceRow(row, role) : null;
 }
 
 /**
@@ -318,21 +384,22 @@ export async function createSpace(db: SpaceDb, input: CreateSpaceInput): Promise
   if (!parsed.success) throw new SpaceError("VALIDATION_FAILED", { cause: parsed.error });
   const userId = await requireUserId(db);
 
-  const { data, error } = await db
-    .from("spaces")
-    .insert({
-      slug: parsed.data.slug,
-      name: parsed.data.name,
-      description: parsed.data.description ?? null,
-      icon: parsed.data.icon ?? null,
-      ...(parsed.data.visibility ? { visibility: parsed.data.visibility } : {}),
-      ...(parsed.data.aiEnabled === undefined ? {} : { ai_enabled: parsed.data.aiEnabled }),
-      created_by: userId,
-    })
-    .select(
-      "id, slug, name, description, icon, visibility, ai_enabled, created_by, created_at, updated_at",
-    )
-    .single();
+  // No `RETURNING` (`.select()`) on the insert: PostgREST would then apply `spaces_select`
+  // (`app.can_view_space(id)`) to the new row inside the same statement, where the helper's
+  // snapshot does not see the row yet (nor the creator's admin membership added by the AFTER
+  // INSERT trigger) — every insert would fail with 42501. The id is generated here instead and the
+  // row read back with a separate query.
+  const id = crypto.randomUUID();
+  const { error } = await db.from("spaces").insert({
+    id,
+    slug: parsed.data.slug,
+    name: parsed.data.name,
+    description: parsed.data.description ?? null,
+    icon: parsed.data.icon ?? null,
+    ...(parsed.data.visibility ? { visibility: parsed.data.visibility } : {}),
+    ...(parsed.data.aiEnabled === undefined ? {} : { ai_enabled: parsed.data.aiEnabled }),
+    created_by: userId,
+  });
 
   if (error) {
     if (error.code === PG_UNIQUE_VIOLATION)
@@ -344,7 +411,8 @@ export async function createSpace(db: SpaceDb, input: CreateSpaceInput): Promise
     throw new SpaceError("SPACE_WRITE_FAILED", { cause: error });
   }
 
-  const row = spaceRowSchema.parse(data);
+  const row = await findVisibleSpace(db, id);
+  if (!row) throw new SpaceError("SPACE_WRITE_FAILED");
   return mapSpaceRow(row, "admin");
 }
 
