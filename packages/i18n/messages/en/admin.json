@@ -1,5 +1,24 @@
 {
   "access": {
+    "add": {
+      "confirmPublic": "I understand, add the public email domains anyway",
+      "description": "Paste one or more emails or domains, separated by commas, semicolons, spaces or new lines. Matching people can sign in right away; matching guests become internal users.",
+      "empty": "Enter at least one valid email or domain.",
+      "inputHint": "For example: an@company.com, @company.com or company.com (the whole domain).",
+      "inputLabel": "Emails or domains",
+      "notAdded": "{count, plural, one {# entry was} other {# entries were}} not added:",
+      "noteLabel": "Note (optional)",
+      "notePlaceholder": "For example: Operations team",
+      "preview": "{valid, plural, one {# valid entry} other {# valid entries}} ({emails, plural, one {# email} other {# emails}}, {domains, plural, one {# domain} other {# domains}}) · {invalid, plural, other {# invalid}} · {duplicate, plural, one {# duplicate} other {# duplicates}}",
+      "publicConfirmRequired": "Confirm before adding public email domains, or remove them from the list.",
+      "resultAdded": "{count, plural, =0 {No new entries were added.} one {Added # entry.} other {Added # entries.}}",
+      "resultMatched": "{count, plural, =0 {No registered user matches the new entries yet.} one {# registered user matches the new entries.} other {# registered users match the new entries.}}",
+      "resultRow": "{value}: {status}",
+      "submit": "Add to the allowlist",
+      "submitting": "Adding…",
+      "title": "Add emails or domains",
+      "tooMany": "At most {max, number} entries at a time."
+    },
     "addStatus": {
       "added": "Added",
       "duplicate": "Duplicate in the input",
@@ -7,12 +26,53 @@
       "invalid": "Invalid",
       "publicDomainUnconfirmed": "Public email domain — needs confirmation"
     },
+    "description": "Anyone whose email or domain is on this list can sign in as an internal user. Removing an entry signs matching people out on their next request.",
     "kinds": {
       "domain": "Domain",
       "email": "Email"
     },
+    "list": {
+      "addedBy": "Added by {email} · {date, date, medium}",
+      "addedBySystem": "System · {date, date, medium}",
+      "count": "{count, plural, one {# entry} other {# entries}}",
+      "empty": "The allowlist is empty: only super admins can sign in.",
+      "publicDomain": "Public domain",
+      "remove": "Remove",
+      "removeLabel": "Remove {value} from the allowlist",
+      "self": "Your email",
+      "selfHint": "You cannot remove your own email.",
+      "title": "Allowlist",
+      "users": "{count, plural, =0 {No users yet} one {# user} other {# users}}"
+    },
     "publicDomainWarning": "{domain} is a public email domain: adding it lets every {domain} user sign in. Prefer adding individual emails instead.",
+    "remove": {
+      "confirm": "Remove from the allowlist",
+      "description": "Users matching this entry are signed out on their next request, unless they still match another entry, are super admins or are Space members (they then become guests).",
+      "impactGuest": "{count, plural, one {# person} other {# people}} will become guests (still Space members).",
+      "impactLoading": "Counting affected users…",
+      "impactLosing": "{count, plural, one {# person} other {# people}} will lose access.",
+      "impactMatched": "{count, plural, =0 {No active user matches this entry.} one {# active user matches this entry.} other {# active users match this entry.}}",
+      "removed": "Removed {value} from the allowlist.",
+      "removing": "Removing…",
+      "title": "Remove {value}?"
+    },
+    "testEmail": {
+      "description": "Send a test email to check the SMTP settings. Leave the recipient empty to send it to yourself.",
+      "invalidEmail": "The recipient email is not valid.",
+      "send": "Send test email",
+      "sending": "Sending…",
+      "sent": "Test email sent to {to}.",
+      "title": "Test email",
+      "toLabel": "Recipient"
+    },
     "title": "Access"
+  },
+  "forbidden": {
+    "description": "Only super admins can open the Administration pages.",
+    "title": "You don't have access"
+  },
+  "nav": {
+    "label": "Administration sections"
   },
   "title": "Administration",
   "users": {
@@ -23,7 +83,56 @@
       "none": "No access left",
       "super_admin": "Super admin"
     },
+    "actions": {
+      "grant": "Make super admin",
+      "lock": "Deactivate account",
+      "open": "Actions for {name}",
+      "revoke": "Remove super admin",
+      "selfHint": "You cannot deactivate yourself or remove your own super admin role.",
+      "unlock": "Reactivate account"
+    },
+    "confirm": {
+      "grantDescription": "{name} will be able to manage the allowlist, users and every Space.",
+      "grantTitle": "Make {name} a super admin?",
+      "lockDescription": "{name} loses every role at once and is signed out on their next request. You can reactivate them later.",
+      "lockTitle": "Deactivate {name}?",
+      "revokeDescription": "{name} will no longer be a super admin. If they are not on the allowlist, they become a guest or are signed out.",
+      "revokeTitle": "Remove super admin from {name}?",
+      "unlockDescription": "{name} can sign in again if they still match the allowlist or are a Space member.",
+      "unlockTitle": "Reactivate {name}?",
+      "working": "Saving…"
+    },
+    "count": "{count, plural, one {# user} other {# users}}",
+    "deactivatedAt": "Deactivated {date, date, medium}",
+    "description": "Everyone who has signed in to KB, guests included, and why they can still sign in.",
+    "done": {
+      "grant": "{name} is now a super admin.",
+      "lock": "Deactivated {name}.",
+      "revoke": "{name} is no longer a super admin.",
+      "unlock": "Reactivated {name}."
+    },
+    "empty": "No users match.",
     "guest": "Guest",
+    "lastSignIn": "Last signed in {date, date, medium}",
+    "neverSignedIn": "Never signed in",
+    "pagination": {
+      "label": "User pages",
+      "next": "Next page",
+      "previous": "Previous page",
+      "range": "{from, number}–{to, number} of {total, number}"
+    },
+    "search": {
+      "label": "Search by email or name",
+      "submit": "Search"
+    },
+    "self": "You",
+    "spaces": "{count, plural, =0 {No Spaces} one {# Space} other {# Spaces}}",
+    "status": {
+      "active": "Active",
+      "all": "All",
+      "deactivated": "Deactivated",
+      "label": "Filter by status"
+    },
     "superAdmin": "Super admin",
     "title": "Users"
   }

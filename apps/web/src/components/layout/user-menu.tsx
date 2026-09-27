@@ -1,6 +1,6 @@
 "use client";
 
-import { LogOutIcon, SettingsIcon, SparklesIcon } from "lucide-react";
+import { LogOutIcon, SettingsIcon, ShieldIcon, SparklesIcon } from "lucide-react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useTransition } from "react";
@@ -26,7 +26,7 @@ export function initials(user: Pick<CurrentUser, "displayName" | "email">): stri
   return picked.map((word) => word!.charAt(0).toLocaleUpperCase()).join("");
 }
 
-/** Avatar button in the top bar: who is signed in, role badges, settings and sign-out. */
+/** Avatar button in the top bar: who is signed in, role badges, settings, Administration (super admins) and sign-out. */
 export function UserMenu({ user }: { user: CurrentUser }) {
   const t = useTranslations("auth.userMenu");
   const tNav = useTranslations("nav");
@@ -71,6 +71,14 @@ export function UserMenu({ user }: { user: CurrentUser }) {
             {tNav("whatsNew")}
           </Link>
         </DropdownMenuItem>
+        {user.isSuperAdmin && (
+          <DropdownMenuItem asChild>
+            <Link href="/admin/access">
+              <ShieldIcon aria-hidden />
+              {tNav("admin")}
+            </Link>
+          </DropdownMenuItem>
+        )}
         <DropdownMenuSeparator />
         <DropdownMenuItem
           disabled={pending}
