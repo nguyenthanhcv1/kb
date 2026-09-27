@@ -51,7 +51,7 @@ export const webEnvSchema = z
       ),
       SMTP_HOST: optionalString(),
       SMTP_PORT: port(587),
-      // Unset → derived from SMTP_PORT (465 ssl, 587 starttls, else none) — server/mail.
+      // Unset → derived from SMTP_PORT (465 ssl, 587 starttls, else none) — server/email/mailer.ts.
       SMTP_SECURE: z.preprocess(
         (value) => (value === "" ? undefined : value),
         z.enum(["ssl", "starttls", "none"]).optional(),
