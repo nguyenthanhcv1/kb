@@ -182,7 +182,7 @@ for (const locale of ["vi", "en"] as const) {
       await toolbar.getByRole("button", { name: t.menu.options }).click();
       await page.getByRole("menuitem", { name: t.actions.splitCell }).click();
       await expect(table.locator("tr").nth(1).locator("td")).toHaveCount(3);
-      await expect(cell(1, 0)).not.toHaveAttribute("colspan", /.*/);
+      await expect(cell(1, 0)).toHaveAttribute("colspan", "1");
       await expect(cell(1, 1)).toHaveAttribute("data-background-color", "green");
       expect((await cellTexts(table))[1]).toEqual(["a", "", ""]);
     });
