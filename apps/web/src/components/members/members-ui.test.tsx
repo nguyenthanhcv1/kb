@@ -169,7 +169,8 @@ describe("MembersSettings", () => {
     await user.click(within(dialog).getByRole("button", { name: viMembers.list.remove }));
     expect((await within(dialog).findByRole("alert")).textContent).toBe(viErrors.FORBIDDEN);
 
-    await user.click(within(dialog).getByRole("button", { name: viMembers.list.remove }));
+    // The error can render before the pending transition settles; wait for the idle label.
+    await user.click(await within(dialog).findByRole("button", { name: viMembers.list.remove }));
     await waitFor(() => expect(screen.queryByRole("alertdialog")).toBeNull());
     expect(actions.removeMember).toHaveBeenLastCalledWith({
       spaceId: SPACE.id,
