@@ -2,5 +2,8 @@
   "AUDIT_LOG_IMMUTABLE": "The activity log cannot be changed or deleted.",
   "AUDIT_QUERY_FAILED": "Could not load the activity log. Please try again.",
   "FORBIDDEN": "You do not have permission to do this.",
+  "SPACE_NOT_FOUND": "This Space does not exist or you do not have access to it.",
+  "SPACE_SLUG_TAKEN": "This URL is already in use by another Space.",
+  "SPACE_WRITE_FAILED": "Could not save the Space. Please try again.",
   "VALIDATION_FAILED": "The data is not valid."
 }
