@@ -1,14 +1,79 @@
 {
   "archive": "Lưu trữ",
+  "archiveSection": {
+    "action": "Lưu trữ không gian",
+    "archiving": "Đang lưu trữ…",
+    "confirm": "Lưu trữ",
+    "confirmDescription": "Không gian “{name}” và mọi trang bên trong sẽ bị ẩn với tất cả mọi người, kể cả quản trị viên. Chỉ quản trị viên hệ thống mới khôi phục được.",
+    "confirmTitle": "Lưu trữ không gian này?",
+    "description": "Ẩn không gian và mọi trang bên trong với tất cả mọi người.",
+    "title": "Lưu trữ"
+  },
   "create": "Tạo không gian",
+  "createDialog": {
+    "description": "Bạn sẽ là quản trị viên của không gian mới và có thể thêm thành viên sau.",
+    "submit": "Tạo",
+    "submitting": "Đang tạo…"
+  },
+  "forbidden": {
+    "description": "Chỉ quản trị viên của không gian mới thay đổi được cài đặt.",
+    "title": "Bạn không có quyền vào cài đặt"
+  },
+  "form": {
+    "description": "Mô tả",
+    "descriptionPlaceholder": "Không gian này dùng để làm gì?",
+    "icon": "Biểu tượng",
+    "iconHint": "Một emoji, ví dụ 📘. Để trống sẽ dùng chữ cái đầu của tên.",
+    "iconTooLong": "Biểu tượng chỉ gồm một emoji hoặc tối đa 8 ký tự.",
+    "name": "Tên",
+    "namePlaceholder": "Ví dụ: Kỹ thuật",
+    "nameRequired": "Nhập tên không gian.",
+    "optional": "không bắt buộc",
+    "slug": "Đường dẫn",
+    "slugHint": "Địa chỉ: /s/{slug}. Chỉ gồm chữ thường không dấu, số và dấu gạch ngang, 2–50 ký tự.",
+    "slugInvalid": "Đường dẫn chỉ gồm chữ thường không dấu (a–z), số và dấu gạch ngang, dài 2–50 ký tự.",
+    "visibility": "Ai được xem",
+    "visibilityHint": {
+      "internal": "Mọi người dùng nội bộ đều xem được. Khách mời chỉ thấy khi được thêm vào.",
+      "restricted": "Chỉ thành viên được thêm vào mới thấy. Mặc định cho không gian mới."
+    }
+  },
+  "home": {
+    "emptyDescription": "Cây trang của không gian sẽ hiển thị ở đây.",
+    "emptyTitle": "Chưa có trang nào"
+  },
   "invite": "Mời thành viên",
+  "list": {
+    "description": "Các không gian bạn có quyền xem.",
+    "empty": "Chưa có không gian nào.",
+    "emptyCreate": "Tạo không gian đầu tiên để bắt đầu viết tài liệu cùng nhóm.",
+    "emptyGuest": "Bạn chưa được thêm vào không gian nào. Hãy nhờ người mời bạn kiểm tra lại.",
+    "role": "Vai trò của bạn: {role}"
+  },
   "members": "Thành viên",
+  "nav": {
+    "all": "Tất cả không gian",
+    "heading": "Không gian"
+  },
+  "notFound": {
+    "backToList": "Về danh sách không gian",
+    "title": "Không tìm thấy không gian"
+  },
   "roles": {
     "admin": "Quản trị",
     "editor": "Sửa",
     "viewer": "Xem"
   },
   "settings": "Cài đặt không gian",
+  "settingsPage": {
+    "backToSpace": "Quay lại không gian",
+    "general": "Chung",
+    "generalDescription": "Tên, đường dẫn, biểu tượng và quyền xem của không gian.",
+    "navLabel": "Mục cài đặt",
+    "save": "Lưu thay đổi",
+    "saved": "Đã lưu thay đổi.",
+    "saving": "Đang lưu…"
+  },
   "title": "Không gian",
   "unarchive": "Bỏ lưu trữ",
   "visibility": {

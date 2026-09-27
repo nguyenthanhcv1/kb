@@ -5,6 +5,7 @@ import {
   archiveSpace,
   createSpace,
   createSpaceInputSchema,
+  getSpaceBySlug,
   listSpaces,
   updateSpace,
   type SpaceSummary,
@@ -407,6 +408,72 @@ describe("archiveSpace", () => {
     const db = seed("admin");
     db.currentUserId = null;
     await expect(archiveSpace(db, { id: SPACE_1 })).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+});
+
+describe("getSpaceBySlug", () => {
+  function seed(currentUserId: string) {
+    return new FakeSpaceDb({
+      currentUserId,
+      profiles: [
+        { id: USER_ADMIN, is_super_admin: false, is_guest: false },
+        { id: USER_SUPER, is_super_admin: true, is_guest: false },
+        { id: USER_EDITOR, is_super_admin: false, is_guest: false },
+        { id: USER_INTERNAL, is_super_admin: false, is_guest: false },
+        { id: USER_GUEST, is_super_admin: false, is_guest: true },
+      ],
+      spaces: [
+        makeSpace({ id: SPACE_1, slug: "design", visibility: "restricted" }),
+        makeSpace({ id: SPACE_2, slug: "handbook", name: "Handbook", visibility: "internal" }),
+      ],
+      members: [
+        { space_id: SPACE_1, user_id: USER_ADMIN, role: "admin" },
+        { space_id: SPACE_1, user_id: USER_EDITOR, role: "editor" },
+        { space_id: SPACE_2, user_id: USER_EDITOR, role: "admin" },
+      ],
+    });
+  }
+
+  it.each([
+    [USER_ADMIN, "design", "admin"],
+    [USER_EDITOR, "design", "editor"],
+    [USER_SUPER, "design", "admin"],
+    [USER_EDITOR, "handbook", "admin"],
+    [USER_INTERNAL, "handbook", "viewer"],
+  ] as const)(
+    "returns the Space with the caller's role (%s, %s → %s)",
+    async (user, slug, role) => {
+      const space = await getSpaceBySlug(seed(user), { slug });
+      expect(space).toMatchObject({ slug, role });
+    },
+  );
+
+  it("resolves a slug typed in another case", async () => {
+    const space = await getSpaceBySlug(seed(USER_ADMIN), { slug: "Design" });
+    expect(space?.id).toBe(SPACE_1);
+  });
+
+  it.each([
+    [USER_INTERNAL, "design"],
+    [USER_GUEST, "handbook"],
+    [USER_ADMIN, "missing"],
+    [USER_ADMIN, "not a slug!"],
+  ])("returns null when %s cannot see %p", async (user, slug) => {
+    expect(await getSpaceBySlug(seed(user), { slug })).toBeNull();
+  });
+
+  it("returns null for an archived Space, even to its admin", async () => {
+    const db = seed(USER_ADMIN);
+    db.spaces[0]!.archived_at = now;
+    expect(await getSpaceBySlug(db, { slug: "design" })).toBeNull();
+  });
+
+  it("throws FORBIDDEN when signed out", async () => {
+    const db = seed(USER_ADMIN);
+    db.currentUserId = null;
+    await expect(getSpaceBySlug(db, { slug: "design" })).rejects.toMatchObject({
+      code: "FORBIDDEN",
+    });
   });
 });
 
