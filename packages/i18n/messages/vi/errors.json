@@ -1,8 +1,14 @@
 {
+  "ACCESS_CANNOT_REMOVE_SELF": "Bạn không thể gỡ email của chính mình khỏi danh sách cho phép.",
+  "ACCESS_ENTRY_NOT_FOUND": "Không tìm thấy mục trong danh sách cho phép (có thể đã bị gỡ).",
+  "ADMIN_ACTION_FAILED": "Không thực hiện được thao tác quản trị. Vui lòng thử lại.",
   "AUDIT_LOG_IMMUTABLE": "Nhật ký hoạt động không thể sửa hoặc xoá.",
   "AUDIT_QUERY_FAILED": "Không tải được nhật ký hoạt động. Vui lòng thử lại.",
   "CLIENT_OUTDATED": "Ứng dụng đã có phiên bản mới. Vui lòng tải lại trang.",
   "FORBIDDEN": "Bạn không có quyền thực hiện thao tác này.",
+  "LAST_SUPER_ADMIN": "Phải còn ít nhất một quản trị viên hệ thống đang hoạt động.",
+  "MAIL_NOT_CONFIGURED": "Chưa cấu hình gửi email (SMTP).",
+  "MAIL_SEND_FAILED": "Không gửi được email. Kiểm tra cấu hình SMTP và thử lại.",
   "ORIGIN_NOT_ALLOWED": "Kết nối từ địa chỉ này không được phép.",
   "PAGE_ACTION_FAILED": "Không thực hiện được thao tác với trang. Vui lòng thử lại.",
   "PAGE_DELETED": "Trang đang nằm trong thùng rác.",
@@ -16,5 +22,9 @@
   "SPACE_SLUG_TAKEN": "Đường dẫn này đã được Space khác sử dụng.",
   "SPACE_WRITE_FAILED": "Không lưu được Space. Vui lòng thử lại.",
   "UNAUTHORIZED": "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.",
+  "USER_CANNOT_CHANGE_SELF": "Bạn không thể khoá hoặc gỡ quyền quản trị của chính mình.",
+  "USER_DEACTIVATED": "Người dùng này đang bị khoá.",
+  "USER_IS_GUEST": "Khách mời không thể là quản trị viên hệ thống. Hãy thêm email hoặc tên miền của họ vào danh sách cho phép trước.",
+  "USER_NOT_FOUND": "Không tìm thấy người dùng.",
   "VALIDATION_FAILED": "Dữ liệu không hợp lệ."
 }

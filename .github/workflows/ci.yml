@@ -105,8 +105,8 @@ jobs:
         with:
           version: 2.118.0 # giữ khớp supabase/README.md
       - name: Khởi động Postgres + PostgREST/Kong, chạy migration + seed
-        # Chỉ db, rest, kong: đủ cho pgTAP và integration test qua supabase-js.
-        run: supabase start -x gotrue,realtime,storage-api,imgproxy,mailpit,postgres-meta,studio,edge-runtime,logflare,vector,supavisor
+        # Chỉ db, rest, kong (pgTAP, integration test qua supabase-js) + mailpit (SMTP thật cho mailer).
+        run: supabase start -x gotrue,realtime,storage-api,imgproxy,postgres-meta,studio,edge-runtime,logflare,vector,supavisor
       - name: pgTAP (gồm test "mọi bảng bật RLS")
         run: supabase test db
       - name: Migration chạy lại được từ đầu (db reset)
@@ -124,6 +124,17 @@ jobs:
           PAGES_TEST_JWT_SECRET: super-secret-jwt-token-with-at-least-32-characters-long
           PAGES_TEST_ADMIN_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
         run: pnpm --filter @kb/web exec vitest run src/server/pages/pages.integration.test.ts
+      - name: Integration test quản trị truy cập (supabase-js → PostgREST → RLS/hàm admin_*)
+        env:
+          ADMIN_TEST_SUPABASE_URL: http://127.0.0.1:54321
+          ADMIN_TEST_JWT_SECRET: super-secret-jwt-token-with-at-least-32-characters-long
+          ADMIN_TEST_ADMIN_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+        run: pnpm --filter @kb/web exec vitest run src/server/admin/admin.integration.test.ts
+      - name: Integration test gửi email (SMTP → Mailpit)
+        env:
+          MAIL_TEST_SMTP_PORT: 54325
+          MAIL_TEST_MAILPIT_URL: http://127.0.0.1:54324
+        run: pnpm --filter @kb/web exec vitest run src/server/mail/mail.integration.test.ts
       - name: Dừng Supabase
         if: always()
         run: supabase stop --no-backup

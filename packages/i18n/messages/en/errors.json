@@ -1,8 +1,14 @@
 {
+  "ACCESS_CANNOT_REMOVE_SELF": "You cannot remove your own email from the allowlist.",
+  "ACCESS_ENTRY_NOT_FOUND": "Allowlist entry not found (it may have been removed already).",
+  "ADMIN_ACTION_FAILED": "The administration action failed. Please try again.",
   "AUDIT_LOG_IMMUTABLE": "The activity log cannot be changed or deleted.",
   "AUDIT_QUERY_FAILED": "Could not load the activity log. Please try again.",
   "CLIENT_OUTDATED": "A new version of the app is available. Please reload the page.",
   "FORBIDDEN": "You do not have permission to do this.",
+  "LAST_SUPER_ADMIN": "At least one active super admin must remain.",
+  "MAIL_NOT_CONFIGURED": "Email sending (SMTP) is not configured.",
+  "MAIL_SEND_FAILED": "The email could not be sent. Check the SMTP settings and try again.",
   "ORIGIN_NOT_ALLOWED": "Connections from this address are not allowed.",
   "PAGE_ACTION_FAILED": "The page action could not be completed. Please try again.",
   "PAGE_DELETED": "This page is in the trash.",
@@ -16,5 +22,9 @@
   "SPACE_SLUG_TAKEN": "This URL is already in use by another Space.",
   "SPACE_WRITE_FAILED": "Could not save the Space. Please try again.",
   "UNAUTHORIZED": "Your session has expired. Please sign in again.",
+  "USER_CANNOT_CHANGE_SELF": "You cannot deactivate yourself or remove your own super admin role.",
+  "USER_DEACTIVATED": "This user is deactivated.",
+  "USER_IS_GUEST": "Guests cannot be super admins. Add their email or domain to the allowlist first.",
+  "USER_NOT_FOUND": "User not found.",
   "VALIDATION_FAILED": "The data is not valid."
 }

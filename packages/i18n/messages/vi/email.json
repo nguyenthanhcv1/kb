@@ -3,5 +3,9 @@
     "accept": "Nhận lời mời",
     "expires": "Lời mời hết hạn vào {date}.",
     "subject": "{inviter} mời bạn vào không gian {space}"
+  },
+  "test": {
+    "body": "Đây là email thử do {sender} gửi từ trang Quản trị của {app} lúc {sentAt, date, long} {sentAt, time, short}.\n\nNếu bạn nhận được email này, cấu hình SMTP đã hoạt động. Không cần trả lời.",
+    "subject": "Email thử từ {app}"
   }
 }
