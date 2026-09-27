@@ -1,4 +1,4 @@
-# Build context = repo root for every image (apps/web, apps/collab, infra/migrate).
+# Build context = repo root for every image (apps/web, apps/collab, infra/migrate, infra/backup).
 **/node_modules
 **/.next
 **/dist

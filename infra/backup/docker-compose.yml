@@ -1,0 +1,48 @@
+# kb-backup on Coolify — T0.9, docs/runbooks/backup-restore.md, docs/PLAN.md §7.8
+#
+# One Coolify resource of type "Docker Compose" (build pack "Docker Compose", source = this repo,
+# branch main, compose file /infra/backup/docker-compose.yml) in the SAME project/server as the
+# Supabase it backs up (production: kb-prod-1, T7.3). Supabase has "Connect to predefined network"
+# enabled, so its DB container is reachable on the `coolify` network as supabase-db-<uuid>.
+#
+# - Image from GHCR (.github/workflows/build-images.yml); nothing is built on the server.
+# - The container runs supercronic: `kb-backup backup` at BACKUP_SCHEDULE (TZ Asia/Ho_Chi_Minh,
+#   default 02:00), then pings BACKUP_HEARTBEAT_URL (Uptime Kuma push monitor → alert after 26 h
+#   without a ping). One-shot commands: Coolify › kb-backup › Terminal, e.g. `kb-backup backup`,
+#   `kb-backup list`, `kb-backup check`.
+# - The age PRIVATE key is never configured here: this server can only encrypt.
+# - Every `${VAR:?}` must be set in Coolify (Environment Variables, secrets "locked", "Is Literal?").
+#   List and where each value comes from: infra/backup/env.example.
+
+services:
+  kb-backup:
+    image: ghcr.io/nguyenthanhcv1/kb-backup:${KB_BACKUP_IMAGE_TAG:-main}
+    restart: unless-stopped
+    command: ["schedule"]
+    environment:
+      # postgres role of the Supabase DB (has pg_read_all_data), internal network only.
+      DATABASE_URL: ${BACKUP_DATABASE_URL:?}
+      BACKUP_PREFIX: ${BACKUP_PREFIX:-prod}
+      BACKUP_SCHEDULE: ${BACKUP_SCHEDULE:-0 2 * * *}
+      # age public key(s) "age1…" (comma-separated for several recipients).
+      BACKUP_AGE_RECIPIENT: ${BACKUP_AGE_RECIPIENT:?}
+      # Cloudflare R2 — token "Object Read & Write" on the backup bucket only.
+      S3_ENDPOINT: ${S3_ENDPOINT:?}
+      S3_BUCKET: ${S3_BUCKET:-kb-backups}
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:?}
+      S3_SECRET_KEY: ${S3_SECRET_KEY:?}
+      BACKUP_HEARTBEAT_URL: ${BACKUP_HEARTBEAT_URL:-}
+      BACKUP_HEARTBEAT_FAIL_URL: ${BACKUP_HEARTBEAT_FAIL_URL:-}
+      BACKUP_MAX_AGE_HOURS: ${BACKUP_MAX_AGE_HOURS:-26}
+    healthcheck:
+      test: ["CMD", "kb-backup", "healthcheck"]
+      interval: 5m
+      timeout: 10s
+      retries: 2
+      start_period: 30s
+    networks:
+      - coolify
+
+networks:
+  coolify:
+    external: true
