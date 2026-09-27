@@ -23,6 +23,7 @@ export const namespaces = [
   "email",
   "errors",
   "history",
+  "members",
   "nav",
   "search",
   "settings",

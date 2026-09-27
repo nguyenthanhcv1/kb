@@ -1,0 +1,98 @@
+{
+  "add": {
+    "addMember": "Add {name}",
+    "added": "{name} was added to the space.",
+    "description": "Find internal users by name or email (accents optional).",
+    "noResults": "No internal user outside this space matches.",
+    "results": "Search results",
+    "roleLabel": "Role when added",
+    "searchLabel": "Find internal users",
+    "searchPlaceholder": "Name or email…",
+    "searching": "Searching…",
+    "submit": "Add",
+    "title": "Add members"
+  },
+  "invitations": {
+    "empty": "No pending invitations.",
+    "expired": "Expired {date}",
+    "expires": "Expires {date}",
+    "resend": "Resend",
+    "resendLabel": "Resend the invitation to {email}",
+    "resent": "Invitation sent again to {email}. The previous link no longer works.",
+    "revoke": "Revoke",
+    "revokeConfirmDescription": "The link sent to {email} will stop working.",
+    "revokeConfirmTitle": "Revoke this invitation?",
+    "revokeLabel": "Revoke the invitation of {email}",
+    "revoked": "The invitation of {email} was revoked.",
+    "revoking": "Revoking…",
+    "status": {
+      "accepted": "Accepted",
+      "expired": "Expired",
+      "pending": "Pending",
+      "revoked": "Revoked"
+    },
+    "title": "Pending invitations"
+  },
+  "invite": {
+    "copied": "Link copied.",
+    "copy": "Copy link",
+    "description": "External guests get an email with an invitation link valid for 14 days. Guests can only view or edit.",
+    "emailInvalid": "Enter a valid email address.",
+    "emailLabel": "Guest email",
+    "emailPlaceholder": "name@partner.com",
+    "emailStatus": {
+      "failed": "The invitation for {email} was created, but the email could not be sent. Share the link below with them.",
+      "sent": "Invitation sent to {email}.",
+      "skipped": "The invitation for {email} was created, but email sending is not configured on the server. Share the link below with them."
+    },
+    "linkLabel": "Invitation link (shown only once)",
+    "roleLabel": "Guest role",
+    "submit": "Send invitation",
+    "submitting": "Sending…",
+    "title": "Invite guests by email"
+  },
+  "invitePage": {
+    "accept": "Accept invitation",
+    "accepting": "Accepting…",
+    "backHome": "Go to home",
+    "description": "{inviter} invited you to join the {space} space.",
+    "descriptionNoInviter": "You are invited to join the {space} space.",
+    "errorTitle": "This invitation cannot be used",
+    "expires": "The invitation expires on {date}.",
+    "metaTitle": "Invitation",
+    "mismatch": "This invitation was sent to {invited}, but you are signed in as {current}. Sign out, then sign in with the invited email.",
+    "openSpace": "Open space",
+    "role": "Your access: {role}",
+    "switchAccount": "Sign out and switch account",
+    "title": "Invitation to a space"
+  },
+  "leave": {
+    "action": "Leave space",
+    "confirm": "Leave",
+    "confirmDescription": "You will lose access to “{space}” until someone adds you again.",
+    "confirmTitle": "Leave this space?",
+    "leaving": "Leaving…"
+  },
+  "list": {
+    "count": "{count, plural, one {# member} other {# members}}",
+    "description": "People with access to this space and their roles.",
+    "guest": "Guest",
+    "joined": "Joined {date}",
+    "remove": "Remove",
+    "removeConfirmDescription": "{name} will lose access to the “{space}” space.",
+    "removeConfirmTitle": "Remove this member?",
+    "removeLabel": "Remove {name} from the space",
+    "removed": "{name} was removed from the space.",
+    "removing": "Removing…",
+    "roleChanged": "{name} now has the “{role}” role.",
+    "roleLabel": "Role of {name}",
+    "title": "Members",
+    "unknown": "Hidden user",
+    "you": "You"
+  },
+  "roleHint": {
+    "admin": "Manages settings and members",
+    "editor": "Creates and edits pages",
+    "viewer": "Read only"
+  }
+}

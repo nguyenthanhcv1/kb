@@ -1,0 +1,98 @@
+{
+  "add": {
+    "addMember": "Thêm {name}",
+    "added": "Đã thêm {name} vào không gian.",
+    "description": "Tìm người dùng nội bộ theo tên hoặc email (gõ không dấu cũng được).",
+    "noResults": "Không tìm thấy người dùng nội bộ nào chưa là thành viên.",
+    "results": "Kết quả tìm kiếm",
+    "roleLabel": "Vai trò khi thêm",
+    "searchLabel": "Tìm người dùng nội bộ",
+    "searchPlaceholder": "Tên hoặc email…",
+    "searching": "Đang tìm…",
+    "submit": "Thêm",
+    "title": "Thêm thành viên"
+  },
+  "invitations": {
+    "empty": "Không có lời mời nào đang chờ.",
+    "expired": "Đã hết hạn {date}",
+    "expires": "Hết hạn {date}",
+    "resend": "Gửi lại",
+    "resendLabel": "Gửi lại lời mời cho {email}",
+    "resent": "Đã gửi lại lời mời tới {email}. Liên kết cũ không còn dùng được.",
+    "revoke": "Thu hồi",
+    "revokeConfirmDescription": "Liên kết đã gửi tới {email} sẽ không còn dùng được.",
+    "revokeConfirmTitle": "Thu hồi lời mời?",
+    "revokeLabel": "Thu hồi lời mời của {email}",
+    "revoked": "Đã thu hồi lời mời của {email}.",
+    "revoking": "Đang thu hồi…",
+    "status": {
+      "accepted": "Đã nhận",
+      "expired": "Hết hạn",
+      "pending": "Đang chờ",
+      "revoked": "Đã thu hồi"
+    },
+    "title": "Lời mời đang chờ"
+  },
+  "invite": {
+    "copied": "Đã sao chép liên kết.",
+    "copy": "Sao chép liên kết",
+    "description": "Khách bên ngoài nhận email có liên kết mời, hiệu lực 14 ngày. Khách chỉ có quyền xem hoặc sửa.",
+    "emailInvalid": "Nhập một địa chỉ email hợp lệ.",
+    "emailLabel": "Email của khách",
+    "emailPlaceholder": "ten@doitac.vn",
+    "emailStatus": {
+      "failed": "Đã tạo lời mời cho {email} nhưng gửi email thất bại. Hãy gửi liên kết dưới đây cho họ.",
+      "sent": "Đã gửi lời mời tới {email}.",
+      "skipped": "Đã tạo lời mời cho {email} nhưng máy chủ chưa cấu hình gửi email. Hãy gửi liên kết dưới đây cho họ."
+    },
+    "linkLabel": "Liên kết mời (chỉ hiển thị một lần)",
+    "roleLabel": "Vai trò của khách",
+    "submit": "Gửi lời mời",
+    "submitting": "Đang gửi…",
+    "title": "Mời khách qua email"
+  },
+  "invitePage": {
+    "accept": "Nhận lời mời",
+    "accepting": "Đang nhận…",
+    "backHome": "Về trang chủ",
+    "description": "{inviter} mời bạn tham gia không gian {space}.",
+    "descriptionNoInviter": "Bạn được mời tham gia không gian {space}.",
+    "errorTitle": "Không dùng được lời mời",
+    "expires": "Lời mời hết hạn vào {date}.",
+    "metaTitle": "Lời mời",
+    "mismatch": "Lời mời này gửi tới {invited}, nhưng bạn đang đăng nhập bằng {current}. Hãy đăng xuất rồi đăng nhập bằng đúng email được mời.",
+    "openSpace": "Mở không gian",
+    "role": "Quyền của bạn: {role}",
+    "switchAccount": "Đăng xuất và đổi tài khoản",
+    "title": "Lời mời tham gia không gian"
+  },
+  "leave": {
+    "action": "Rời không gian",
+    "confirm": "Rời",
+    "confirmDescription": "Bạn sẽ không còn truy cập được “{space}” cho tới khi được thêm lại.",
+    "confirmTitle": "Rời không gian này?",
+    "leaving": "Đang rời…"
+  },
+  "list": {
+    "count": "{count, plural, other {# thành viên}}",
+    "description": "Người có quyền truy cập không gian này và vai trò của họ.",
+    "guest": "Khách",
+    "joined": "Tham gia {date}",
+    "remove": "Xoá",
+    "removeConfirmDescription": "{name} sẽ không còn truy cập được không gian “{space}”.",
+    "removeConfirmTitle": "Xoá thành viên?",
+    "removeLabel": "Xoá {name} khỏi không gian",
+    "removed": "Đã xoá {name} khỏi không gian.",
+    "removing": "Đang xoá…",
+    "roleChanged": "Đã đổi vai trò của {name} thành “{role}”.",
+    "roleLabel": "Vai trò của {name}",
+    "title": "Thành viên",
+    "unknown": "Người dùng ẩn",
+    "you": "Bạn"
+  },
+  "roleHint": {
+    "admin": "Quản lý cài đặt và thành viên",
+    "editor": "Tạo và sửa trang",
+    "viewer": "Chỉ đọc"
+  }
+}

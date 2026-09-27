@@ -14,6 +14,7 @@
   "dependencies": {
     "@floating-ui/dom": "^1.8.0",
     "@kb/editor": "workspace:*",
+    "@kb/emails": "workspace:*",
     "@kb/i18n": "workspace:*",
     "@kb/shared": "workspace:*",
     "@supabase/ssr": "^0.12.7",
