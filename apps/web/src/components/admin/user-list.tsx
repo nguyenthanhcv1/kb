@@ -123,8 +123,13 @@ export function UserList({ users }: { users: AdminUser[] }) {
                   <span className="text-sm break-all text-muted-foreground">{user.email}</span>
                 )}
                 <p className="text-xs text-muted-foreground">
-                  {t(`admin.users.access.${user.access}`)}
-                  {" · "}
+                  {/* A locked user's access reason is "deactivated": the badge already says it. */}
+                  {!deactivated && (
+                    <>
+                      {t(`admin.users.access.${user.access}`)}
+                      {" · "}
+                    </>
+                  )}
                   {t("admin.users.spaces", { count: user.spaceCount })}
                   {" · "}
                   {deactivated

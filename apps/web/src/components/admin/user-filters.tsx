@@ -18,7 +18,7 @@ export function UserFilters({ query }: { query: UsersQuery }) {
 
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-      <form action="/admin/users" method="get" role="search" className="flex gap-2 sm:max-w-sm">
+      <form action="/admin/users" method="get" role="search" className="flex w-full gap-2 sm:w-96">
         {query.status !== "all" && <input type="hidden" name="status" value={query.status} />}
         <Input
           type="search"
