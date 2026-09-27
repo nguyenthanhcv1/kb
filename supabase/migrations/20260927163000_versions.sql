@@ -182,23 +182,6 @@ comment on function app.prune_page_versions(timestamptz, interval, text) is
 revoke all on function app.page_versions_before_insert() from public;
 revoke all on function app.audit_page_versions() from public;
 revoke all on function app.prune_page_versions(timestamptz, interval, text) from public;
-grant execute on function app.prune_page_versions(timestamptz, interval, text) to service_role;
-
--- Nightly schedule with pg_cron (02:30 Asia/Ho_Chi_Minh = 19:30 UTC). The Supabase Postgres image
--- ships pg_cron preloaded; where it is not available the migration still succeeds and the job
--- can be run by any scheduler as `select app.prune_page_versions();`.
-do $$
-begin
-  if exists (select 1 from pg_catalog.pg_available_extensions where name = 'pg_cron') then
-    begin
-      create extension if not exists pg_cron;
-      perform cron.schedule('kb-prune-page-versions', '30 19 * * *',
-                            'select app.prune_page_versions()');
-    exception when others then
-      raise notice 'pg_cron unavailable (%), schedule app.prune_page_versions() elsewhere', sqlerrm;
-    end;
-  else
-    raise notice 'pg_cron not installed, schedule app.prune_page_versions() elsewhere';
-  end if;
-end;
-$$;
+-- Scheduled nightly by kb-collab (apps/collab/src/retention.ts) — no pg_cron: its jobs only run in
+-- the `cron.database_name` database, which breaks restoring a backup into another database (T0.9 drill).
+grant execute on function app.prune_page_versions(timestamptz, interval, text) to kb_collab, service_role;

@@ -25,6 +25,8 @@ export interface DocumentStore {
   fetch(pageId: string): Promise<StoredDocument | null>;
   /** Returns false when the page no longer exists (purged while open). */
   store(input: StoreInput): Promise<boolean>;
+  /** Nightly retention of page_versions (T6.1a); returns the number of versions deleted. */
+  prunePageVersions(): Promise<number>;
   ping(): Promise<void>;
   close(): Promise<void>;
 }
@@ -115,6 +117,13 @@ export function createDocumentStore(
       } finally {
         client.release();
       }
+    },
+
+    async prunePageVersions() {
+      const { rows } = await pool.query<{ deleted: number }>(
+        "select app.prune_page_versions() as deleted",
+      );
+      return rows[0]?.deleted ?? 0;
     },
 
     async ping() {

@@ -1,6 +1,6 @@
 begin;
 
-select plan(37);
+select plan(36);
 
 insert into auth.users (id, email) values
   ('00000000-0000-0000-0000-000000000001', 'super@example.com'),
@@ -108,8 +108,7 @@ select throws_ok($$ update public.page_versions set label = 'x' $$, '42501', nul
   'kb_collab cannot rewrite versions');
 select throws_ok($$ delete from public.page_versions $$, '42501', null,
   'kb_collab cannot delete versions');
-select throws_ok($$ select app.prune_page_versions() $$, '42501', null,
-  'kb_collab cannot run the retention job');
+select lives_ok($$ select app.prune_page_versions() $$, 'kb_collab runs the retention job');
 
 reset role;
 set local search_path = public, extensions;
@@ -220,12 +219,6 @@ select set_eq(
 );
 select is(app.prune_page_versions('2026-03-01 00:00+07'), 0, 'retention is idempotent');
 select is(app.prune_page_versions('2026-03-30 00:00+07'), 1, 'recent auto versions thin out once older than 30 days');
-
-select is(
-  (select schedule || ' ' || command from cron.job where jobname = 'kb-prune-page-versions'),
-  '30 19 * * * select app.prune_page_versions()',
-  'retention runs nightly at 02:30 Asia/Ho_Chi_Minh'
-);
 
 -- Purging a page removes its history.
 update public.pages set deleted_at = now() where id = '20000000-0000-0000-0000-000000000002';
