@@ -1,9 +1,11 @@
 // @vitest-environment happy-dom
 import enCommon from "@kb/i18n/messages/en/common.json";
 import enErrors from "@kb/i18n/messages/en/errors.json";
+import enNav from "@kb/i18n/messages/en/nav.json";
 import enSpace from "@kb/i18n/messages/en/space.json";
 import viCommon from "@kb/i18n/messages/vi/common.json";
 import viErrors from "@kb/i18n/messages/vi/errors.json";
+import viNav from "@kb/i18n/messages/vi/nav.json";
 import viSpace from "@kb/i18n/messages/vi/space.json";
 import { cleanup, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -35,8 +37,8 @@ const { SpaceNav } = await import("./space-nav");
 const { SpaceSettingsForm } = await import("./space-settings-form");
 
 const messages = {
-  vi: { common: viCommon, errors: viErrors, space: viSpace },
-  en: { common: enCommon, errors: enErrors, space: enSpace },
+  vi: { common: viCommon, errors: viErrors, nav: viNav, space: viSpace },
+  en: { common: enCommon, errors: enErrors, nav: enNav, space: enSpace },
 };
 
 function renderWith(ui: ReactNode, locale: "vi" | "en" = "vi") {
@@ -121,6 +123,33 @@ describe("SpaceNav", () => {
     expect(screen.getByRole("link", { name: "Design 2" }).getAttribute("aria-current")).toBeNull();
     expect(screen.queryByRole("button", { name: viSpace.create })).toBeNull();
   });
+
+  it.each([
+    ["admin", true],
+    ["editor", true],
+    ["viewer", false],
+  ] as [SpaceRole, boolean][])(
+    "role %s sees the trash link of the current Space: %s",
+    (role, visible) => {
+      pathname = "/s/design/trash";
+      renderWith(
+        <SpaceNav
+          spaces={[
+            makeSpace({ role }),
+            makeSpace({ id: "0b9a0000-0000-4000-8000-000000000002", slug: "other", name: "Other" }),
+          ]}
+          canCreate
+        />,
+      );
+      const links = screen.queryAllByRole("link", { name: viNav.trash });
+      // Only under the current Space.
+      expect(links).toHaveLength(visible ? 1 : 0);
+      if (visible) {
+        expect(links[0]!.getAttribute("href")).toBe("/s/design/trash");
+        expect(links[0]!.getAttribute("aria-current")).toBe("page");
+      }
+    },
+  );
 });
 
 describe("SpaceHeader", () => {
@@ -133,6 +162,17 @@ describe("SpaceHeader", () => {
     const link = screen.queryByRole("link", { name: viSpace.settings });
     expect(Boolean(link)).toBe(visible);
     if (link) expect(link.getAttribute("href")).toBe("/s/design/settings");
+  });
+
+  it.each([
+    ["admin", true],
+    ["editor", true],
+    ["viewer", false],
+  ] as [SpaceRole, boolean][])("role %s sees the trash link: %s", (role, visible) => {
+    renderWith(<SpaceHeader space={makeSpace({ role })} />, "en");
+    const link = screen.queryByRole("link", { name: enNav.trash });
+    expect(Boolean(link)).toBe(visible);
+    if (link) expect(link.getAttribute("href")).toBe("/s/design/trash");
   });
 });
 
