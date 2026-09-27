@@ -6,6 +6,7 @@ import { expect, type Locator, type Page, test } from "@playwright/test";
 
 /**
  * T4.1 — basic table: insert from "/", type with Tab, add rows/columns from the table toolbar,
+ * merge / split / colour cells (T4.2),
  * export CSV, horizontal scroll on a phone. Labels come from the message files (vi and en), so
  * the spec follows translation changes.
  *
@@ -139,6 +140,51 @@ for (const locale of ["vi", "en"] as const) {
       await expect(page.getByRole("menu")).toBeVisible();
       await page.keyboard.press("Escape");
       await expect(editor).toBeFocused();
+    });
+
+    test("select cells, merge, colour and split them (T4.2)", async ({ page }) => {
+      const editor = await openEditor(page, locale);
+      const table = await insertTable(page, editor, locale);
+      const cell = (row: number, col: number) =>
+        table.locator("tr").nth(row).locator("th, td").nth(col);
+
+      // Drag from the first body cell to the next one: a 2-cell selection.
+      await cell(1, 0).click();
+      await page.keyboard.type("a");
+      const from = (await cell(1, 0).boundingBox())!;
+      const to = (await cell(1, 1).boundingBox())!;
+      await page.mouse.move(from.x + 10, from.y + from.height / 2);
+      await page.mouse.down();
+      await page.mouse.move(to.x + to.width / 2, to.y + to.height / 2, { steps: 5 });
+      await page.mouse.up();
+      await expect(table.locator(".selectedCell")).toHaveCount(2);
+
+      const toolbar = page.getByRole("toolbar", { name: t.menu.label });
+      await toolbar.getByRole("button", { name: t.menu.options }).click();
+      await page.getByRole("menuitem", { name: t.actions.mergeCells }).click();
+      await expect(cell(1, 0)).toHaveAttribute("colspan", "2");
+      await expect(table.locator("tr").nth(1).locator("td")).toHaveCount(2);
+
+      // Colour the merged cell from the submenu, with the keyboard.
+      await expect(page.getByRole("menu")).toHaveCount(0);
+      await cell(1, 0).click();
+      await toolbar.getByRole("button", { name: t.menu.options }).click();
+      await page.getByRole("menuitem", { name: t.actions.cellBackground }).focus();
+      await page.keyboard.press("ArrowRight");
+      await page.getByRole("menuitemradio", { name: t.colors.green }).click();
+      await expect(cell(1, 0)).toHaveAttribute("data-background-color", "green");
+      const background = await cell(1, 0).evaluate((el) => getComputedStyle(el).backgroundColor);
+      expect(background).not.toBe("rgba(0, 0, 0, 0)");
+
+      // Split it back: two 1×1 cells, both green, text kept in the first.
+      await expect(page.getByRole("menu")).toHaveCount(0);
+      await cell(1, 0).click();
+      await toolbar.getByRole("button", { name: t.menu.options }).click();
+      await page.getByRole("menuitem", { name: t.actions.splitCell }).click();
+      await expect(table.locator("tr").nth(1).locator("td")).toHaveCount(3);
+      await expect(cell(1, 0)).toHaveAttribute("colspan", "1");
+      await expect(cell(1, 1)).toHaveAttribute("data-background-color", "green");
+      expect((await cellTexts(table))[1]).toEqual(["a", "", ""]);
     });
 
     test("wide tables scroll inside the table on a 360 px screen", async ({ page }) => {

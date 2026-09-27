@@ -205,3 +205,44 @@
 .kb-editor .ProseMirror-hideselection *::selection {
   @apply bg-transparent;
 }
+
+/*
+ * Cell background colours (T4.2). The document stores a palette code (`data-background-color`,
+ * see CELL_BACKGROUND_COLORS in @kb/editor); each code maps to a soft fill with a dark: variant
+ * so body text keeps AA contrast in both themes. The menu swatches share the same rules.
+ */
+.kb-cell-swatch {
+  @apply bg-background;
+}
+.kb-editor-content :is(td, th)[data-background-color="gray"],
+.kb-cell-swatch[data-background-color="gray"] {
+  @apply bg-neutral-200/70 dark:bg-neutral-700/50;
+}
+.kb-editor-content :is(td, th)[data-background-color="red"],
+.kb-cell-swatch[data-background-color="red"] {
+  @apply bg-red-100 dark:bg-red-950/60;
+}
+.kb-editor-content :is(td, th)[data-background-color="orange"],
+.kb-cell-swatch[data-background-color="orange"] {
+  @apply bg-orange-100 dark:bg-orange-950/60;
+}
+.kb-editor-content :is(td, th)[data-background-color="yellow"],
+.kb-cell-swatch[data-background-color="yellow"] {
+  @apply bg-yellow-100 dark:bg-yellow-900/40;
+}
+.kb-editor-content :is(td, th)[data-background-color="green"],
+.kb-cell-swatch[data-background-color="green"] {
+  @apply bg-green-100 dark:bg-green-950/60;
+}
+.kb-editor-content :is(td, th)[data-background-color="blue"],
+.kb-cell-swatch[data-background-color="blue"] {
+  @apply bg-blue-100 dark:bg-blue-950/60;
+}
+.kb-editor-content :is(td, th)[data-background-color="purple"],
+.kb-cell-swatch[data-background-color="purple"] {
+  @apply bg-purple-100 dark:bg-purple-950/60;
+}
+.kb-editor-content :is(td, th)[data-background-color="pink"],
+.kb-cell-swatch[data-background-color="pink"] {
+  @apply bg-pink-100 dark:bg-pink-950/60;
+}
