@@ -25,6 +25,7 @@ const actions = vi.hoisted(() => ({
   setPageIconAction: vi.fn(),
   restorePageAction: vi.fn(),
   purgePageAction: vi.fn(),
+  trashPageAction: vi.fn(),
 }));
 vi.mock("@/server/pages/actions", () => actions);
 
@@ -147,6 +148,16 @@ describe("PageView", () => {
       icon: null,
     });
     expect(await screen.findByRole("button", { name: "Add icon" })).toBeTruthy();
+  });
+
+  it("moves the page to the trash from the page menu", async () => {
+    const user = userEvent.setup();
+    actions.trashPageAction.mockResolvedValue({ ok: true, data: makePage() });
+    renderWith(<PageView page={makePage()} spaceSlug="design" canEdit content={doc} />, "en");
+    await user.click(screen.getByRole("button", { name: enTree.page.menu }));
+    await user.click(await screen.findByRole("menuitem", { name: enTree.actions.moveToTrash }));
+    expect(actions.trashPageAction).toHaveBeenCalledWith({ pageId: makePage().id });
+    expect(router.refresh).toHaveBeenCalled();
   });
 
   it("is read-only for viewers, with the untitled placeholder and the empty-content notice", () => {

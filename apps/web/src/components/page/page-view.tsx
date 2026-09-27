@@ -13,6 +13,7 @@ import type { PageSummary } from "@/server/pages";
 import { restorePageAction } from "@/server/pages/actions";
 
 import { pageErrorKey } from "./errors";
+import { PageActionsMenu } from "./page-actions-menu";
 import { PageContent } from "./page-content";
 import { PageIconPicker } from "./page-icon-picker";
 import { PageTitle } from "./page-title";
@@ -43,9 +44,12 @@ export function PageView({ page, spaceSlug, canEdit, content }: PageViewProps) {
   return (
     <article className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-6 sm:px-8 sm:py-10">
       {trashed && <TrashedPageNotice page={page} spaceSlug={spaceSlug} canRestore={canEdit} />}
-      <header className="flex flex-col gap-2">
-        <PageIconPicker page={page} editable={editable} onChanged={() => router.refresh()} />
-        <PageTitle page={page} editable={editable} onRenamed={onRenamed} />
+      <header className="flex items-start gap-2">
+        <div className="flex min-w-0 flex-1 flex-col gap-2">
+          <PageIconPicker page={page} editable={editable} onChanged={() => router.refresh()} />
+          <PageTitle page={page} editable={editable} onRenamed={onRenamed} />
+        </div>
+        {editable && <PageActionsMenu page={page} />}
       </header>
       <PageContent content={content} title={page.title} />
     </article>
