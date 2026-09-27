@@ -62,6 +62,14 @@ done
 sql "$ADMIN_URL" "select 1" > /dev/null || fail "database did not start"
 
 step "migrations + fixture"
+# The bare image ships the initial Storage schema; storage-api (always running in Supabase, not
+# here) adds the bucket columns the attachments migration configures. Add just those columns.
+sql "$ADMIN_URL" "
+  alter table storage.buckets
+    add column if not exists public boolean default false,
+    add column if not exists file_size_limit bigint,
+    add column if not exists allowed_mime_types text[];
+" > /dev/null
 docker run --rm --network "$NET" -v "$ROOT/supabase/migrations:/migrations:ro" --entrypoint bash "$IMAGE" -c \
   'for f in /migrations/*.sql; do psql "$0" -X -q -v ON_ERROR_STOP=1 -f "$f" > /dev/null 2>&1 || { echo "failed: $f"; exit 1; }; done' \
   "$SRC_URL"

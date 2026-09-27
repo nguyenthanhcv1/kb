@@ -18,16 +18,40 @@
     "web": "Web app",
     "whatsNew": "See what's new"
   },
+  "errors": {
+    "avatarUrlInvalid": "Enter an image address starting with http:// or https://.",
+    "localeInvalid": "This language is not supported.",
+    "nameTooLong": "The display name can be at most {max} characters.",
+    "timeZoneInvalid": "This time zone is not valid."
+  },
+  "form": {
+    "saved": "Saved",
+    "saving": "Saving…"
+  },
   "language": {
+    "hint": "Applies to the whole interface, on every device you sign in on.",
     "label": "Language"
+  },
+  "preferences": {
+    "description": "The interface language and the time zone used to show dates and times.",
+    "title": "Language and time zone"
   },
   "profile": {
     "avatar": "Avatar",
+    "avatarUrl": "Avatar URL",
+    "avatarUrlHint": "Link to an image (http:// or https://). Leave empty to show your initials.",
+    "avatarUrlPlaceholder": "https://…",
+    "description": "The name and picture people see when you edit pages or are mentioned.",
     "displayName": "Display name",
+    "displayNameHint": "Leave empty to show your email.",
+    "displayNamePlaceholder": "e.g. Jane Doe",
     "title": "Profile"
   },
   "timeZone": {
-    "label": "Time zone"
+    "label": "Time zone",
+    "option": "({offset}) {zone}",
+    "preview": "Current time in this time zone: {time}",
+    "useDevice": "Use this device's time zone"
   },
   "title": "Settings"
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { localeCookieName, locales, type Locale } from "@kb/i18n/config";
+import { locales } from "@kb/i18n/config";
 import { LanguagesIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
@@ -15,18 +15,12 @@ import {
   DropdownMenuRadioItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-
-const ONE_YEAR_SECONDS = 60 * 60 * 24 * 365;
-
-/** Stores the chosen locale in the `NEXT_LOCALE` cookie read by `src/i18n/request.ts`. */
-export function persistLocale(locale: Locale) {
-  document.cookie = `${localeCookieName}=${locale}; path=/; max-age=${ONE_YEAR_SECONDS}; samesite=lax`;
-}
+import { setLocale } from "@/server/profile/actions";
 
 /**
  * Vietnamese / English switcher. Each language is shown in its own name.
- * The choice goes to the cookie, then the server components re-render in the new locale.
- * Signed-in users will also get it saved to `profiles.locale` (T1.3).
+ * The choice goes to the `NEXT_LOCALE` cookie and, when signed in, to `profiles.locale` (so it
+ * follows the user to other devices) — see `setLocale`; then the server components re-render.
  */
 export function LocaleSwitcher() {
   const t = useTranslations("common.locale");
@@ -37,8 +31,11 @@ export function LocaleSwitcher() {
   function onChange(value: string) {
     const next = locales.find((l) => l === value);
     if (!next || next === locale) return;
-    persistLocale(next);
-    startTransition(() => router.refresh());
+    startTransition(async () => {
+      const result = await setLocale(next);
+      if (!result.ok) console.error("[i18n] saving the locale failed", result.error);
+      router.refresh();
+    });
   }
 
   return (
