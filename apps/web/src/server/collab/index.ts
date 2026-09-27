@@ -5,7 +5,7 @@ import { webEnv } from "@/lib/env";
 import { signRequest } from "./signature";
 
 /**
- * kb-web → kb-collab internal API client (task T3.7, docs/PLAN.md §1.2). Server-only.
+ * kb-web → kb-collab internal API client (tasks T3.7, T6.1b; docs/PLAN.md §1.2). Server-only.
  *
  * The single way for kb-web to change page content (restore a version T6.3, apply a template,
  * import): kb-collab applies it through a Hocuspocus direct connection, so every open editor sees
@@ -28,6 +28,7 @@ import { signRequest } from "./signature";
 
 /** User-facing codes (all exist in `packages/i18n/messages/*\/errors.json`). */
 export const COLLAB_ERROR_CODES = [
+  "FORBIDDEN",
   "PAGE_NOT_FOUND",
   "VALIDATION_FAILED",
   "PAGE_ACTION_FAILED",
@@ -81,6 +82,7 @@ const DEFAULT_TIMEOUT_MS = 15_000;
 /** Collab's internal codes → user-facing codes. */
 function toUserCode(collabCode: string): CollabErrorCode {
   if (collabCode === "PAGE_NOT_FOUND") return "PAGE_NOT_FOUND";
+  if (collabCode === "FORBIDDEN") return "FORBIDDEN";
   if (collabCode === "VALIDATION_FAILED" || collabCode === "PAYLOAD_TOO_LARGE") {
     return "VALIDATION_FAILED";
   }
@@ -106,9 +108,73 @@ export async function replaceDocument(
     throw new CollabError("VALIDATION_FAILED", "VALIDATION_FAILED", { cause: parsed.error });
   }
   const { pageId, ...payload } = parsed.data;
+  return postInternal(
+    `/internal/documents/${pageId}/replace`,
+    payload,
+    replaceDocumentResultSchema,
+    options,
+  );
+}
+
+/** Longest name of a manual version (page_versions.label). */
+export const VERSION_LABEL_MAX_LENGTH = 200;
+
+export const createPageVersionInputSchema = z.object({
+  pageId: z.guid(),
+  /** Author of the version; kb-collab checks again that they are an editor or admin. */
+  actorId: z.guid(),
+  /** Optional name shown in the history (empty = unnamed). */
+  label: z.string().trim().max(VERSION_LABEL_MAX_LENGTH).optional(),
+});
+export type CreatePageVersionInput = z.input<typeof createPageVersionInputSchema>;
+
+export const createPageVersionResultSchema = z.object({
+  pageId: z.guid(),
+  versionId: z.guid(),
+  /** Number of the version within the page (1, 2, …). */
+  versionNo: z.number().int().positive(),
+});
+export type CreatePageVersionResult = z.infer<typeof createPageVersionResultSchema>;
+
+/**
+ * "Save version" (T6.1b): kb-collab writes a `manual` page version of the live document, edits
+ * not yet stored included. Check edit rights before calling (collab re-checks `actorId`).
+ *
+ * ```ts
+ * await createPageVersion({ pageId, actorId: user.id, label: "Bản đã duyệt" });
+ * // { pageId: "7b0c2a4e-…", versionId: "3f1d…", versionNo: 12 }
+ * ```
+ *
+ * Errors ({@link CollabError}): `FORBIDDEN` (viewer), `PAGE_NOT_FOUND`, `VALIDATION_FAILED`,
+ * `PAGE_ACTION_FAILED`.
+ */
+export async function createPageVersion(
+  input: CreatePageVersionInput,
+  options: CollabClientOptions = {},
+): Promise<CreatePageVersionResult> {
+  const parsed = createPageVersionInputSchema.safeParse(input);
+  if (!parsed.success) {
+    throw new CollabError("VALIDATION_FAILED", "VALIDATION_FAILED", { cause: parsed.error });
+  }
+  const { pageId, actorId, label } = parsed.data;
+  return postInternal(
+    `/internal/documents/${pageId}/versions`,
+    { actorId, ...(label ? { label } : {}) },
+    createPageVersionResultSchema,
+    options,
+  );
+}
+
+/** Signed POST to kb-collab's internal API; maps failures to {@link CollabError}. */
+async function postInternal<T>(
+  route: string,
+  payload: unknown,
+  resultSchema: z.ZodType<T>,
+  options: CollabClientOptions,
+): Promise<T> {
   const { url, secret } = resolveConfig(options);
 
-  const endpoint = new URL(`/internal/documents/${pageId}/replace`, url);
+  const endpoint = new URL(route, url);
   const path = endpoint.pathname + endpoint.search;
   const body = JSON.stringify(payload);
 
@@ -134,7 +200,7 @@ export async function replaceDocument(
 
   const json: unknown = await response.json().catch(() => null);
   if (response.ok) {
-    const result = replaceDocumentResultSchema.safeParse(json);
+    const result = resultSchema.safeParse(json);
     if (result.success) return result.data;
     throw new CollabError("PAGE_ACTION_FAILED", "BAD_RESPONSE", { cause: result.error });
   }
