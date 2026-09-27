@@ -1,5 +1,9 @@
 import { NextResponse, type NextRequest } from "next/server";
 
+import { DEPLOYED_APP_ENVS, type AppEnv } from "@kb/shared/env";
+
+import { contentSecurityPolicy } from "@/lib/security-headers";
+import { supabaseUrl } from "@/lib/supabase/env";
 import { ensureBootstrapAccess } from "@/server/auth/bootstrap";
 import { isPublicPath } from "@/server/auth/utils";
 
@@ -23,6 +27,27 @@ const SESSION_ONLY_PATHS = ["/invite"];
  * `/login`.
  */
 export async function middleware(request: NextRequest): Promise<NextResponse> {
+  return withContentSecurityPolicy(await gate(request));
+}
+
+let cachedCsp: string | undefined;
+
+/**
+ * CSP of page responses (T7.2). Built from runtime settings — the Supabase and collab origins are
+ * not known at build time — once per server process. Static headers live in next.config.ts.
+ */
+function withContentSecurityPolicy(response: NextResponse): NextResponse {
+  cachedCsp ??= contentSecurityPolicy({
+    supabaseUrl: supabaseUrl(),
+    collabUrl: process.env.COLLAB_PUBLIC_URL,
+    dev: process.env.NODE_ENV === "development",
+    upgradeInsecureRequests: DEPLOYED_APP_ENVS.includes(process.env.APP_ENV as AppEnv),
+  });
+  response.headers.set("Content-Security-Policy", cachedCsp);
+  return response;
+}
+
+async function gate(request: NextRequest): Promise<NextResponse> {
   await ensureBootstrapAccess().catch((error: unknown) => {
     console.error("[auth] bootstrap sync failed", error);
   });

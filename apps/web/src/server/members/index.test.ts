@@ -123,6 +123,7 @@ describe("toMemberError", () => {
     [{ code: "23514", message: "SPACE_REQUIRES_ADMIN" }, "SPACE_REQUIRES_ADMIN"],
     [{ code: "23514", message: "GUEST_CANNOT_BE_SPACE_ADMIN" }, "GUEST_CANNOT_BE_SPACE_ADMIN"],
     [{ code: "P0001", message: "INVITATION_EXPIRED" }, "INVITATION_EXPIRED"],
+    [{ code: "P0001", message: "RATE_LIMITED" }, "RATE_LIMITED"],
     [{ code: "42501", message: "new row violates row-level security policy" }, "FORBIDDEN"],
     [{ code: "23514", message: "some_check" }, "VALIDATION_FAILED"],
     [{ code: "23514", message: "INVITATION_IMMUTABLE" }, "VALIDATION_FAILED"],
