@@ -1,9 +1,14 @@
 import { type Editor, Extension, findParentNode } from "@tiptap/core";
 import type { Node as ProseMirrorNode } from "@tiptap/pm/model";
-import { type EditorState, Selection } from "@tiptap/pm/state";
-import { selectedRect, TableMap } from "@tiptap/pm/tables";
+import { type EditorState, Selection, type Transaction } from "@tiptap/pm/state";
+import { CellSelection, selectedRect, splitCell, TableMap } from "@tiptap/pm/tables";
 
-import { TABLE_NODE_NAMES } from "../extensions/table";
+import {
+  CELL_BACKGROUND_ATTR,
+  type CellBackgroundColor,
+  isCellBackgroundColor,
+  TABLE_NODE_NAMES,
+} from "../extensions/table";
 import { csvFileName, tableNodeToCsv } from "../table/csv";
 
 /** The table holding the selection: the node, its position (before it) and its content start. */
@@ -55,7 +60,7 @@ function selectionCoversAll(state: EditorState, axis: "rows" | "columns"): boole
     : rect.left === 0 && rect.right === rect.map.width;
 }
 
-export const TABLE_ACTION_GROUPS = ["rows", "columns", "header", "table"] as const;
+export const TABLE_ACTION_GROUPS = ["rows", "columns", "cells", "header", "table"] as const;
 export type TableActionGroup = (typeof TABLE_ACTION_GROUPS)[number];
 
 export type TableActionId =
@@ -65,6 +70,8 @@ export type TableActionId =
   | "addColumnBefore"
   | "addColumnAfter"
   | "deleteColumn"
+  | "mergeCells"
+  | "splitCell"
   | "toggleHeaderRow"
   | "toggleHeaderColumn"
   | "deleteTable";
@@ -123,6 +130,20 @@ export const TABLE_ACTIONS: readonly TableAction[] = [
     can: (e) => e.can().deleteColumn() && !selectionCoversAll(e.state, "columns"),
   },
   {
+    // Needs a rectangular selection of 2+ cells (drag across cells or Shift+arrow keys).
+    id: "mergeCells",
+    group: "cells",
+    run: (e) => e.chain().focus().mergeCells().run(),
+    can: (e) => e.can().mergeCells(),
+  },
+  {
+    // Splits the merged cell holding the caret back into 1×1 cells (content stays in the first).
+    id: "splitCell",
+    group: "cells",
+    run: (e) => splitMergedCell(e),
+    can: (e) => e.can().splitCell(),
+  },
+  {
     id: "toggleHeaderRow",
     group: "header",
     toggle: "headerRow",
@@ -150,6 +171,10 @@ export interface TableMenuState {
   /** Per action id: enabled for the current selection. */
   enabled: Record<TableActionId, boolean>;
   checked: { headerRow: boolean; headerColumn: boolean };
+  /** Background colour of the selected cells: a code, `null` (none) or `"mixed"`. */
+  cellBackground: CellBackgroundColor | null | "mixed";
+  /** The cell colour menu can change the selected cells. */
+  canSetCellBackground: boolean;
 }
 
 /** Snapshot for the table toolbar (cheap enough to compute on every transaction). */
@@ -165,7 +190,89 @@ export function getTableMenuState(editor: Editor): TableMenuState {
       headerRow: table ? hasHeaderRow(table.node) : false,
       headerColumn: table ? hasHeaderColumn(table.node) : false,
     },
+    cellBackground: table ? getCellBackground(editor.state) : null,
+    canSetCellBackground: Boolean(table && editable),
   };
+}
+
+/** Selected cells (position before the node): every cell of a cell selection, else the caret's. */
+function selectedCells(state: EditorState): { pos: number; node: ProseMirrorNode }[] {
+  const { selection } = state;
+  if (selection instanceof CellSelection) {
+    const cells: { pos: number; node: ProseMirrorNode }[] = [];
+    selection.forEachCell((node, pos) => cells.push({ node, pos }));
+    return cells;
+  }
+  const { $from } = selection;
+  for (let depth = $from.depth; depth > 0; depth--) {
+    const node = $from.node(depth);
+    const role = node.type.spec.tableRole as string | undefined;
+    if (role === "cell" || role === "header_cell") return [{ node, pos: $from.before(depth) }];
+  }
+  return [];
+}
+
+/** Colour code shared by the selected cells, `null` when none has one, `"mixed"` otherwise. */
+export function getCellBackground(state: EditorState): CellBackgroundColor | null | "mixed" {
+  let result: CellBackgroundColor | null | undefined;
+  for (const { node } of selectedCells(state)) {
+    const raw: unknown = node.attrs[CELL_BACKGROUND_ATTR];
+    const code = isCellBackgroundColor(raw) ? raw : null;
+    if (result === undefined) result = code;
+    else if (result !== code) return "mixed";
+  }
+  return result ?? null;
+}
+
+/**
+ * Sets (or with `null` clears) the background of every selected cell — all cells of a cell
+ * selection, else the caret's cell — as one undo step. Unlike prosemirror-tables'
+ * `setCellAttr`, it also applies when the first selected cell already has that colour.
+ * Unknown codes are refused.
+ */
+export function setCellBackground(editor: Editor, color: CellBackgroundColor | null): boolean {
+  if (!editor.isEditable || !findTable(editor.state)) return false;
+  if (color !== null && !isCellBackgroundColor(color)) return false;
+  const tr = editor.state.tr;
+  for (const { node, pos } of selectedCells(editor.state)) {
+    if ((node.attrs[CELL_BACKGROUND_ATTR] ?? null) === color) continue;
+    tr.setNodeMarkup(pos, null, { ...node.attrs, [CELL_BACKGROUND_ATTR]: color });
+  }
+  if (tr.docChanged) editor.view.dispatch(tr);
+  editor.commands.focus();
+  return true;
+}
+
+/**
+ * Splits the merged cell holding the selection (prosemirror-tables `splitCell`). The new cells
+ * copy every attribute of the merged one — colour and width included, which is wanted — but
+ * also its block `id`, and UniqueID does not always catch that duplicate (a cell inserted right
+ * after the original is not seen as new). Duplicated cell ids are cleared in the same step so
+ * UniqueID gives those cells fresh ones; the first cell keeps the original id (deep links).
+ */
+export function splitMergedCell(editor: Editor): boolean {
+  if (!editor.isEditable) return false;
+  let tr: Transaction | null = null;
+  if (!splitCell(editor.state, (t) => (tr = t)) || !tr) return false;
+  clearDuplicateCellIds(tr);
+  editor.view.dispatch(tr);
+  editor.commands.focus();
+  return true;
+}
+
+function clearDuplicateCellIds(tr: Transaction) {
+  const seen = new Set<unknown>();
+  tr.doc.descendants((node, pos) => {
+    const role = node.type.spec.tableRole as string | undefined;
+    if (role !== "cell" && role !== "header_cell") return true;
+    const id: unknown = node.attrs.id;
+    if (id != null) {
+      if (seen.has(id)) tr.setNodeMarkup(pos, null, { ...node.attrs, id: null });
+      else seen.add(id);
+    }
+    // Tables are not nested: nothing below a cell needs checking.
+    return false;
+  });
 }
 
 /**

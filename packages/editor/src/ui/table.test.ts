@@ -162,8 +162,13 @@ describe("table menu state", () => {
     const state = getTableMenuState(editor);
     expect(state.inTable).toBe(true);
     expect(Object.keys(state.enabled).sort()).toEqual(TABLE_ACTIONS.map((a) => a.id).sort());
-    expect(Object.values(state.enabled).every(Boolean)).toBe(true);
+    // Merge needs a multi-cell selection, split a merged cell (see table-cells.test.ts).
+    const { mergeCells, splitCell, ...rest } = state.enabled;
+    expect(Object.values(rest).every(Boolean)).toBe(true);
+    expect({ mergeCells, splitCell }).toEqual({ mergeCells: false, splitCell: false });
     expect(state.checked).toEqual({ headerRow: true, headerColumn: false });
+    expect(state.cellBackground).toBeNull();
+    expect(state.canSetCellBackground).toBe(true);
   });
 
   it("cannot delete the last row or the last column", async () => {
