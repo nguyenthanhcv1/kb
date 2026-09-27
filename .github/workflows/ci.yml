@@ -105,8 +105,9 @@ jobs:
         with:
           version: 2.118.0 # giữ khớp supabase/README.md
       - name: Khởi động Postgres + PostgREST/Kong, chạy migration + seed
-        # Chỉ db, rest, kong (pgTAP, integration test qua supabase-js) + mailpit (SMTP thật cho email lời mời và email thử).
-        run: supabase start -x gotrue,realtime,storage-api,imgproxy,postgres-meta,studio,edge-runtime,logflare,vector,supavisor
+        # Chỉ db, rest, kong (pgTAP, integration test qua supabase-js), storage-api (bucket attachments)
+        # + mailpit (SMTP thật cho email lời mời và email thử).
+        run: supabase start -x gotrue,realtime,imgproxy,postgres-meta,studio,edge-runtime,logflare,vector,supavisor
       - name: pgTAP (gồm test "mọi bảng bật RLS")
         run: supabase test db
       - name: Migration chạy lại được từ đầu (db reset)
@@ -130,6 +131,12 @@ jobs:
           SPACES_TEST_JWT_SECRET: super-secret-jwt-token-with-at-least-32-characters-long
           SPACES_TEST_ADMIN_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
         run: pnpm --filter @kb/web exec vitest run src/server/space/space.integration.test.ts
+      - name: Integration test cài đặt cá nhân (supabase-js → PostgREST → RLS + grant cột)
+        env:
+          PROFILE_TEST_SUPABASE_URL: http://127.0.0.1:54321
+          PROFILE_TEST_JWT_SECRET: super-secret-jwt-token-with-at-least-32-characters-long
+          PROFILE_TEST_ADMIN_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+        run: pnpm --filter @kb/web exec vitest run src/server/profile/profile.integration.test.ts
       - name: Integration test thành viên + lời mời (PostgREST → RLS, SMTP → Mailpit)
         env:
           MEMBERS_TEST_SUPABASE_URL: http://127.0.0.1:54321
@@ -146,6 +153,12 @@ jobs:
           ADMIN_TEST_JWT_SECRET: super-secret-jwt-token-with-at-least-32-characters-long
           ADMIN_TEST_ADMIN_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
         run: pnpm --filter @kb/web exec vitest run src/server/admin/admin.integration.test.ts
+      - name: Integration test tệp đính kèm (supabase-js → PostgREST/Storage → RLS)
+        env:
+          ATTACHMENTS_TEST_SUPABASE_URL: http://127.0.0.1:54321
+          ATTACHMENTS_TEST_JWT_SECRET: super-secret-jwt-token-with-at-least-32-characters-long
+          ATTACHMENTS_TEST_ADMIN_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+        run: pnpm --filter @kb/web exec vitest run src/server/attachments/attachments.integration.test.ts
       - name: Integration test gửi email (SMTP → Mailpit)
         env:
           MAIL_TEST_SMTP_PORT: 54325

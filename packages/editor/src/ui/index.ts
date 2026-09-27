@@ -37,6 +37,7 @@ export {
 export {
   addRowBelow,
   findTable,
+  getCellBackground,
   getTableMenuState,
   hasHeaderColumn,
   hasHeaderRow,
@@ -48,9 +49,16 @@ export {
   type TableAt,
   tableCsvExport,
   type TableMenuState,
+  setCellBackground,
+  splitMergedCell,
   TableShortcuts,
   type TableShortcutsOptions,
 } from "./table-actions";
+export {
+  CELL_BACKGROUND_COLORS,
+  type CellBackgroundColor,
+  isCellBackgroundColor,
+} from "../extensions/table";
 export { CSV_MIME_TYPE } from "../table/csv";
 export { Placeholder } from "@tiptap/extensions";
 export type { SuggestionKeyDownProps, SuggestionProps } from "@tiptap/suggestion";

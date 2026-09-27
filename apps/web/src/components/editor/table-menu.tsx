@@ -1,9 +1,12 @@
 "use client";
 
 import {
+  CELL_BACKGROUND_COLORS,
+  type CellBackgroundColor,
   CSV_MIME_TYPE,
   findTable,
   getTableMenuState,
+  setCellBackground,
   TABLE_ACTIONS,
   type TableAction,
   type TableActionGroup,
@@ -21,9 +24,12 @@ import {
   FileDownIcon,
   Grid2x2XIcon,
   type LucideIcon,
+  PaintBucketIcon,
   PanelLeftIcon,
   PanelTopIcon,
   Rows2Icon,
+  TableCellsMergeIcon,
+  TableCellsSplitIcon,
   TableIcon,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
@@ -44,8 +50,13 @@ import {
   DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
   DropdownMenuSeparator,
   DropdownMenuShortcut,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Separator } from "@/components/ui/separator";
@@ -61,10 +72,29 @@ export const TABLE_ACTION_ICONS: Record<TableActionId, LucideIcon> = {
   addColumnBefore: BetweenVerticalStartIcon,
   addColumnAfter: BetweenVerticalEndIcon,
   deleteColumn: Columns2Icon,
+  mergeCells: TableCellsMergeIcon,
+  splitCell: TableCellsSplitIcon,
   toggleHeaderRow: PanelTopIcon,
   toggleHeaderColumn: PanelLeftIcon,
   deleteTable: Grid2x2XIcon,
 };
+
+/** Value of the "no colour" radio item in the cell colour menu. */
+const NO_BACKGROUND = "none";
+
+/**
+ * Colour swatch of a palette code. Its colour comes from `editor.css`
+ * (`.kb-cell-swatch[data-background-color]`), the same theme-aware rule as the cells.
+ */
+function CellColorSwatch({ color }: { color: CellBackgroundColor | null }) {
+  return (
+    <span
+      aria-hidden
+      className="kb-cell-swatch size-4 shrink-0 rounded-sm border border-border"
+      data-background-color={color ?? undefined}
+    />
+  );
+}
 
 /** Actions also shown as icon buttons next to the menu (the rest live in the menu only). */
 const QUICK_ACTIONS: readonly TableActionId[] = ["addRowAfter", "addColumnAfter"];
@@ -108,7 +138,8 @@ export type TableMenuProps = {
 
 /**
  * Toolbar floating above the table that holds the selection: a "Table" menu with every action
- * (rows, columns, header row/column, CSV export, delete) plus quick buttons. Keyboard: Alt-F10
+ * (rows, columns, cells — merge, split, background colour —, header row/column, CSV export,
+ * delete) plus quick buttons. Keyboard: Alt-F10
  * focuses it, arrow keys / Home / End move between buttons, Escape returns to the editor.
  */
 export function TableMenu({ editor, pageTitle, focusRequest }: TableMenuProps) {
@@ -210,6 +241,7 @@ export function TableMenu({ editor, pageTitle, focusRequest }: TableMenuProps) {
   const groups: { group: TableActionGroup; actions: TableAction[] }[] = [
     { group: "rows", actions: TABLE_ACTIONS.filter((a) => a.group === "rows") },
     { group: "columns", actions: TABLE_ACTIONS.filter((a) => a.group === "columns") },
+    { group: "cells", actions: TABLE_ACTIONS.filter((a) => a.group === "cells") },
   ];
   const toggles = TABLE_ACTIONS.filter((a) => a.group === "header");
   const DeleteIcon = TABLE_ACTION_ICONS.deleteTable;
@@ -288,6 +320,43 @@ export function TableMenu({ editor, pageTitle, focusRequest }: TableMenuProps) {
                   </DropdownMenuItem>
                 );
               })}
+              {group === "cells" && (
+                <DropdownMenuSub>
+                  <DropdownMenuSubTrigger
+                    disabled={!state.canSetCellBackground}
+                    data-testid="table-cell-color"
+                  >
+                    <PaintBucketIcon aria-hidden />
+                    {t("actions.cellBackground")}
+                  </DropdownMenuSubTrigger>
+                  <DropdownMenuSubContent className="w-44" aria-label={t("actions.cellBackground")}>
+                    <DropdownMenuRadioGroup
+                      value={
+                        state.cellBackground === "mixed"
+                          ? ""
+                          : (state.cellBackground ?? NO_BACKGROUND)
+                      }
+                      onValueChange={(value) =>
+                        setCellBackground(
+                          editor,
+                          value === NO_BACKGROUND ? null : (value as CellBackgroundColor),
+                        )
+                      }
+                    >
+                      <DropdownMenuRadioItem value={NO_BACKGROUND}>
+                        <CellColorSwatch color={null} />
+                        {t("colors.none")}
+                      </DropdownMenuRadioItem>
+                      {CELL_BACKGROUND_COLORS.map((color) => (
+                        <DropdownMenuRadioItem key={color} value={color}>
+                          <CellColorSwatch color={color} />
+                          {t(`colors.${color}`)}
+                        </DropdownMenuRadioItem>
+                      ))}
+                    </DropdownMenuRadioGroup>
+                  </DropdownMenuSubContent>
+                </DropdownMenuSub>
+              )}
             </DropdownMenuGroup>
           ))}
           <DropdownMenuSeparator />
