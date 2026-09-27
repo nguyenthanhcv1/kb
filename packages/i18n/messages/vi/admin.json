@@ -1,13 +1,28 @@
 {
   "access": {
+    "addStatus": {
+      "added": "Đã thêm",
+      "duplicate": "Trùng trong danh sách nhập",
+      "exists": "Đã có sẵn",
+      "invalid": "Không hợp lệ",
+      "publicDomainUnconfirmed": "Tên miền email công cộng — cần xác nhận"
+    },
     "kinds": {
       "domain": "Tên miền",
       "email": "Email"
     },
+    "publicDomainWarning": "{domain} là tên miền email công cộng: thêm nó sẽ cho mọi người dùng {domain} đăng nhập. Nên thêm từng email thay vì cả tên miền.",
     "title": "Truy cập"
   },
   "title": "Quản trị",
   "users": {
+    "access": {
+      "allowlist": "Trong danh sách cho phép",
+      "deactivated": "Đã khoá",
+      "membership": "Chỉ qua thành viên Space",
+      "none": "Không còn quyền truy cập",
+      "super_admin": "Quản trị viên hệ thống"
+    },
     "guest": "Khách mời",
     "superAdmin": "Quản trị viên hệ thống",
     "title": "Người dùng"

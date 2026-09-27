@@ -22,6 +22,10 @@
     "space_unarchive": "Bỏ lưu trữ không gian",
     "space_update": "Sửa không gian",
     "unknown": "Thao tác khác ({action})",
+    "user_deactivate": "Khoá người dùng",
+    "user_reactivate": "Mở khoá người dùng",
+    "user_super_admin_grant": "Cấp quyền quản trị viên hệ thống",
+    "user_super_admin_revoke": "Gỡ quyền quản trị viên hệ thống",
     "version_restore": "Khôi phục phiên bản"
   },
   "actor": {
@@ -34,6 +38,7 @@
     "page": "Trang",
     "settings": "Cài đặt",
     "space": "Không gian",
+    "user": "Người dùng",
     "version": "Phiên bản"
   }
 }

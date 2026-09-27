@@ -106,7 +106,7 @@ enabled = true
 # Port to use for the email testing server web interface.
 port = 54324
 # Uncomment to expose additional ports for testing user applications that send emails.
-# SMTP is exposed for kb-web's own mail (invitations, T1.5a): SMTP_HOST=127.0.0.1 SMTP_PORT=54325.
+# Exposed for kb-web in local dev (SMTP_HOST=127.0.0.1, SMTP_PORT=54325): invitations (T1.5a), test email and the mail integration tests.
 smtp_port = 54325
 # pop3_port = 54326
 # admin_email = "admin@email.com"

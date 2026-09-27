@@ -8,5 +8,9 @@
     "linkFallback": "If the button does not work, open this link:",
     "signInHint": "Sign in with Google as {email} to accept the invitation.",
     "subject": "{inviter} invited you to the {space} space"
+  },
+  "test": {
+    "body": "This is a test email sent by {sender} from the {app} administration page at {sentAt, date, long} {sentAt, time, short}.\n\nIf you received it, the SMTP settings work. No reply needed.",
+    "subject": "Test email from {app}"
   }
 }

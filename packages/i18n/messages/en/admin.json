@@ -1,13 +1,28 @@
 {
   "access": {
+    "addStatus": {
+      "added": "Added",
+      "duplicate": "Duplicate in the input",
+      "exists": "Already in the allowlist",
+      "invalid": "Invalid",
+      "publicDomainUnconfirmed": "Public email domain — needs confirmation"
+    },
     "kinds": {
       "domain": "Domain",
       "email": "Email"
     },
+    "publicDomainWarning": "{domain} is a public email domain: adding it lets every {domain} user sign in. Prefer adding individual emails instead.",
     "title": "Access"
   },
   "title": "Administration",
   "users": {
+    "access": {
+      "allowlist": "On the allowlist",
+      "deactivated": "Deactivated",
+      "membership": "Space membership only",
+      "none": "No access left",
+      "super_admin": "Super admin"
+    },
     "guest": "Guest",
     "superAdmin": "Super admin",
     "title": "Users"

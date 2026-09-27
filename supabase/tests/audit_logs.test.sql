@@ -210,15 +210,19 @@ select results_eq(
   'allowlist add/update/remove are logged'
 );
 select is(
-  (select metadata from public.audit_logs where action = 'access.remove'),
+  (select metadata from public.audit_logs
+   where action = 'access.remove' and entity_id = '30000000-0000-0000-0000-000000000001'),
   '{"kind": "domain", "value": "example.org", "note": "Operations"}'::jsonb,
   'access.remove keeps what was removed'
 );
 
 -- ---------------------------------------------------------------- visibility (RLS)
 select results_eq(
-  $$ select count(*)::int from public.audit_logs where space_id is null $$,
-  array[4],
+  -- 3 access.* + settings.update, plus the fixture's user.super_admin_grant and user.deactivate
+  -- (profile audit, T1.7a). Only this transaction's rows (occurred_at = now()): integration tests
+  -- leave immutable audit rows behind in a local DB.
+  $$ select count(*)::int from public.audit_logs where space_id is null and occurred_at >= now() $$,
+  array[6],
   'super admin sees system-wide entries'
 );
 select ok(

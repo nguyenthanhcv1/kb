@@ -22,6 +22,10 @@
     "space_unarchive": "Unarchived space",
     "space_update": "Updated space",
     "unknown": "Other action ({action})",
+    "user_deactivate": "Deactivated user",
+    "user_reactivate": "Reactivated user",
+    "user_super_admin_grant": "Granted super admin",
+    "user_super_admin_revoke": "Revoked super admin",
     "version_restore": "Restored version"
   },
   "actor": {
@@ -34,6 +38,7 @@
     "page": "Page",
     "settings": "Settings",
     "space": "Space",
+    "user": "User",
     "version": "Version"
   }
 }
