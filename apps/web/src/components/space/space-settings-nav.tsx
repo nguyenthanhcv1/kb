@@ -10,7 +10,10 @@ import { cn } from "@/components/ui/utils";
  * Sections of the Space settings. T1.5b (members) and T1.6b (audit log) add their entry here:
  * `{ segment: "members", label: "members" }` → `/s/<slug>/settings/members`.
  */
-export const SPACE_SETTINGS_SECTIONS = [{ segment: "", label: "settingsPage.general" }] as const;
+export const SPACE_SETTINGS_SECTIONS = [
+  { segment: "", label: "settingsPage.general" },
+  { segment: "audit", label: "settingsPage.audit" },
+] as const;
 
 export function SpaceSettingsNav({ slug }: { slug: string }) {
   const t = useTranslations("space");
