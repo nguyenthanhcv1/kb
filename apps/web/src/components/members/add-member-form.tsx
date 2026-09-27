@@ -98,14 +98,14 @@ export function AddMemberForm({ spaceId, notify }: { spaceId: string; notify: No
   const resultsId = `${id}-results`;
 
   return (
-    <section aria-labelledby={`${id}-title`} className="grid gap-4">
+    <section aria-labelledby={`${id}-title`} className="flex flex-col gap-4">
       <div className="grid gap-1">
         <h3 id={`${id}-title`} className="font-semibold">
           {t("members.add.title")}
         </h3>
         <p className="text-sm text-muted-foreground">{t("members.add.description")}</p>
       </div>
-      <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
+      <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
         <div className="grid gap-2">
           <Label htmlFor={searchId}>{t("members.add.searchLabel")}</Label>
           <div className="relative">

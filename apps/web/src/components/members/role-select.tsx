@@ -38,7 +38,8 @@ export function RoleSelect<R extends MemberRole>({
   return (
     <Select value={value} onValueChange={(next) => onChange(next as R)} disabled={disabled}>
       <SelectTrigger id={id} aria-label={label} size={size} className="w-full sm:w-40">
-        <SelectValue />
+        {/* Only the role name in the trigger; the hint is shown in the list. */}
+        <SelectValue>{t(value as MemberRole)}</SelectValue>
       </SelectTrigger>
       <SelectContent>
         {roles.map((role) => (

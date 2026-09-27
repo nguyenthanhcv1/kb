@@ -29,7 +29,7 @@ export function InvitationList({ invitations }: { invitations: readonly Invitati
   const notify: Notify = { success, error };
 
   return (
-    <section aria-labelledby={`${id}-title`} className="grid gap-3">
+    <section aria-labelledby={`${id}-title`} className="flex flex-col gap-3">
       <h3 id={`${id}-title`} className="font-semibold">
         {t("title")}
       </h3>

@@ -33,7 +33,7 @@ export function MembersSettings({
 
   return (
     <div className="flex flex-col gap-10">
-      <section aria-labelledby="members-heading" className="grid gap-6">
+      <section aria-labelledby="members-heading" className="flex flex-col gap-6">
         <div className="grid gap-1">
           <h2 id="members-heading" className="text-lg font-semibold">
             {t("list.title")}
@@ -48,7 +48,7 @@ export function MembersSettings({
         <MemberList space={space} members={members} currentUserId={currentUserId} notify={notify} />
       </section>
       <Separator />
-      <div className="grid gap-6">
+      <div className="flex flex-col gap-6">
         <InviteGuestForm spaceId={space.id} />
         <InvitationList invitations={invitations} />
       </div>

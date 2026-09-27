@@ -68,15 +68,15 @@ export function InviteGuestForm({ spaceId }: { spaceId: string }) {
   const errorId = `${id}-email-error`;
 
   return (
-    <section aria-labelledby={`${id}-title`} className="grid gap-4">
+    <section aria-labelledby={`${id}-title`} className="flex flex-col gap-4">
       <div className="grid gap-1">
         <h2 id={`${id}-title`} className="text-lg font-semibold">
           {t("members.invite.title")}
         </h2>
         <p className="text-sm text-muted-foreground">{t("members.invite.description")}</p>
       </div>
-      <form onSubmit={onSubmit} noValidate className="grid gap-3">
-        <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
+      <form onSubmit={onSubmit} noValidate className="flex flex-col gap-3">
+        <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
           <div className="grid gap-2">
             <Label htmlFor={emailId}>{t("members.invite.emailLabel")}</Label>
             <Input
@@ -112,7 +112,7 @@ export function InviteGuestForm({ spaceId }: { spaceId: string }) {
             />
           </div>
         </div>
-        <Button type="submit" disabled={pending} className="justify-self-start">
+        <Button type="submit" disabled={pending} className="self-start">
           <MailPlusIcon aria-hidden />
           {pending ? t("members.invite.submitting") : t("members.invite.submit")}
         </Button>
