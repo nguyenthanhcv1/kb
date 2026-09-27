@@ -1,0 +1,75 @@
+import { createRequire } from "node:module";
+
+import type viAudit from "@kb/i18n/messages/vi/audit.json";
+import type viSpace from "@kb/i18n/messages/vi/space.json";
+import { expect, test } from "@playwright/test";
+
+/**
+ * T1.6b — Space activity log: a new Space shows its "created" and "updated" entries with
+ * translated labels; the action filter narrows the list and can be cleared.
+ *
+ * Needs a signed-in internal (non-guest) user: `E2E_STORAGE_STATE` (see `space.spec.ts`).
+ */
+const STORAGE_STATE = process.env.E2E_STORAGE_STATE;
+const BASE_URL = new URL(process.env.E2E_BASE_URL ?? "http://localhost:3000").origin;
+
+const require = createRequire(import.meta.url);
+type Messages = { audit: typeof viAudit; space: typeof viSpace };
+const messages: Record<"vi" | "en", Messages> = {
+  vi: {
+    audit: require("@kb/i18n/messages/vi/audit.json"),
+    space: require("@kb/i18n/messages/vi/space.json"),
+  },
+  en: {
+    audit: require("@kb/i18n/messages/en/audit.json"),
+    space: require("@kb/i18n/messages/en/space.json"),
+  },
+};
+
+test.skip(!STORAGE_STATE, "E2E_STORAGE_STATE is not set (signed-in internal user, see T7.1b)");
+test.use({ storageState: STORAGE_STATE });
+
+for (const locale of ["vi", "en"] as const) {
+  test(`space activity log with action filter (${locale})`, async ({ page, context }) => {
+    const m = messages[locale];
+    await context.addCookies([{ name: "NEXT_LOCALE", value: locale, url: BASE_URL }]);
+    const suffix = `${locale}-${Date.now().toString(36)}`;
+    const name = `Audit ${suffix}`;
+    const slug = `audit-${suffix}`;
+
+    // Create a Space and change it once → space.create + space.update entries.
+    await page.goto("/");
+    await page.getByRole("main").getByRole("button", { name: m.space.create }).first().click();
+    const dialog = page.getByRole("dialog", { name: m.space.create });
+    await dialog.getByLabel(m.space.form.name).fill(name);
+    await dialog.getByRole("button", { name: m.space.createDialog.submit }).click();
+    await expect(page).toHaveURL(`/s/${slug}`);
+    await page.goto(`/s/${slug}/settings`);
+    await page.getByLabel(m.space.form.description).fill("E2E");
+    await page.getByRole("button", { name: m.space.settingsPage.save }).click();
+    await expect(page.getByRole("status")).toHaveText(m.space.settingsPage.saved);
+
+    // Settings tab → activity log.
+    await page
+      .getByRole("navigation", { name: m.space.settingsPage.navLabel })
+      .getByRole("link", { name: m.space.settingsPage.audit })
+      .click();
+    await expect(page).toHaveURL(`/s/${slug}/settings/audit`);
+    const list = page.getByRole("list", { name: m.audit.page.listLabel });
+    await expect(list.getByText(m.audit.actions.space_create)).toBeVisible();
+    await expect(list.getByText(m.audit.actions.space_update)).toBeVisible();
+    await expect(list.getByText(new RegExp(`^${m.audit.fields.description}:`))).toBeVisible();
+
+    // Filter by action, then clear.
+    await page.getByLabel(m.audit.page.filterLabel).selectOption("space.create");
+    await expect(page).toHaveURL(`/s/${slug}/settings/audit?action=space.create`);
+    await expect(list.getByText(m.audit.actions.space_update)).toHaveCount(0);
+    await expect(list.getByText(m.audit.actions.space_create)).toBeVisible();
+
+    await page.getByLabel(m.audit.page.filterLabel).selectOption("space.archive");
+    await expect(page.getByText(m.audit.page.emptyFiltered)).toBeVisible();
+    await page.getByRole("link", { name: m.audit.page.clearFilter }).click();
+    await expect(page).toHaveURL(`/s/${slug}/settings/audit`);
+    await expect(list.getByText(m.audit.actions.space_update)).toBeVisible();
+  });
+}
