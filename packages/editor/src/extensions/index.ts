@@ -12,8 +12,14 @@ import { createTableExtensions } from "./table";
 
 export { CALLOUT_VARIANTS, Callout, type CalloutVariant } from "./callout";
 export {
+  CELL_BACKGROUND_ATTR,
+  CELL_BACKGROUND_COLORS,
+  CELL_BACKGROUND_DATA_ATTR,
+  type CellBackgroundColor,
   createTableExtensions,
   DEFAULT_TABLE_SIZE,
+  isCellBackgroundColor,
+  nearestCellBackgroundColor,
   TABLE_CELL_MIN_WIDTH,
   TABLE_NODE_NAMES,
 } from "./table";

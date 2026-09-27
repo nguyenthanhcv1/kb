@@ -17,6 +17,8 @@ const SCHEMA_FINGERPRINTS: Record<number, string> = {
   1: "767dc01fea72e07c52b7808286dd3d4130a2482b481c29b545297e9157ec47a4",
   // T4.1: table, tableRow, tableHeader, tableCell (additive — v1 documents load unchanged).
   2: "864d36d1216cab63f330f98fd130e1422d4f66deaeb3c163ba44b2b493aa8e91",
+  // T4.2: `backgroundColor` (palette code) on tableCell/tableHeader (additive, default null).
+  3: "6958873a58229e182f861edcd0b8cfe070050748d09b3d6c9865b5cf76089e79",
 };
 
 function describeSchema(schema: Schema) {
