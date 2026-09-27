@@ -2,21 +2,27 @@ import { defaultTimeZone, formats, loadMessages, localeCookieName, resolveLocale
 import { cookies, headers } from "next/headers";
 import { getRequestConfig } from "next-intl/server";
 
+import { getRequestPreferences } from "@/server/profile/request";
+
 /**
  * next-intl request config (docs/PLAN.md §5.1). No locale in the URL: the locale comes from
- * `profiles.locale` → `NEXT_LOCALE` cookie → `Accept-Language` → `vi`.
- * `profileLocale` / `profiles.time_zone` are wired once the profile is readable (T1.2a, T1.3).
+ * `profiles.locale` → `NEXT_LOCALE` cookie → `Accept-Language` → `vi`, so a signed-in user gets
+ * their saved language on any device. Time zone: `profiles.time_zone`, else `Asia/Ho_Chi_Minh`.
  */
 export default getRequestConfig(async () => {
-  const [cookieStore, headerStore] = await Promise.all([cookies(), headers()]);
+  const [cookieStore, headerStore, preferences] = await Promise.all([
+    cookies(),
+    headers(),
+    getRequestPreferences(),
+  ]);
   const locale = resolveLocale({
-    profileLocale: null,
+    profileLocale: preferences?.locale,
     cookieLocale: cookieStore.get(localeCookieName)?.value,
     acceptLanguage: headerStore.get("accept-language"),
   });
   return {
     locale,
-    timeZone: defaultTimeZone,
+    timeZone: preferences?.timeZone ?? defaultTimeZone,
     now: new Date(),
     formats,
     messages: await loadMessages(locale),
