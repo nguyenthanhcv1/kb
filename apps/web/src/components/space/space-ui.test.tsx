@@ -145,7 +145,7 @@ describe("SpaceHeader", () => {
 });
 
 describe("SpaceSettingsNav", () => {
-  it("links the general and members sections and marks the current one", () => {
+  it("links the general, members and audit sections and marks the current one", () => {
     pathname = "/s/design/settings/members";
     renderWith(<SpaceSettingsNav slug="design" />, "en");
     const nav = screen.getByRole("navigation", { name: enSpace.settingsPage.navLabel });
@@ -153,6 +153,7 @@ describe("SpaceSettingsNav", () => {
     expect(links.map((link) => [link.textContent, link.getAttribute("href")])).toEqual([
       [enSpace.settingsPage.general, "/s/design/settings"],
       [enSpace.members, "/s/design/settings/members"],
+      [enSpace.settingsPage.audit, "/s/design/settings/audit"],
     ]);
     expect(links[1]!.getAttribute("aria-current")).toBe("page");
     expect(links[0]!.getAttribute("aria-current")).toBeNull();
