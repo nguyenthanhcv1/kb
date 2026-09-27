@@ -356,4 +356,13 @@ describe.skipIf(!DATABASE_URL || !ADMIN_URL)("kb-collab with Postgres", () => {
     disconnect(viewer);
     await stopServer(server);
   });
+
+  it("runs the page version retention as kb_collab", async () => {
+    const store = createDocumentStore(DATABASE_URL!, { max: 1 });
+    try {
+      expect(await store.prunePageVersions()).toBeGreaterThanOrEqual(0);
+    } finally {
+      await store.close();
+    }
+  });
 });
