@@ -4,169 +4,91 @@ import { parseTasks } from "./lib.mjs";
 import { checkScope, parseNameStatus, parsePrBody } from "./scope.mjs";
 
 const taskFile = parseTasks(`
-lanes:
-  claude-1: { owns: ["apps/web/src/components/ui/**", "apps/web/src/components/layout/**", packages/editor/src/extract/**] }
-  claude-2: { owns: ["scripts/**", "apps/web/src/components/space/**", ".github/**", package.json] }
-  codex-1:  { owns: ["supabase/**", "apps/web/src/server/**", scripts/seed-perf.ts, "packages/i18n/messages/*/errors.json"] }
-  human:    { owns: [docs/ai/**] }
 tasks:
-  - { id: T0.11, lane: claude-2, title: tooling, deps: [] }
-  - { id: T1.4a, lane: codex-1, title: server, deps: [] }
-  - { id: T1.4b, lane: claude-2, title: ui, deps: [T1.4a], ui: true, touches: [apps/web/src/components/layout/app-version.tsx] }
-  - { id: T3.3b, lane: claude-1, title: extract, deps: [], stealable: true }
-  - { id: T3.2,  lane: claude-1, title: editor ui, deps: [], ui: true }
-  - { id: T4.4a, lane: claude-1, title: paste, deps: [] }
-  - { id: T4.5,  lane: codex-1, title: csv, deps: [], stealable: true }
+  - { id: T1.4a, title: server, deps: [] }
+  - { id: T1.4b, title: ui, deps: [T1.4a], ui: true }
+  - { id: T7.6,  title: go-live, deps: [], manual: true }
 `);
 
 /** @param {string} agent @param {string} task */
 const body = (agent, task) =>
-  `<!-- Tiêu đề PR = … -->\n\nAgent: ${agent} <!-- claude-1 | … -->\nTask: ${task} <!-- T1.1 -->\n\n## Tóm tắt\n`;
+  `<!-- Tiêu đề PR = … -->\n\nAgent: ${agent} <!-- claude | codex | … -->\nTask: ${task} <!-- T1.1 -->\n\n## Tóm tắt\n`;
 
 /** @param {...string} paths */
 const mod = (...paths) => paths.map((path) => ({ status: "M", path }));
 
 /**
  * @param {string} agent @param {string} task @param {{status: string, path: string}[]} files
- * @param {string} [title]
+ * @param {{ title?: string, done?: Set<string> }} [opts]
  */
-const run = (agent, task, files, title = `feat: x [${task}]`) =>
-  checkScope({ taskFile, body: body(agent, task), title, files });
+const run = (agent, task, files, opts = {}) =>
+  checkScope({
+    taskFile,
+    body: body(agent, task),
+    title: opts.title ?? `feat: x [${task}]`,
+    files,
+    done: opts.done,
+  });
 
 describe("parsePrBody", () => {
-  it("bỏ comment template, đọc agent/mượn/task", () => {
-    assert.deepEqual(parsePrBody(body("claude-2 (mượn từ lane codex-1)", "T4.5")), {
-      agent: "claude-2",
-      borrowedFrom: "codex-1",
-      task: "T4.5",
-    });
-    assert.deepEqual(parsePrBody(body("`codex-1`", "T1.4a — contract")), {
-      agent: "codex-1",
-      borrowedFrom: null,
+  it("bỏ comment template, đọc agent (tên tự do) và task", () => {
+    assert.deepEqual(parsePrBody(body("claude-2", "T1.4b")), { agent: "claude-2", task: "T1.4b" });
+    assert.deepEqual(parsePrBody(body("`codex`", "T1.4a — contract")), {
+      agent: "codex",
       task: "T1.4a",
     });
   });
 
   it("template chưa điền → không có agent/task", () => {
-    const empty =
-      "Agent: <!-- claude-1 | claude-2 | codex-1 | human -->\nTask: <!-- T1.1 — xem … -->\n";
-    assert.deepEqual(parsePrBody(empty), { agent: null, borrowedFrom: null, task: null });
+    const empty = "Agent: <!-- claude | codex | human -->\nTask: <!-- T1.1 — xem … -->\n";
+    assert.deepEqual(parsePrBody(empty), { agent: null, task: null });
   });
 });
 
 describe("checkScope", () => {
-  it("PR đúng lane → OK", () => {
-    const r = run("claude-2", "T0.11", [
-      ...mod("scripts/ai/next.mjs", ".github/workflows/agent-scope.yml", "package.json"),
-      { status: "M", path: "pnpm-lock.yaml" },
-    ]);
-    assert.deepEqual(r.errors, []);
+  it("agent nào cũng làm được task nào, sửa file nào cũng được", () => {
+    for (const agent of ["claude", "codex", "claude-1", "codex-1"]) {
+      const r = run(
+        agent,
+        "T1.4b",
+        mod("apps/web/src/components/space/list.tsx", "supabase/x.sql"),
+      );
+      assert.deepEqual(r.errors, [], agent);
+    }
   });
 
-  it("codex-1 sửa components/** → đỏ, kể cả khi task đúng lane (tiêu chí T0.11)", () => {
-    const r = run(
-      "codex-1",
-      "T1.4a",
-      mod("apps/web/src/server/spaces/index.ts", "apps/web/src/components/space/list.tsx"),
-    );
-    assert.equal(r.errors.length, 2); // file UI + ngoài vùng lane
-    assert.match(r.errors[0], /Codex không được sửa/);
+  it("thiếu Agent/Task, task lạ, tiêu đề thiếu [Txx] → lỗi", () => {
+    assert.match(run("", "T1.4a", []).errors[0], /Agent/);
+    assert.match(run("claude", "", []).errors[0], /Task/);
+    assert.match(run("claude", "T9.9", []).errors[0], /không có/);
+    assert.match(run("claude", "T1.4a", [], { title: "feat: x" }).errors[0], /\[T1\.4a\]/);
   });
 
-  it("codex-1 được thêm key errors.json", () => {
-    const r = run("codex-1", "T1.4a", mod("packages/i18n/messages/vi/errors.json"));
-    assert.deepEqual(r.errors, []);
-  });
-
-  it("file thuộc lane khác → đỏ; glob cụ thể hơn thắng", () => {
-    const r = run("claude-2", "T0.11", mod("scripts/seed-perf.ts", "supabase/migrations/1.sql"));
-    assert.equal(r.errors.length, 2);
-    assert.match(r.errors[0], /thuộc lane codex-1/);
-  });
-
-  it("touches của task mở rộng vùng", () => {
-    const r = run("claude-2", "T1.4b", mod("apps/web/src/components/layout/app-version.tsx"));
-    assert.deepEqual(r.errors, []);
-  });
-
-  it("task UI: được thêm mock.ts và component shadcn mới, không được sửa component có sẵn", () => {
-    const ok = run("claude-2", "T1.4b", [
-      { status: "A", path: "apps/web/src/server/spaces/mock.ts" },
-      { status: "A", path: "apps/web/src/components/ui/tabs.tsx" },
-    ]);
-    assert.deepEqual(ok.errors, []);
-    const bad = run("claude-2", "T1.4b", mod("apps/web/src/components/ui/button.tsx"));
-    assert.equal(bad.errors.length, 1);
-    const notUi = run("claude-2", "T0.11", [
-      { status: "A", path: "apps/web/src/server/spaces/mock.ts" },
-    ]);
-    assert.equal(notUi.errors.length, 1);
-  });
-
-  it("file không lane nào sở hữu → cảnh báo, không đỏ; root config thuộc claude-2", () => {
-    const r = run("claude-1", "T3.3b", mod("packages/editor/package.json"));
-    assert.deepEqual(r.errors, []);
-    assert.equal(r.warnings.length, 1);
-    const cfg = run("claude-1", "T3.3b", mod("prettier.config.mjs"));
-    assert.match(cfg.errors[0], /thuộc lane claude-2/);
-  });
-
-  it("CHANGELOG.md và manifest release-please bị cấm", () => {
-    const r = run("claude-2", "T0.11", mod("CHANGELOG.md", ".release-please-manifest.json"));
-    assert.equal(r.errors.length, 2);
-  });
-
-  it("làm task lane khác mà không ghi mượn → đỏ", () => {
-    const r = run("claude-2", "T3.3b", mod("packages/editor/src/extract/text.ts"));
-    assert.match(r.errors[0], /mượn từ lane claude-1/);
-  });
-
-  it("mượn hợp lệ: vùng là owns của lane gốc", () => {
-    const r = run(
-      "codex-1 (mượn từ lane claude-1)",
-      "T3.3b",
-      mod("packages/editor/src/extract/text.ts"),
-    );
-    assert.deepEqual(r.errors, []);
-    const c = run("claude-2 (mượn từ lane codex-1)", "T4.5", mod("apps/web/src/server/x.ts"));
-    assert.deepEqual(c.errors, []);
-  });
-
-  it("mượn không hợp lệ: task không stealable, Codex mượn UI, sai lane gốc", () => {
-    assert.match(run("codex-1 (mượn từ lane claude-1)", "T4.4a", []).errors[0], /stealable/);
-    assert.ok(run("codex-1 (mượn từ lane claude-1)", "T3.2", []).errors.length > 0);
+  it("một PR chỉ một task; PR contract hợp lệ", () => {
     assert.match(
-      run("codex-1 (mượn từ lane claude-2)", "T3.3b", []).errors[0],
-      /thuộc lane claude-1/,
+      run("claude", "T1.4a", [], { title: "feat: x [T1.4a] [T1.4b]" }).errors[0],
+      /Một PR = một task/,
     );
+    assert.deepEqual(run("codex", "T1.4a", [], { title: "feat: x [T1.4a-contract]" }).errors, []);
   });
 
-  it("Claude mượn của Claude → cảnh báo cần người đồng ý", () => {
-    const r = run("claude-2 (mượn từ lane claude-1)", "T3.2", []);
-    assert.deepEqual(r.errors, []);
-    assert.match(r.warnings[0], /người đồng ý/);
+  it("deps chưa merge vào nhánh gốc → lỗi", () => {
+    assert.match(run("claude", "T1.4b", [], { done: new Set() }).errors[0], /T1\.4a chưa merge/);
+    assert.deepEqual(run("claude", "T1.4b", [], { done: new Set(["T1.4a"]) }).errors, []);
   });
 
-  it("tiêu đề thiếu mã task, task lạ, thiếu Agent/Task", () => {
-    assert.match(run("claude-2", "T0.11", [], "feat: x").errors[0], /\[T0\.11\]/);
-    assert.equal(run("claude-2", "T0.11", [], "feat: x [T0.11-contract]").errors.length, 0);
-    assert.match(run("claude-2", "T9.9", []).errors[0], /không có trong/);
-    assert.equal(checkScope({ taskFile, body: "", title: "", files: [] }).errors.length, 1);
-    assert.match(
-      checkScope({ taskFile, body: "Agent: claude-2", title: "", files: [] }).errors[0],
-      /Task:/,
-    );
+  it("task manual phải do người làm", () => {
+    assert.match(run("claude", "T7.6", []).errors[0], /manual/);
   });
 
-  it("Agent: human và PR của bot → bỏ qua", () => {
-    assert.deepEqual(
-      run("human", "", mod("AGENTS.md", "apps/web/src/components/ui/button.tsx")).errors,
-      [],
-    );
+  it("CHANGELOG.md, manifest → lỗi; human và bot được bỏ qua", () => {
+    assert.match(run("claude", "T1.4a", mod("CHANGELOG.md")).errors[0], /release-please/);
+    const human = checkScope({ taskFile, body: "Agent: human\n", title: "docs: x", files: [] });
+    assert.deepEqual(human.errors, []);
     const bot = checkScope({
       taskFile,
       body: "",
-      title: "chore(main): release 0.1.0",
+      title: "chore(main): release 0.2.0",
       files: mod("CHANGELOG.md"),
       authorIsBot: true,
     });

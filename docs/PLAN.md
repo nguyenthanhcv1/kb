@@ -162,7 +162,7 @@ kb/
 ├── changelog/vi/                     # <version>.md — ghi chú phát hành tiếng Việt
 ├── docs/
 │   ├── PLAN.md
-│   ├── ai/                           # WORKFLOW.md (quy trình nhiều agent), tasks.yaml (lane + task)
+│   ├── ai/                           # WORKFLOW.md (quy trình nhiều agent), tasks.yaml (hàng đợi task theo thứ tự)
 │   ├── adr/                          # Architecture Decision Records
 │   ├── runbooks/                     # backup-restore, rotate-secrets, incident…
 │   └── user-guide/{vi,en}/
@@ -876,7 +876,7 @@ Mục tiêu coverage: `packages/editor` ≥ 80 %, logic khác ≥ 60 %; mọi po
 
 ## 9. Milestones MVP
 
-> Phân công cho 3 agent chạy song song (claude-1, claude-2, codex-1; lane codex-2 cũ đã chia cho claude-1/claude-2): task trong bảng dưới được tách thành phần server (`a`) và UI (`b`) và gán lane trong [`docs/ai/tasks.yaml`](ai/tasks.yaml); quy trình ở [`docs/ai/WORKFLOW.md`](ai/WORKFLOW.md). UI luôn do Claude Code làm. Nếu chạy song song đủ 3 agent, thời gian lịch ước ~7–8 tuần thay vì ~3 tháng.
+> Nhiều agent (Claude Code, Codex, …) chạy song song trên **một hàng đợi task chung**, không chia lane: agent nào cũng làm được task nào. Thứ tự thực hiện, deps và trạng thái nằm ở [`docs/ai/tasks.yaml`](ai/tasks.yaml) (task trong bảng dưới có thể được tách thành phần server `a` và giao diện `b` để hai agent làm song song); quy trình ở [`docs/ai/WORKFLOW.md`](ai/WORKFLOW.md). Nếu chạy song song ~3 agent, thời gian lịch ước ~7–8 tuần thay vì ~3 tháng.
 
 Ước lượng cho **1 dev fulltime (+AI)**. Mỗi milestone kết thúc bằng một release (MINOR). "Version" = release đầu tiên chứa task.
 
@@ -893,7 +893,7 @@ Mục tiêu coverage: `packages/editor` ≥ 80 %, logic khác ≥ 60 %; mọi po
 | T0.7 | Dockerfile web/collab/migrate, HEALTHCHECK, `/api/health`, `/health`, env zod, `build-images.yml` push GHCR | `apps/*/Dockerfile`, `infra/migrate`, `packages/shared/src/env.ts` | `docker build` cả 3 image; container healthy; image web < 250 MB; thiếu env bắt buộc → crash kèm tên biến | T0.1 | 1 | 0.1.0 |
 | T0.8 | Hạ tầng staging trên Coolify (cài Coolify lên `kb-ops-1`, §7.0): Supabase service, `kb-web`, `kb-collab`, Cloudflare DNS + Origin CA + Full strict, firewall, secrets, `deploy.yml` qua Coolify API + SSH migrate | `infra/coolify/*.md`, `.github/workflows/deploy.yml` | Merge `main` → staging tự deploy, smoke test xanh; `https://kb-staging.thanhgo.com/api/health` trả sha mới; Postgres không truy cập được từ Internet | T0.7 | 2 | 0.1.0 |
 | T0.9 | Backup: image `kb-backup`, cron, Cloudflare R2 (bucket lock + lifecycle), mã hoá age, restore runbook, job kiểm thử restore | `infra/backup`, `docs/runbooks/backup-restore.md` | Có file backup trên S3; restore vào DB tạm thành công theo runbook; alert khi quá 26 h không backup | T0.8 | 1 | 0.1.0 |
-| T0.11 | Công cụ cho agent chạy song song: `pnpm ai:next --agent <id>` (chọn task theo `docs/ai/tasks.yaml` + git), `pnpm ai:status`, CI `agent-scope` (so file thay đổi với vùng sở hữu của lane trong thân PR; chặn Codex sửa file UI) | `scripts/ai/*.ts`, `.github/workflows/ci.yml` | PR của `codex-1` sửa `components/**` → check đỏ; `ai:next` trả đúng task ready đầu tiên của lane | T0.5 | 0,5 | 0.1.0 |
+| T0.11 | Công cụ cho agent chạy song song: `pnpm ai:next` (chọn task ready đầu tiên theo thứ tự `docs/ai/tasks.yaml` + git), `pnpm ai:status`, CI `agent-scope` (PR gắn đúng một task, deps đã merge) | `scripts/ai/*.mjs`, `.github/workflows/agent-scope.yml` | PR thiếu `Task:` hoặc deps chưa merge → check đỏ; `ai:next` trả đúng task ready đầu tiên chưa ai nhận | T0.5 | 0,5 | 0.1.0 |
 | T0.10 | Spike xác minh rủi ro: (a) hook `before_user_created` trên GoTrue self-host, (b) Hocuspocus qua Cloudflare + Traefik (timeout, reconnect), (c) verify JWT Supabase trong collab, (d) Coolify preview + DNS workflow, (e) đăng nhập Google bằng tài khoản công ty qua OAuth client External của project cá nhân, (f) gửi mail bằng Gmail App Password | ADR `docs/adr/0001…0004` | Mỗi điểm có ADR kết luận + phương án dự phòng; WS giữ kết nối ≥ 30 phút qua Cloudflare | T0.8 | 1 | 0.1.0 |
 
 ### M1 — Đăng nhập, hồ sơ, Space, phân quyền (→ `v0.2.0`) · ~9,5 ngày

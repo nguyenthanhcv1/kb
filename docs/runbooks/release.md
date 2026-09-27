@@ -45,7 +45,7 @@ bằng tay.
    rồi chạy lại workflow `Release Please`.
 3. Viết `changelog/vi/<version>.md` (copy `changelog/vi/_template.md`). Cách đưa vào:
    - **Khuyến nghị:** PR nhỏ vào `main`, tiêu đề `docs(release): add Vietnamese notes for <version>`
-     (thân PR `Agent: claude-2` hoặc `human`, `Task:` mã task release của milestone). `docs` là type ẩn nên
+     (thân PR `Agent: <tên agent>` hoặc `human`, `Task:` mã task release của milestone). `docs` là type ẩn nên
      không đổi version; release-please dựng lại Release PR và `release-vi-notes` chèn ghi chú.
    - Hoặc push thẳng file vào nhánh `release-please--branches--main`. Nhanh hơn, nhưng release-please
      **dựng lại nhánh** mỗi khi `main` có commit mới → file bị mất, phải push lại.

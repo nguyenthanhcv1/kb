@@ -1,54 +1,54 @@
 #!/usr/bin/env node
-// `pnpm ai:next --agent <id>` — task tiếp theo của lane theo WORKFLOW §5, rồi mượn task (§6).
+// `pnpm ai:next` — task ready đầu tiên theo thứ tự trong docs/ai/tasks.yaml (WORKFLOW §4).
+// Mọi agent dùng chung một hàng đợi; task đã có người nhận (nhánh/PR `[Txx]`) bị bỏ qua.
 // Tuỳ chọn: --json, --no-fetch (không `git fetch`), --no-prs (không gọi GitHub API),
-//           --allow-ui-steal (Claude xét cả task UI của Claude khác — cần người đồng ý).
+//           --skip T1.2,T1.3 (bỏ qua các task này), --all (liệt kê mọi task ready theo thứ tự).
 import { fileURLToPath } from "node:url";
 import { parseArgs, readRepoState } from "./git.mjs";
-import { AGENTS, computeStates, loadTasks, pickNext } from "./lib.mjs";
+import { computeStates, loadTasks, pickNext } from "./lib.mjs";
 
 const TASKS_PATH = fileURLToPath(new URL("../../docs/ai/tasks.yaml", import.meta.url));
 
 const args = parseArgs(process.argv.slice(2));
-const agent = typeof args.agent === "string" ? args.agent : "";
-if (!AGENTS.includes(agent)) {
-  console.error(
-    `Dùng: pnpm ai:next --agent <${AGENTS.join("|")}> [--json] [--no-fetch] [--no-prs]`,
-  );
-  process.exit(2);
-}
+const skip = typeof args.skip === "string" ? args.skip.split(",").map((s) => s.trim()) : [];
 
 const { tasks } = loadTasks(TASKS_PATH);
 const repo = await readRepoState({ fetch: !args["no-fetch"], prs: !args["no-prs"] });
 for (const w of repo.warnings) console.error(`⚠ ${w}`);
 
 const states = computeStates(tasks, repo.done, repo.inProgress);
-const pick = pickNext(states, agent, { allowUiSteal: Boolean(args["allow-ui-steal"]) });
+
+if (args.all) {
+  const ready = states.filter((t) => t.status === "ready" && !t.manual && !skip.includes(t.id));
+  if (args.json) console.log(JSON.stringify(ready));
+  else for (const t of ready) console.log(`${t.id}  ${t.title}`);
+  process.exit(ready.length ? 0 : 1);
+}
+
+const t = pickNext(states, { skip });
 
 if (args.json) {
-  console.log(JSON.stringify(pick ? { ...pick.task, stolenFrom: pick.stolenFrom ?? null } : null));
+  console.log(JSON.stringify(t));
   process.exit(0);
 }
 
-if (!pick) {
-  const waiting = states.filter((t) => t.lane === agent && t.status === "blocked");
-  const inProgress = states.filter((t) => t.lane === agent && t.status === "in_progress");
-  console.log(`Lane ${agent} không còn task ready (kể cả task mượn được).`);
-  if (inProgress.length) console.log(`Đang làm: ${inProgress.map((t) => t.id).join(", ")}`);
-  if (waiting.length) {
+if (!t) {
+  const inProgress = states.filter((s) => s.status === "in_progress");
+  const blocked = states.filter((s) => s.status === "blocked").slice(0, 5);
+  const manual = states.filter((s) => s.status === "ready" && s.manual);
+  console.log("Không còn task ready nào cho agent.");
+  if (inProgress.length) console.log(`Đang làm: ${inProgress.map((s) => s.id).join(", ")}`);
+  if (manual.length) console.log(`Chờ người làm: ${manual.map((s) => s.id).join(", ")}`);
+  if (blocked.length) {
     console.log("Đang chờ:");
-    for (const t of waiting) console.log(`  ${t.id} ← ${t.waitingOn.join(", ")}`);
+    for (const s of blocked) console.log(`  ${s.id} ← ${s.waitingOn.join(", ")}`);
   }
   process.exit(1);
 }
 
-const t = pick.task;
-const flags = [t.ui && "ui", t.human && "human", t.stealable && "stealable"].filter(Boolean);
+const flags = [t.ui && "ui", t.human && "human"].filter(Boolean);
 console.log(`${t.id}  ${t.title}`);
-console.log(
-  `  lane: ${t.lane}${pick.stolenFrom ? ` (mượn — ghi "Agent: ${agent} (mượn từ lane ${t.lane})")` : ""}`,
-);
 console.log(
   `  deps: ${t.deps.join(", ") || "—"} · est: ${t.est ?? "?"} · ver: ${t.ver ?? "?"}${flags.length ? ` · ${flags.join(", ")}` : ""}`,
 );
-if (t.touches.length) console.log(`  touches: ${t.touches.join(", ")}`);
 console.log(`  mô tả + tiêu chí hoàn thành: docs/PLAN.md §9 (dòng "${t.id}")`);

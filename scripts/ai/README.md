@@ -1,17 +1,18 @@
 # Công cụ agent (`scripts/ai`)
 
-Hiện thực hoá quy trình ở [`docs/ai/WORKFLOW.md`](../../docs/ai/WORKFLOW.md) §5–§7 dựa trên
-[`docs/ai/tasks.yaml`](../../docs/ai/tasks.yaml) và trạng thái git/GitHub (không có file trạng thái).
+Hiện thực hoá quy trình ở [`docs/ai/WORKFLOW.md`](../../docs/ai/WORKFLOW.md) dựa trên
+[`docs/ai/tasks.yaml`](../../docs/ai/tasks.yaml) (một hàng đợi task chung, theo thứ tự) và trạng
+thái git/GitHub (không có file trạng thái). Không có lane — mọi agent dùng cùng các lệnh.
 
-| Lệnh                        | Làm gì                                                                                                       |
-| --------------------------- | ------------------------------------------------------------------------------------------------------------ |
-| `pnpm ai:next --agent <id>` | Task tiếp theo của lane (§5); lane hết việc → task mượn được (§6, ưu tiên đường găng). Thoát 1 nếu không có. |
-| `pnpm ai:status`            | Mỗi lane: đã xong, đang làm, ready, mượn được, đang chờ task nào.                                            |
-| `pnpm ai:scope`             | Check CI `agent-scope` (workflow `agent-scope.yml`).                                                         |
+| Lệnh             | Làm gì                                                                                         |
+| ---------------- | ---------------------------------------------------------------------------------------------- |
+| `pnpm ai:next`   | Task ready đầu tiên theo thứ tự file, chưa ai nhận, không `manual` (§4). Thoát 1 nếu không có. |
+| `pnpm ai:status` | Tổng quan: đã xong, đang làm, ready, task kế tiếp, đang chờ task nào.                          |
+| `pnpm ai:scope`  | Check CI `agent-scope` (workflow `agent-scope.yml`).                                           |
 
 Tuỳ chọn chung của `ai:next`/`ai:status`: `--json`, `--no-fetch` (không `git fetch`), `--no-prs`
-(không gọi GitHub API). `ai:next` thêm `--allow-ui-steal` (Claude xét cả task UI của Claude khác —
-chỉ khi người đồng ý). `ai:status` thêm `--lane <id>`.
+(không gọi GitHub API). `ai:next` thêm `--all` (liệt kê mọi task ready theo thứ tự) và
+`--skip T1.3,T1.4b` (bỏ qua các task này).
 
 ## Trạng thái task
 
@@ -21,32 +22,25 @@ chỉ khi người đồng ý). `ai:status` thêm `--lane <id>`.
   cảnh báo, và task chỉ nhận bằng draft PR (nhánh bị ép tên như `claude/<phiên>`) sẽ trông như chưa ai làm.
 - **ready** — chưa done/in_progress, mọi `deps` đã done. Còn lại là **blocked**.
 
+`tasks.yaml` phải đúng thứ tự: mỗi task đứng sau mọi `deps` của nó (`parseTasks` báo lỗi nếu sai).
+
 ## `agent-scope`
 
 Đọc `Agent:` và `Task:` trong thân PR (bỏ comment HTML của template), `tasks.yaml` **từ nhánh gốc**
-(PR không tự nới vùng được), và `git diff --name-status base...head`.
+(PR không tự thêm task được), `git log` của nhánh gốc và `git diff --name-status base...head`.
 
 Lỗi (check đỏ):
 
-- thiếu/sai `Agent:` hoặc `Task:`; task không có trong `tasks.yaml`; tiêu đề thiếu `[Txx]`;
-- Codex sửa file UI (§3) — bất kể task hay `touches`;
-- làm task lane khác mà không ghi `Agent: <id> (mượn từ lane <lane>)`, hoặc mượn task không
-  `stealable`, hoặc Codex mượn task UI;
-- file thuộc lane khác, ngoài `owns` của lane gốc + `touches` của task (glob cụ thể hơn thắng);
+- thiếu `Agent:` (tên tự do) hoặc `Task:`; task không có trong `tasks.yaml`; task `manual` mà
+  không phải `Agent: human`;
+- tiêu đề thiếu `[Txx]` khớp dòng `Task:`, hoặc chứa mã của task khác (một PR = một task);
+- `deps` của task chưa merge vào nhánh gốc;
 - sửa `CHANGELOG.md`, `.release-please-manifest.json`.
 
-Cảnh báo (không đỏ, reviewer xác nhận): file không lane nào sở hữu (vd `packages/*/package.json`);
-Claude mượn task của Claude khác (cần người đồng ý).
-
-Bỏ qua: `Agent: human`, PR do bot tạo (release-please, dependabot).
-
-Ngoại lệ ngoài `tasks.yaml` (`EXTRA_RULES` trong `scope.mjs`, theo WORKFLOW §7–§8):
-`pnpm-lock.yaml` lane nào cũng đổi được; root config còn lại (`*.config.mjs`, `.editorconfig`, …)
-thuộc `claude-2`; task `ui: true` được thêm `apps/web/src/server/*/mock*.ts` và component shadcn
-**mới** trong `components/ui/`.
+Bỏ qua: `Agent: human` (không bắt buộc `Task:`), PR do bot tạo (release-please, dependabot).
 
 Chạy thử local:
 
 ```bash
-PR_TITLE="feat(web): space list [T1.4b]" PR_BODY=$'Agent: claude-2\nTask: T1.4b' pnpm ai:scope --base origin/main
+PR_TITLE="feat(web): space list [T1.4b]" PR_BODY=$'Agent: claude\nTask: T1.4b' pnpm ai:scope --base origin/main
 ```
