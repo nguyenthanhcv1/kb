@@ -16,8 +16,14 @@ export interface SessionResult {
  * Refreshes the session cookie (Server Components can't write cookies, only middleware can) and
  * returns the current user. Uses `getUser()`, which re-checks the JWT with the Auth server,
  * instead of `getSession()`, which only decodes the cookie — see Supabase's SSR security notes.
+ *
+ * `checkAccess: false` skips the `app.has_active_access` revocation check (the invite page: a
+ * guest who just signed up through an invitation has no membership until they accept it).
  */
-export async function updateSession(request: NextRequest): Promise<SessionResult> {
+export async function updateSession(
+  request: NextRequest,
+  options: { checkAccess?: boolean } = {},
+): Promise<SessionResult> {
   let response = NextResponse.next({ request });
 
   const supabase = createServerClient(supabaseUrl(), supabaseAnonKey(), {
@@ -40,7 +46,7 @@ export async function updateSession(request: NextRequest): Promise<SessionResult
     return { response, user: null, accessRevoked: false };
   }
 
-  if (!(await hasActiveAccess(supabase))) {
+  if (options.checkAccess !== false && !(await hasActiveAccess(supabase))) {
     await supabase.auth.signOut();
     return { response, user: null, accessRevoked: true };
   }
