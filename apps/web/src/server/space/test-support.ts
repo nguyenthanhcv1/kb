@@ -130,6 +130,8 @@ export class FakeSpaceDb implements SpaceDb {
 
 class FakeSpacesQuery {
   private mode: "select" | "insert" | "update" = "select";
+  /** `.insert(…).select(…)`, i.e. `INSERT … RETURNING`. */
+  private returning = false;
   private payload: Record<string, unknown> = {};
   private filters: Filter[] = [];
   private ordered: { column: string; ascending: boolean } | null = null;
@@ -137,6 +139,7 @@ class FakeSpacesQuery {
   constructor(private readonly db: FakeSpaceDb) {}
 
   select(): this {
+    if (this.mode === "insert") this.returning = true;
     return this;
   }
 
@@ -203,9 +206,16 @@ class FakeSpacesQuery {
     if (!userId || !this.db.isInternalUser(userId)) {
       return { data: null, error: { code: "42501", message: "row-level security violation" } };
     }
+    // Real Postgres: `RETURNING` applies `spaces_select` (`app.can_view_space`) to the new row, which
+    // the helper's statement snapshot cannot see yet — so it always fails like this.
+    if (this.returning) {
+      return { data: null, error: { code: "42501", message: "row-level security violation" } };
+    }
     const now = new Date().toISOString();
     const row: FakeSpaceRow = {
-      id: `20000000-0000-4000-8000-${String(this.db.spaces.length + 1).padStart(12, "0")}`,
+      id:
+        (this.payload.id as string | undefined) ??
+        `20000000-0000-4000-8000-${String(this.db.spaces.length + 1).padStart(12, "0")}`,
       slug,
       name: String(this.payload.name),
       description: (this.payload.description as string | null | undefined) ?? null,
@@ -221,7 +231,7 @@ class FakeSpacesQuery {
     // The DB trigger `app.add_space_creator_as_admin` would insert this row; the fake mirrors it
     // so a subsequent `listSpaces`/`updateSpace` call sees the creator as admin.
     this.db.members.push({ space_id: row.id, user_id: row.created_by, role: "admin" });
-    return { data: projectSpace(row), error: null };
+    return { data: null, error: null };
   }
 
   private runUpdate(): FakeResult<Record<string, unknown>> {
@@ -262,6 +272,13 @@ class FakeSpacesQuery {
     onfulfilled?: ((value: FakeResult<unknown[]>) => TResult1 | PromiseLike<TResult1>) | null,
     onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null,
   ): PromiseLike<TResult1 | TResult2> {
+    if (this.mode === "insert") {
+      const { error } = this.runInsert();
+      return Promise.resolve({ data: null, error } as FakeResult<unknown[]>).then(
+        onfulfilled,
+        onrejected,
+      );
+    }
     const result: FakeResult<unknown[]> = {
       data: this.visibleRows().map(projectSpace),
       error: null,

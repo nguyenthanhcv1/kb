@@ -384,21 +384,22 @@ export async function createSpace(db: SpaceDb, input: CreateSpaceInput): Promise
   if (!parsed.success) throw new SpaceError("VALIDATION_FAILED", { cause: parsed.error });
   const userId = await requireUserId(db);
 
-  const { data, error } = await db
-    .from("spaces")
-    .insert({
-      slug: parsed.data.slug,
-      name: parsed.data.name,
-      description: parsed.data.description ?? null,
-      icon: parsed.data.icon ?? null,
-      ...(parsed.data.visibility ? { visibility: parsed.data.visibility } : {}),
-      ...(parsed.data.aiEnabled === undefined ? {} : { ai_enabled: parsed.data.aiEnabled }),
-      created_by: userId,
-    })
-    .select(
-      "id, slug, name, description, icon, visibility, ai_enabled, created_by, created_at, updated_at",
-    )
-    .single();
+  // No `RETURNING` (`.select()`) on the insert: PostgREST would then apply `spaces_select`
+  // (`app.can_view_space(id)`) to the new row inside the same statement, where the helper's
+  // snapshot does not see the row yet (nor the creator's admin membership added by the AFTER
+  // INSERT trigger) — every insert would fail with 42501. The id is generated here instead and the
+  // row read back with a separate query.
+  const id = crypto.randomUUID();
+  const { error } = await db.from("spaces").insert({
+    id,
+    slug: parsed.data.slug,
+    name: parsed.data.name,
+    description: parsed.data.description ?? null,
+    icon: parsed.data.icon ?? null,
+    ...(parsed.data.visibility ? { visibility: parsed.data.visibility } : {}),
+    ...(parsed.data.aiEnabled === undefined ? {} : { ai_enabled: parsed.data.aiEnabled }),
+    created_by: userId,
+  });
 
   if (error) {
     if (error.code === PG_UNIQUE_VIOLATION)
@@ -410,7 +411,8 @@ export async function createSpace(db: SpaceDb, input: CreateSpaceInput): Promise
     throw new SpaceError("SPACE_WRITE_FAILED", { cause: error });
   }
 
-  const row = spaceRowSchema.parse(data);
+  const row = await findVisibleSpace(db, id);
+  if (!row) throw new SpaceError("SPACE_WRITE_FAILED");
   return mapSpaceRow(row, "admin");
 }
 
