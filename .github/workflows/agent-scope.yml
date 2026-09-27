@@ -1,0 +1,36 @@
+# CI `agent-scope`: PR gắn đúng một task trong docs/ai/tasks.yaml (dòng Agent:/Task:, [Txx] trong tiêu đề),
+# deps đã merge vào nhánh gốc, không sửa file chỉ release-please được sửa. Không còn lane/vùng sở hữu.
+# Tách khỏi ci.yml để sửa thân PR (dòng Agent:/Task:, sự kiện `edited`) chỉ chạy lại check này.
+# Branch protection: yêu cầu check `agent-scope` (WORKFLOW §8).
+name: Agent scope
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: agent-scope-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  agent-scope:
+    name: agent-scope
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # cần lịch sử để tính merge-base giữa base và head
+      - uses: ./.github/actions/setup
+      - name: Kiểm tra PR gắn đúng task
+        env:
+          # Qua biến môi trường, không nội suy thẳng vào script (chống chèn lệnh).
+          PR_BODY: ${{ github.event.pull_request.body }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_AUTHOR_TYPE: ${{ github.event.pull_request.user.type }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: pnpm ai:scope

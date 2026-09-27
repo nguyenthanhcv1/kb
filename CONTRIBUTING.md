@@ -50,16 +50,16 @@ Cấu hình: [`commitlint.config.mjs`](commitlint.config.mjs) (danh sách type/s
 
 ## 4. Nhánh và PR
 
-1. Bắt đầu từ `origin/main` mới nhất. Nhánh: `<agent>/<task-id>-<slug>` (vd `codex-1/T1.1-core-schema`); môi trường ép tên nhánh thì giữ `[Txx]` trong tiêu đề PR.
+1. Chọn task: `pnpm ai:next` (task ready đầu tiên theo thứ tự trong `docs/ai/tasks.yaml` chưa ai nhận — [`scripts/ai/README.md`](scripts/ai/README.md)); tổng quan: `pnpm ai:status`. Không có lane: agent nào cũng làm được task nào. Bắt đầu từ `origin/main` mới nhất. Nhánh: `<agent>/<task-id>-<slug>` (vd `codex/T1.1-core-schema`); môi trường ép tên nhánh thì giữ `[Txx]` trong tiêu đề PR.
 2. Commit đầu tiên + push ngay + mở **draft PR** để nhận task.
-3. Một task = một PR nhỏ. Chỉ sửa file trong vùng lane (`docs/ai/tasks.yaml`).
+3. Một task = một PR nhỏ. Chỉ sửa những gì task cần.
 4. Trước khi chuyển ready: `git merge origin/main` (không rebase/force-push nhánh đã push), rồi
 
    ```bash
    pnpm lint && pnpm typecheck && pnpm test && pnpm i18n:check
    ```
 
-5. Điền đủ [PR template](.github/pull_request_template.md): `Agent:`, `Task:`, Handoff, checklist Definition of Done.
+5. Điền đủ [PR template](.github/pull_request_template.md): `Agent:`, `Task:`, Handoff, checklist Definition of Done. CI `agent-scope` đọc hai dòng `Agent:`/`Task:` để kiểm tra PR gắn đúng một task và deps đã merge — PR của người ghi `Agent: human`.
 
 ## 5. Review và merge
 
@@ -72,4 +72,4 @@ Cấu hình: [`commitlint.config.mjs`](commitlint.config.mjs) (danh sách type/s
 - Song ngữ vi/en, không chuỗi hiển thị hard-code (`AGENTS.md` §1).
 - Mọi bảng bật RLS + pgTAP (`AGENTS.md` §4).
 - Chỉ thư viện mã nguồn mở trong allowlist license (`AGENTS.md` §5).
-- UI chỉ Claude Code làm; `codex-1` làm DB/server; collab/platform do `claude-1`/`claude-2` làm (`AGENTS.md` §0).
+- Không có lane: mọi agent làm chung một hàng đợi task theo thứ tự; task giao diện theo Chuẩn UI (`AGENTS.md`).

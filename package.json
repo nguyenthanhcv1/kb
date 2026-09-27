@@ -13,11 +13,16 @@
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
     "test:scripts": "node --test \"scripts/**/*.test.mjs\"",
+    "changelog:build": "node scripts/release/build-changelog.mjs",
+    "changelog:inject-vi": "node scripts/release/inject-vi-changelog.mjs",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "i18n:check": "pnpm --filter @kb/i18n i18n:check",
     "i18n:sort": "pnpm --filter @kb/i18n i18n:sort",
-    "licenses:check": "node scripts/licenses/check.mjs"
+    "licenses:check": "node scripts/licenses/check.mjs",
+    "ai:next": "node scripts/ai/next.mjs",
+    "ai:scope": "node scripts/ai/scope.mjs",
+    "ai:status": "node scripts/ai/status.mjs"
   },
   "devDependencies": {
     "@commitlint/cli": "^21.2.3",
@@ -26,6 +31,7 @@
     "lefthook": "^2.1.14",
     "prettier": "^3.9.9",
     "turbo": "^2.11.4",
-    "typescript": "~5.9.3"
+    "typescript": "~5.9.3",
+    "yaml": "^2.9.1"
   }
 }

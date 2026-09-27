@@ -7,7 +7,21 @@
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
       "outputs": [".next/**", "!.next/cache/**", "dist/**"]
     },
+    "@kb/web#build": {
+      "dependsOn": ["^build", "//#changelog:build"],
+      "inputs": ["$TURBO_DEFAULT$", ".env*"],
+      "outputs": [".next/**", "!.next/cache/**"]
+    },
+    "//#changelog:build": {
+      "inputs": ["CHANGELOG.md", "changelog/vi/**", "scripts/release/*.mjs"],
+      "outputs": ["apps/web/src/generated/changelog.json"]
+    },
     "dev": {
+      "cache": false,
+      "persistent": true
+    },
+    "@kb/web#dev": {
+      "dependsOn": ["//#changelog:build"],
       "cache": false,
       "persistent": true
     },

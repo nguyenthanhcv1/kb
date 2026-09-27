@@ -1,6 +1,6 @@
 # Người điều phối review & merge mọi PR (docs/ai/WORKFLOW.md §9–10).
-# Agent (claude-1/2, codex-1) không phải tài khoản GitHub riêng — vùng sở hữu theo lane
-# nằm ở docs/ai/tasks.yaml và được kiểm tra bằng CI `agent-scope` (T0.11), không phải file này.
+# Agent (Claude Code, Codex, …) không phải tài khoản GitHub riêng và không có lane — mọi agent
+# làm chung một hàng đợi task (docs/ai/tasks.yaml); CI `agent-scope` kiểm tra PR gắn đúng task.
 *                  @nguyenthanhcv1
 
 # Quy tắc và kế hoạch — chỉ người sửa.

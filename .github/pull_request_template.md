@@ -7,7 +7,7 @@ Tiêu đề PR = commit message sau squash-merge (CI kiểm tra bằng commitlin
 Xem CONTRIBUTING.md và AGENTS.md.
 -->
 
-Agent: <!-- claude-1 | claude-2 | codex-1 | human  (mượn task: "claude-2 (mượn từ lane codex-1)") -->
+Agent: <!-- tên agent tự do: claude | codex | claude-2 | … ; người điều phối: human -->
 Task: <!-- T1.1 — xem docs/ai/tasks.yaml và docs/PLAN.md §9 -->
 
 ## Tóm tắt
@@ -20,10 +20,6 @@ Task: <!-- T1.1 — xem docs/ai/tasks.yaml và docs/PLAN.md §9 -->
 
 <!-- API/contract mới, quyết định đã chọn, việc còn lại cho task phụ thuộc -->
 
-## Yêu cầu cho lane khác
-
-<!-- "claude-1: cần thêm variant `destructive` cho Button" — để trống nếu không có -->
-
 ## Việc cho người
 
 <!-- bước người phải làm (secret, Coolify, Cloudflare, Google Cloud…) — để trống nếu không có -->
@@ -34,7 +30,7 @@ Task: <!-- T1.1 — xem docs/ai/tasks.yaml và docs/PLAN.md §9 -->
 
 **Phạm vi**
 
-- [ ] Chỉ một task; chỉ sửa file trong vùng lane (+ `touches`) — không sửa tay `pnpm-lock.yaml`, `types.gen.ts`, `CHANGELOG.md`, version
+- [ ] Chỉ một task; chỉ sửa những gì task cần — không sửa tay `pnpm-lock.yaml`, `types.gen.ts`, `CHANGELOG.md`, version
 - [ ] Đã merge `origin/main` mới nhất; mọi `deps` của task đã có trên `main`
 
 **Changelog & version**
@@ -45,7 +41,7 @@ Task: <!-- T1.1 — xem docs/ai/tasks.yaml và docs/PLAN.md §9 -->
 **i18n**
 
 - [ ] Không chuỗi hiển thị hard-code; key mới có đủ `vi` và `en`, cùng tham số ICU
-- [ ] `pnpm i18n:check` pass; key thuộc namespace của lane mình
+- [ ] `pnpm i18n:check` pass; dùng key có sẵn trước khi thêm key mới
 
 **DB & bảo mật**
 

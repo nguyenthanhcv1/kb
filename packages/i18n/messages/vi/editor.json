@@ -47,9 +47,11 @@
     "groups": {
       "blocks": "Khối",
       "editing": "Soạn thảo",
-      "format": "Định dạng"
+      "format": "Định dạng",
+      "table": "Bảng"
     },
     "items": {
+      "addRowBelow": "Chèn hàng phía dưới",
       "blockquote": "Trích dẫn",
       "bold": "In đậm",
       "bulletList": "Danh sách dấu chấm",
@@ -64,11 +66,14 @@
       "link": "Thêm hoặc sửa liên kết",
       "moveDown": "Chuyển khối xuống",
       "moveUp": "Chuyển khối lên",
+      "nextCell": "Sang ô tiếp theo (ở ô cuối: thêm hàng)",
       "orderedList": "Danh sách đánh số",
       "paragraph": "Văn bản",
+      "previousCell": "Về ô trước",
       "redo": "Làm lại",
       "slash": "Mở menu chèn khối",
       "strike": "Gạch ngang",
+      "tableMenu": "Mở công cụ bảng",
       "taskList": "Danh sách việc cần làm",
       "underline": "Gạch chân",
       "undo": "Hoàn tác"
@@ -142,6 +147,10 @@
       "paragraph": {
         "description": "Đoạn văn bản thường",
         "title": "Văn bản"
+      },
+      "table": {
+        "description": "Bảng có hàng tiêu đề, thêm bớt hàng và cột",
+        "title": "Bảng"
       },
       "taskList": {
         "description": "Danh sách có ô đánh dấu hoàn thành",

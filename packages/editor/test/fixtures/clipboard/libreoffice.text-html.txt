@@ -1,0 +1,51 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+
+<html>
+<head>
+	
+	<meta http-equiv="content-type" content="text/html; charset=utf-8"/>
+	<title></title>
+	<meta name="generator" content="LibreOffice 7.6.4.1 (Linux)"/>
+	<meta name="created" content="2026-09-20T09:15:02.118000000"/>
+	<meta name="changed" content="2026-09-20T09:17:44.021000000"/>
+	
+	<style type="text/css">
+		body,div,table,thead,tbody,tfoot,tr,th,td,p { font-family:"Liberation Sans"; font-size:x-small }
+		a.comment-indicator:hover + comment { background:#ffd; position:absolute; display:block; border:1px solid black; padding:0.5em;  }
+		a.comment-indicator { background:red; display:inline-block; border:1px solid black; width:0.5em; height:0.5em;  }
+		comment { display:none;  }
+	</style>
+	
+</head>
+
+<body>
+<table cellspacing="0" border="0">
+	<colgroup width="140"></colgroup>
+	<colgroup span="2" width="85"></colgroup>
+	<tr>
+		<td height="17" align="left" bgcolor="#FFFF00"><b><font color="#000000">Mã đơn</font></b></td>
+		<td align="left" bgcolor="#FFFF00"><b><font color="#000000">Trạng thái</font></b></td>
+		<td align="left" bgcolor="#FFFF00"><b><font color="#000000">Phí ship</font></b></td>
+	</tr>
+	<tr>
+		<td height="17" align="left"><font color="#000000">GHN-001</font></td>
+		<td colspan=2 rowspan=2 align="center" valign=middle bgcolor="#FFD7D7"><font color="#000000">Đang giao<br>chờ xác nhận</font></td>
+		</tr>
+	<tr>
+		<td height="17" align="left"><font color="#000000">GHN-002</font></td>
+		</tr>
+	<tr>
+		<td height="17" align="left"><font color="#000000">GHN-003</font></td>
+		<td align="left"><font color="#000000">Giao thành công</font></td>
+		<td align="right" sdval="32500" sdnum="1033;0;#,##0"><font color="#000000">32,500</font></td>
+	</tr>
+	<tr>
+		<td height="17" align="left"><br></td>
+		<td align="left"><br></td>
+		<td align="right" sdval="0" sdnum="1033;0;#,##0"><font color="#000000">0</font></td>
+	</tr>
+</table>
+<!-- ************************************************************************** -->
+</body>
+
+</html>

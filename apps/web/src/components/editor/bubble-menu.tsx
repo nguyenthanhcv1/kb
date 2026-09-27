@@ -2,6 +2,7 @@
 
 import { normalizeLinkHref } from "@kb/editor/ui";
 import { NodeSelection } from "@tiptap/pm/state";
+import { CellSelection } from "@tiptap/pm/tables";
 import { type Editor, useEditorState } from "@tiptap/react";
 import { BubbleMenu } from "@tiptap/react/menus";
 import {
@@ -55,11 +56,15 @@ type Panel = "none" | "blocks" | "link";
 
 type ShouldShow = NonNullable<ComponentProps<typeof BubbleMenu>["shouldShow"]>;
 
-/** Non-empty text selection in an editable, non-code block. */
+/**
+ * Non-empty text selection in an editable, non-code block. Selected table cells get the table
+ * toolbar instead.
+ */
 const shouldShow: ShouldShow = ({ editor, state, from, to }) =>
   editor.isEditable &&
   from !== to &&
   !(state.selection instanceof NodeSelection) &&
+  !(state.selection instanceof CellSelection) &&
   !editor.isActive("codeBlock");
 
 export type FormattingBubbleMenuProps = {

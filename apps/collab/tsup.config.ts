@@ -7,4 +7,6 @@ export default defineConfig({
   platform: "node",
   clean: true,
   sourcemap: true,
+  // Workspace packages ship TypeScript sources: bundle them; npm dependencies stay external.
+  noExternal: [/^@kb\//],
 });

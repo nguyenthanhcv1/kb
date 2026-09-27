@@ -1,0 +1,25 @@
+{
+  "actions": {
+    "addColumnAfter": "Chèn cột bên phải",
+    "addColumnBefore": "Chèn cột bên trái",
+    "addRowAfter": "Chèn hàng phía dưới",
+    "addRowBefore": "Chèn hàng phía trên",
+    "deleteColumn": "Xoá cột",
+    "deleteRow": "Xoá hàng",
+    "deleteTable": "Xoá bảng",
+    "exportCsv": "Xuất CSV",
+    "toggleHeaderColumn": "Cột tiêu đề",
+    "toggleHeaderRow": "Hàng tiêu đề"
+  },
+  "groups": {
+    "columns": "Cột",
+    "header": "Tiêu đề",
+    "rows": "Hàng",
+    "table": "Bảng"
+  },
+  "menu": {
+    "label": "Công cụ bảng",
+    "options": "Tuỳ chọn bảng",
+    "trigger": "Bảng"
+  }
+}

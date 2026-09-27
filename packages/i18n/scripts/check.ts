@@ -12,7 +12,7 @@ import { checkCatalog, type Issue } from "./rules";
 const errorsModule = path.join(repoDir, "packages/shared/src/errors.ts");
 
 /**
- * Reads error codes from `packages/shared/src/errors.ts` once it exists (owned by codex-1).
+ * Reads error codes from `packages/shared/src/errors.ts` once it exists.
  * Accepts `export const ERROR_CODES = [...]` or an `ErrorCode` enum / const object.
  */
 async function loadErrorCodes(): Promise<string[]> {

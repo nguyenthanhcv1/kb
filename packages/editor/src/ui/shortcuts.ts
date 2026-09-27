@@ -5,7 +5,8 @@ import { currentBlockPos, duplicateBlock, moveBlock } from "./block-actions";
 /**
  * Keyboard shortcuts shown in the help dialog. `keys` use TipTap names (`Mod` = ⌘ on macOS,
  * Ctrl elsewhere); the UI translates `id` via `editor.shortcuts.items.<id>`.
- * Formatting/heading/list keys come from StarterKit; the rest from `EditorShortcuts`.
+ * Formatting/heading/list keys come from StarterKit, Tab/Shift-Tab from the table extension; the
+ * rest from `EditorShortcuts` and `TableShortcuts`.
  */
 export const EDITOR_SHORTCUTS = [
   { id: "bold", group: "format", keys: ["Mod", "B"] },
@@ -30,10 +31,14 @@ export const EDITOR_SHORTCUTS = [
   { id: "undo", group: "editing", keys: ["Mod", "Z"] },
   { id: "redo", group: "editing", keys: ["Mod", "Shift", "Z"] },
   { id: "help", group: "editing", keys: ["Mod", "/"] },
+  { id: "nextCell", group: "table", keys: ["Tab"] },
+  { id: "previousCell", group: "table", keys: ["Shift", "Tab"] },
+  { id: "addRowBelow", group: "table", keys: ["Mod", "Enter"] },
+  { id: "tableMenu", group: "table", keys: ["Alt", "F10"] },
 ] as const;
 
 export type EditorShortcut = (typeof EDITOR_SHORTCUTS)[number];
-export const SHORTCUT_GROUPS = ["format", "blocks", "editing"] as const;
+export const SHORTCUT_GROUPS = ["format", "blocks", "editing", "table"] as const;
 
 /** Key caps for display: macOS symbols, or the usual PC names. */
 export function formatShortcutKeys(keys: readonly string[], isMac: boolean): string[] {

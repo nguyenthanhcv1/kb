@@ -1,20 +1,20 @@
 # AGENTS.md — Quy tắc chung cho mọi AI agent và người làm việc trên repo `kb`
 
 > Đây là **nguồn quy tắc duy nhất** cho Claude Code, ChatGPT Codex và người. `CLAUDE.md` import file này.
-> Kế hoạch: [`docs/PLAN.md`](docs/PLAN.md) · Quy trình nhiều agent chạy song song: [`docs/ai/WORKFLOW.md`](docs/ai/WORKFLOW.md) · Danh sách task và lane: [`docs/ai/tasks.yaml`](docs/ai/tasks.yaml).
+> Kế hoạch: [`docs/PLAN.md`](docs/PLAN.md) · Quy trình nhiều agent chạy song song: [`docs/ai/WORKFLOW.md`](docs/ai/WORKFLOW.md) · Danh sách task (một hàng đợi chung, theo thứ tự): [`docs/ai/tasks.yaml`](docs/ai/tasks.yaml).
 > Muốn đổi quy tắc → sửa file này trong một PR riêng, do người (không phải agent) duyệt.
 
 ## 0. Làm việc song song nhiều agent — ĐỌC TRƯỚC KHI LÀM BẤT CỨ ĐIỀU GÌ
 
-Có 3 agent chạy song song: `claude-1`, `claude-2` (Claude Code) và `codex-1` (ChatGPT Codex). Việc của lane `codex-2` cũ đã chia cho `claude-1` (collab, logic editor không-UI, hạ tầng test) và `claude-2` (platform: tooling, CI/CD, release, Docker, hạ tầng). Người dùng cho biết bạn là agent nào ở tin nhắn đầu phiên ("Bạn là `codex-1`"). **Nếu chưa được cho biết, hãy hỏi — không tự chọn.**
+Nhiều agent (Claude Code, ChatGPT Codex, …) chạy song song trên **một hàng đợi task chung**. **Không có lane**: agent nào cũng làm được bất kỳ task nào (DB, server, UI, editor, collab, CI, hạ tầng, tài liệu). Tên agent (`claude`, `codex`, `claude-2`…) người dùng cho biết ở đầu phiên hoặc agent tự đặt theo công cụ — chỉ để truy vết trong PR/nhánh.
 
-1. **Chỉ làm task thuộc lane của mình** trong `docs/ai/tasks.yaml` (trừ luật "mượn task" ở `docs/ai/WORKFLOW.md` §6).
-2. **Chỉ sửa file trong vùng sở hữu của lane** (`lanes.<agent>.owns` trong `tasks.yaml`). Cần thay đổi ở vùng khác → ghi vào mục "Yêu cầu cho lane khác" trong PR, không tự sửa.
-3. **Mọi thứ thuộc UI chỉ Claude Code làm** (`claude-1`, `claude-2`). **Codex không bao giờ** tạo/sửa: trang, layout, component React, hook UI, CSS/Tailwind/theme, node view và menu của editor, email template, chuỗi dịch hiển thị trên giao diện (trừ `errors.json`, `audit.json`), tài liệu người dùng. Định nghĩa đầy đủ: `docs/ai/WORKFLOW.md` §3.
-4. **Một task = một nhánh = một PR nhỏ**. Nhánh: `<agent>/<task-id>-<slug>` (vd `codex-1/T1.1-core-schema`). Tiêu đề PR: Conventional Commit + mã task, vd `feat(db): core schema and RLS [T1.1]`. Thân PR theo `.github/pull_request_template.md` (có dòng `Agent:` và `Task:`).
-5. **Luôn bắt đầu từ `main` mới nhất** và merge `main` vào nhánh trước khi mở PR. Không force-push nhánh của agent khác, không sửa PR của agent khác.
-6. **Task chỉ được bắt đầu khi mọi `deps` đã merge vào `main`** (kiểm tra: `git log origin/main --oneline | grep '\[T1.1\]'`).
-7. File "nóng" (lockfile, migration, file dịch, types sinh tự động…) có luật riêng: `docs/ai/WORKFLOW.md` §7. Không bao giờ sửa tay `CHANGELOG.md`, `packages/db/src/types.gen.ts`, `pnpm-lock.yaml`.
+1. **Lấy task theo thứ tự**: `pnpm ai:next` trả task *ready* đầu tiên trong `docs/ai/tasks.yaml` chưa ai nhận (thứ tự trong file = ưu tiên). Không tự đảo thứ tự, không làm task `manual: true` (chỉ người làm).
+2. **Nhận task ngay**: tạo nhánh, push, mở **draft PR** có `[Txx]` trong tiêu đề trước khi làm nhiều — đó là dấu hiệu cho agent khác bỏ qua task này. Task vừa bị người khác nhận → lấy task kế tiếp (`docs/ai/WORKFLOW.md` §4).
+3. **Một task = một nhánh = một PR nhỏ**. Nhánh: `<agent>/<task-id>-<slug>` (vd `codex/T1.1-core-schema`). Tiêu đề PR: Conventional Commit + mã task, vd `feat(db): core schema and RLS [T1.1]`. Thân PR theo `.github/pull_request_template.md` (có dòng `Agent:` và `Task:`). Chỉ sửa những gì task cần.
+4. **Luôn bắt đầu từ `main` mới nhất** và merge `main` vào nhánh trước khi mở PR. Không force-push nhánh của agent khác, không sửa PR của agent khác.
+5. **Task chỉ được bắt đầu khi mọi `deps` đã merge vào `main`** (ngoại lệ contract-first cho task `b`: `docs/ai/WORKFLOW.md` §6). CI `agent-scope` đỏ nếu deps chưa merge.
+6. File "nóng" (lockfile, migration, file dịch, types sinh tự động…) có luật riêng: `docs/ai/WORKFLOW.md` §5. Không bao giờ sửa tay `CHANGELOG.md`, `packages/db/src/types.gen.ts`, `pnpm-lock.yaml`.
+7. Task `ui: true` phải theo **Chuẩn UI** (dưới đây) — áp dụng cho mọi agent làm giao diện.
 8. Kết thúc task: ghi **Handoff** trong PR (đã làm gì, API/contract mới, việc còn lại cho task sau).
 
 ## Dự án
@@ -65,13 +65,20 @@ Knowledge base nội bộ self-host: editor dạng block (TipTap), table block �
 - Ai được đăng nhập do super admin khai báo trong DB (bảng `access_allowlist`, theo email hoặc domain) — không hard-code email/domain trong code (trừ env `BOOTSTRAP_SUPER_ADMIN_EMAILS` cho lần đầu). Space mới mặc định `restricted`.
 - Migration DB: Supabase CLI, **forward-only**, thay đổi phá vỡ dùng expand → contract qua ít nhất 1 release.
 
-## Riêng cho Codex (`codex-1`)
-- `codex-1` — **DB & server**: `supabase/**` (migration, RLS, pgTAP, seed), `apps/web/src/server/**`, Route Handler `app/api/**`, auth middleware, SQL tìm kiếm.
-- **Không làm UI** (xem §0.3). Nếu task của bạn cần thay đổi UI → hoàn thành phần server/contract, ghi rõ trong Handoff và mục "Yêu cầu cho lane khác" để Claude làm.
-- Khi viết contract cho UI (`apps/web/src/server/<area>/index.ts`): export hàm có kiểu rõ ràng + schema zod cho input/output + mã lỗi từ `packages/shared/src/errors.ts`; ghi ví dụ dữ liệu trong JSDoc để Claude dựng mock.
+## Chuẩn UI (mọi task có giao diện)
+- Dùng component shadcn/ui có sẵn trong `apps/web/src/components/ui`. Cần component mới → `pnpm dlx shadcn add <name>`. Sửa component có sẵn thì giữ tương thích ngược với các màn hình đang dùng.
+- Màu, spacing, radius qua design token (CSS variables của theme) — không màu hex rời rạc; hỗ trợ **sáng/tối**.
+- Responsive: dùng được ở màn hình 360 px (đọc) và ≥ 1024 px (sửa); sidebar thu gọn trên mobile.
+- A11y: điều khiển được bằng bàn phím, focus ring rõ, `aria-*` qua i18n, tương phản ≥ WCAG AA.
+- **Không chuỗi cứng**: mọi chữ hiển thị qua `useTranslations`/`getTranslations`; thêm key vào **cả** `vi` và `en`.
+- Dữ liệu lấy qua hàm trong `apps/web/src/server/**` (contract). Contract chưa có → dựng UI bằng mock `apps/web/src/server/<area>/mock.ts` theo kiểu dữ liệu đã thống nhất (`docs/ai/WORKFLOW.md` §6).
+- Mỗi task UI kèm: test component (Vitest + Testing Library) cho logic quan trọng, cập nhật E2E Playwright cho luồng chính, ảnh chụp màn hình (vi và en, sáng và tối) trong PR.
+
+## Contract server cho UI
+- Khi viết contract (`apps/web/src/server/<area>/index.ts`): export hàm có kiểu rõ ràng + schema zod cho input/output + mã lỗi từ `packages/shared/src/errors.ts`; ghi ví dụ dữ liệu trong JSDoc để task giao diện dựng mock.
 
 ## Definition of Done cho mỗi PR
-- [ ] PR chỉ chứa **một task**, chỉ sửa file trong vùng lane (hoặc file "nóng" theo đúng luật §7 của WORKFLOW)
+- [ ] PR chỉ chứa **một task**, chỉ sửa những gì task cần (file "nóng" theo đúng luật §5 của WORKFLOW)
 - [ ] Tiêu đề PR đúng Conventional Commits và có `[Txx]`; thân PR có `Agent:`, `Task:`, Handoff
 - [ ] Không có chuỗi hiển thị hard-code; `pnpm i18n:check` pass (vi = en)
 - [ ] Bảng mới có RLS + policy + test pgTAP; thao tác quan trọng có audit log

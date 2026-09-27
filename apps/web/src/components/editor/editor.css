@@ -111,6 +111,43 @@
     @apply border-red-500 bg-red-50 dark:bg-red-950/40;
   }
 
+  /*
+   * Tables (T4.1). The wrapper scrolls sideways so wide tables stay usable on a 360 px screen;
+   * column widths come from `colwidth` (resize by dragging a column border).
+   */
+  & .tableWrapper {
+    @apply my-4 max-w-full overflow-x-auto overscroll-x-contain pb-1;
+  }
+  & table {
+    @apply m-0 table-fixed border-collapse text-sm leading-6;
+  }
+  & th,
+  & td {
+    @apply relative box-border min-w-[1em] border border-border px-2 py-1.5 text-left align-top;
+
+    & > * + * {
+      @apply mt-1;
+    }
+    & > p {
+      @apply my-0;
+    }
+  }
+  & th {
+    @apply bg-muted font-semibold;
+  }
+  /* Selected cells (drag across cells or Shift+arrow). */
+  & .selectedCell::after {
+    @apply pointer-events-none absolute inset-0 z-[2] bg-primary/15;
+    content: "";
+  }
+  /* Column resize handle shown on the hovered column border. */
+  & .column-resize-handle {
+    @apply pointer-events-none absolute top-0 -right-0.5 -bottom-px z-[3] w-1 bg-primary;
+  }
+  &.resize-cursor {
+    @apply cursor-col-resize;
+  }
+
   /* Placeholder of the empty block holding the cursor (Placeholder extension). */
   & .is-empty::before {
     @apply pointer-events-none float-left h-0 text-muted-foreground;
