@@ -42,6 +42,10 @@ export const AUDIT_ACTIONS = [
   "space.create",
   "space.unarchive",
   "space.update",
+  "user.deactivate",
+  "user.reactivate",
+  "user.super_admin_grant",
+  "user.super_admin_revoke",
   "version.restore",
 ] as const;
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];
@@ -53,6 +57,7 @@ export const AUDIT_ENTITY_TYPES = [
   "page",
   "settings",
   "space",
+  "user",
   "version",
 ] as const;
 export type AuditEntityType = (typeof AUDIT_ENTITY_TYPES)[number];

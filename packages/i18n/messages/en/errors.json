@@ -1,4 +1,7 @@
 {
+  "ACCESS_CANNOT_REMOVE_SELF": "You cannot remove your own email from the allowlist.",
+  "ACCESS_ENTRY_NOT_FOUND": "Allowlist entry not found (it may have been removed already).",
+  "ADMIN_ACTION_FAILED": "The administration action failed. Please try again.",
   "AUDIT_LOG_IMMUTABLE": "The activity log cannot be changed or deleted.",
   "AUDIT_QUERY_FAILED": "Could not load the activity log. Please try again.",
   "CLIENT_OUTDATED": "A new version of the app is available. Please reload the page.",
@@ -10,6 +13,9 @@
   "INVITATION_EXPIRED": "This invitation has expired. Ask a Space admin to send it again.",
   "INVITATION_NOT_FOUND": "Invitation not found, or the link is invalid.",
   "INVITATION_REVOKED": "This invitation has been revoked.",
+  "LAST_SUPER_ADMIN": "At least one active super admin must remain.",
+  "MAIL_NOT_CONFIGURED": "Email sending (SMTP) is not configured.",
+  "MAIL_SEND_FAILED": "The email could not be sent. Check the SMTP settings and try again.",
   "MEMBER_ACTION_FAILED": "Could not update the member. Please try again.",
   "MEMBER_ALREADY_EXISTS": "This person is already a member of the Space.",
   "MEMBER_NOT_FOUND": "This member was not found in the Space.",
@@ -28,5 +34,9 @@
   "SPACE_SLUG_TAKEN": "This URL is already used by another space.",
   "SPACE_WRITE_FAILED": "Could not save the space. Please try again.",
   "UNAUTHORIZED": "Your session has expired. Please sign in again.",
+  "USER_CANNOT_CHANGE_SELF": "You cannot deactivate yourself or remove your own super admin role.",
+  "USER_DEACTIVATED": "This user is deactivated.",
+  "USER_IS_GUEST": "Guests cannot be super admins. Add their email or domain to the allowlist first.",
+  "USER_NOT_FOUND": "User not found.",
   "VALIDATION_FAILED": "The data is not valid."
 }
