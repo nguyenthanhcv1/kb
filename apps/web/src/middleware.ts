@@ -1,7 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-import { DEPLOYED_APP_ENVS, type AppEnv } from "@kb/shared/env";
-
 import { contentSecurityPolicy } from "@/lib/security-headers";
 import { supabaseUrl } from "@/lib/supabase/env";
 import { ensureBootstrapAccess } from "@/server/auth/bootstrap";
@@ -32,6 +30,9 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
 
 let cachedCsp: string | undefined;
 
+/** `DEPLOYED_APP_ENVS` of @kb/shared/env — that module uses Node APIs the Edge middleware lacks. */
+const HTTPS_APP_ENVS = new Set(["preview", "staging", "production"]);
+
 /**
  * CSP of page responses (T7.2). Built from runtime settings — the Supabase and collab origins are
  * not known at build time — once per server process. Static headers live in next.config.ts.
@@ -41,7 +42,7 @@ function withContentSecurityPolicy(response: NextResponse): NextResponse {
     supabaseUrl: supabaseUrl(),
     collabUrl: process.env.COLLAB_PUBLIC_URL,
     dev: process.env.NODE_ENV === "development",
-    upgradeInsecureRequests: DEPLOYED_APP_ENVS.includes(process.env.APP_ENV as AppEnv),
+    upgradeInsecureRequests: HTTPS_APP_ENVS.has(process.env.APP_ENV ?? ""),
   });
   response.headers.set("Content-Security-Policy", cachedCsp);
   return response;
