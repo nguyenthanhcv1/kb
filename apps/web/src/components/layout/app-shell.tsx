@@ -19,6 +19,8 @@ type AppShellProps = {
   sidebar?: ReactNode;
   /** Signed-in user shown in the account menu; omitted → no menu. */
   user?: CurrentUser | null;
+  /** Running release (`appInfo().version`), shown in the sidebar footer; omitted → no footer. */
+  version?: string;
   children: ReactNode;
 };
 
@@ -26,7 +28,7 @@ type AppShellProps = {
  * Signed-in app frame: fixed sidebar from `md` (768 px), a drawer below that,
  * a top bar with the language and theme switchers and the account menu, and a skip link to the main content.
  */
-export function AppShell({ sidebar, user, children }: AppShellProps) {
+export function AppShell({ sidebar, user, version, children }: AppShellProps) {
   const t = useTranslations("common.shell");
   const [open, setOpen] = useState(false);
 
@@ -40,7 +42,7 @@ export function AppShell({ sidebar, user, children }: AppShellProps) {
       </a>
 
       <aside className="sticky top-0 hidden h-dvh w-64 shrink-0 border-r border-sidebar-border md:block">
-        <Sidebar>{sidebar}</Sidebar>
+        <Sidebar version={version}>{sidebar}</Sidebar>
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
@@ -67,7 +69,7 @@ export function AppShell({ sidebar, user, children }: AppShellProps) {
               }}
             >
               <SheetTitle className="sr-only">{t("mainNavigation")}</SheetTitle>
-              <Sidebar>{sidebar}</Sidebar>
+              <Sidebar version={version}>{sidebar}</Sidebar>
             </SheetContent>
           </Sheet>
           <div className="md:hidden">

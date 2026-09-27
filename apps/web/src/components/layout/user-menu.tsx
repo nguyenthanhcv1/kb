@@ -1,6 +1,6 @@
 "use client";
 
-import { LogOutIcon, SettingsIcon } from "lucide-react";
+import { LogOutIcon, SettingsIcon, SparklesIcon } from "lucide-react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useTransition } from "react";
@@ -29,6 +29,7 @@ export function initials(user: Pick<CurrentUser, "displayName" | "email">): stri
 /** Avatar button in the top bar: who is signed in, role badges, settings and sign-out. */
 export function UserMenu({ user }: { user: CurrentUser }) {
   const t = useTranslations("auth.userMenu");
+  const tNav = useTranslations("nav");
   const [pending, startTransition] = useTransition();
   const name = user.displayName ?? user.email;
 
@@ -62,6 +63,12 @@ export function UserMenu({ user }: { user: CurrentUser }) {
           <Link href="/settings">
             <SettingsIcon aria-hidden />
             {t("settings")}
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link href="/whats-new">
+            <SparklesIcon aria-hidden />
+            {tNav("whatsNew")}
           </Link>
         </DropdownMenuItem>
         <DropdownMenuSeparator />

@@ -1,6 +1,11 @@
 {
+  "description": "What changed in each KB release, newest first.",
+  "empty": "No release has been published yet.",
+  "englishOnly": "This release has no Vietnamese notes yet — showing the English notes.",
   "features": "New features",
   "fixes": "Bug fixes",
+  "noNotes": "This release has no user-facing changes.",
   "releasedOn": "Released on {date}",
-  "title": "What's new"
+  "title": "What's new",
+  "version": "Version {version}"
 }

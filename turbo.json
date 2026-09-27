@@ -28,6 +28,16 @@
     "lint": {
       "dependsOn": ["^build"]
     },
+    "@kb/web#lint": {
+      "dependsOn": ["^build", "//#changelog:build"]
+    },
+    "@kb/web#typecheck": {
+      "dependsOn": ["^build", "//#changelog:build"]
+    },
+    "@kb/web#test": {
+      "dependsOn": ["^build", "//#changelog:build"],
+      "outputs": ["coverage/**"]
+    },
     "typecheck": {
       "dependsOn": ["^build"]
     },
