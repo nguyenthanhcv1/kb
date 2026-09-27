@@ -1,7 +1,12 @@
 {
   "invitation": {
     "accept": "Accept invitation",
+    "body": "{inviter} invited you to join the {space} space. Your access: {role}.",
     "expires": "This invitation expires on {date}.",
+    "greeting": "Hello,",
+    "ignore": "If you were not expecting this invitation, you can ignore this email.",
+    "linkFallback": "If the button does not work, open this link:",
+    "signInHint": "Sign in with Google as {email} to accept the invitation.",
     "subject": "{inviter} invited you to the {space} space"
   },
   "test": {
