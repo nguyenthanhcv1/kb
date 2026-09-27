@@ -12,6 +12,9 @@
   "PAGE_PARENT_DELETED": "Trang cha đang nằm trong thùng rác.",
   "PAGE_PARENT_NOT_FOUND": "Không tìm thấy trang cha.",
   "PAGE_PARENT_SPACE_MISMATCH": "Trang cha phải thuộc cùng không gian.",
+  "SPACE_NOT_FOUND": "Space này không tồn tại hoặc bạn không có quyền truy cập.",
+  "SPACE_SLUG_TAKEN": "Đường dẫn này đã được Space khác sử dụng.",
+  "SPACE_WRITE_FAILED": "Không lưu được Space. Vui lòng thử lại.",
   "UNAUTHORIZED": "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.",
   "VALIDATION_FAILED": "Dữ liệu không hợp lệ."
 }
