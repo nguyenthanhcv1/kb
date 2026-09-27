@@ -1,7 +1,22 @@
 {
   "about": {
+    "collab": "Collaboration server",
+    "collabUnavailable": "Unavailable",
+    "collabVersion": "{version} · editor schema {schemaVersion}",
+    "commit": "Commit",
+    "description": "The KB version currently running.",
+    "environment": "Environment",
+    "environments": {
+      "local": "Local development",
+      "preview": "Preview",
+      "production": "Production",
+      "staging": "Staging",
+      "test": "Test"
+    },
     "title": "About",
-    "version": "Version {version}"
+    "version": "Version {version}",
+    "web": "Web app",
+    "whatsNew": "See what's new"
   },
   "language": {
     "label": "Language"

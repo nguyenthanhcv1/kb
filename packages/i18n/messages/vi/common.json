@@ -32,7 +32,9 @@
     "mainNavigation": "Điều hướng chính",
     "openSidebar": "Mở thanh bên",
     "sidebarEmpty": "Chưa có Space nào.",
-    "skipToContent": "Bỏ qua, tới nội dung chính"
+    "skipToContent": "Bỏ qua, tới nội dung chính",
+    "version": "v{version}",
+    "versionLink": "Phiên bản {version} — xem có gì mới"
   },
   "theme": {
     "dark": "Tối",
