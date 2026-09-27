@@ -18,7 +18,7 @@ export function isEmptyDocument(doc: JSONContent | null | undefined): boolean {
 export function PageContent({ content, title }: { content: JSONContent | null; title: string }) {
   const t = useTranslations("tree.page.content");
   if (!content || isEmptyDocument(content)) {
-    return <p className="text-muted-foreground">{t("empty")}</p>;
+    return <p className="text-muted-foreground md:pl-8">{t("empty")}</p>;
   }
   return <BlockEditor content={content} editable={false} title={title} />;
 }

@@ -45,7 +45,8 @@ export function PageView({ page, spaceSlug, canEdit, content }: PageViewProps) {
     <article className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-6 sm:px-8 sm:py-10">
       {trashed && <TrashedPageNotice page={page} spaceSlug={spaceSlug} canRestore={canEdit} />}
       <header className="flex items-start gap-2">
-        <div className="flex min-w-0 flex-1 flex-col gap-2">
+        {/* `md:pl-8`: aligned with the editor content, whose gutter holds the block handle. */}
+        <div className="flex min-w-0 flex-1 flex-col gap-2 md:pl-8">
           <PageIconPicker page={page} editable={editable} onChanged={() => router.refresh()} />
           <PageTitle page={page} editable={editable} onRenamed={onRenamed} />
         </div>
