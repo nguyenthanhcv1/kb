@@ -34,6 +34,7 @@
   "PAGE_PARENT_NOT_FOUND": "The parent page was not found.",
   "PAGE_PARENT_SPACE_MISMATCH": "The parent page must be in the same space.",
   "PROFILE_UPDATE_FAILED": "Could not save your personal settings. Please try again.",
+  "RATE_LIMITED": "Too many requests. Please wait a moment and try again.",
   "SPACE_NOT_FOUND": "This space does not exist or you do not have access to it.",
   "SPACE_REQUIRES_ADMIN": "A space must keep at least one admin.",
   "SPACE_SLUG_TAKEN": "This URL is already used by another space.",
