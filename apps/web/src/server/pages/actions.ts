@@ -15,6 +15,8 @@ import {
   renamePage,
   type RenamePageInput,
   restorePage,
+  setPageIcon,
+  type SetPageIconInput,
   trashPage,
 } from "./index";
 
@@ -45,6 +47,12 @@ export async function renamePageAction(
   input: RenamePageInput,
 ): Promise<PageActionResult<PageSummary>> {
   return run((supabase) => renamePage(supabase, input));
+}
+
+export async function setPageIconAction(
+  input: SetPageIconInput,
+): Promise<PageActionResult<PageSummary>> {
+  return run((supabase) => setPageIcon(supabase, input));
 }
 
 export async function movePageAction(input: MovePageInput): Promise<PageActionResult<PageSummary>> {

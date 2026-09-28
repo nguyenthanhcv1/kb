@@ -9,5 +9,52 @@
   "collapse": "Thu gọn",
   "expand": "Mở rộng",
   "newPage": "Trang mới",
+  "page": {
+    "content": {
+      "empty": "Trang này chưa có nội dung."
+    },
+    "icon": {
+      "add": "Thêm biểu tượng",
+      "apply": "Dùng",
+      "change": "Đổi biểu tượng",
+      "custom": "Hoặc nhập emoji",
+      "pickerTitle": "Biểu tượng trang",
+      "remove": "Bỏ biểu tượng",
+      "suggestions": "Gợi ý"
+    },
+    "menu": "Thao tác với trang",
+    "title": {
+      "label": "Tiêu đề trang",
+      "saving": "Đang lưu…"
+    },
+    "trashed": {
+      "description": "Khôi phục để đưa trang về vị trí cũ và sửa tiếp.",
+      "openTrash": "Mở thùng rác",
+      "title": "Trang này đang nằm trong thùng rác"
+    }
+  },
+  "trash": {
+    "deletedAt": "Đã xoá lúc {date}",
+    "description": "Các trang đã xoá của không gian {space}. Khôi phục sẽ đưa trang về vị trí cũ.",
+    "empty": "Thùng rác trống.",
+    "forbidden": {
+      "description": "Chỉ người sửa và quản trị viên của không gian mới xem được thùng rác.",
+      "title": "Bạn không có quyền xem thùng rác"
+    },
+    "listLabel": "Trang trong thùng rác",
+    "openPage": "Mở trang",
+    "parentInTrash": "Trang cha cũng đang trong thùng rác nên trang sẽ được khôi phục ở cấp gốc của không gian.",
+    "purge": "Xoá vĩnh viễn",
+    "purgeConfirmDescription": "{count, plural, =0 {Trang “{title}” sẽ bị xoá vĩnh viễn và không khôi phục được.} other {Trang “{title}” và # trang con sẽ bị xoá vĩnh viễn và không khôi phục được.}}",
+    "purgeConfirmTitle": "Xoá vĩnh viễn trang này?",
+    "purgeLabel": "Xoá vĩnh viễn “{title}”",
+    "purged": "Đã xoá vĩnh viễn “{title}”.",
+    "purging": "Đang xoá…",
+    "restore": "Khôi phục",
+    "restoreLabel": "Khôi phục “{title}”",
+    "restored": "Đã khôi phục “{title}”.",
+    "restoring": "Đang khôi phục…",
+    "subpages": "{count, plural, other {Kèm # trang con}}"
+  },
   "untitled": "Chưa có tiêu đề"
 }

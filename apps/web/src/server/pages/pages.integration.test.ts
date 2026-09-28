@@ -16,6 +16,8 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import {
   createPage,
+  getPageByShortId,
+  getPageContent,
   listChildPages,
   listTrash,
   movePage,
@@ -23,6 +25,7 @@ import {
   purgePage,
   renamePage,
   restorePage,
+  setPageIcon,
   trashPage,
 } from "./index";
 
@@ -248,5 +251,46 @@ describe.skipIf(!URL || !SECRET || !ADMIN_URL)("page actions through PostgREST",
         "page.purge",
       ]),
     );
+  });
+
+  it("finds a page by short id with its Space slug, sets its icon and reads its content", async () => {
+    const page = await createPage(as.editor, { spaceId: ids.space, title: "Tra cứu" });
+    expect(await getPageByShortId(as.viewer, { shortId: page.shortId })).toMatchObject({
+      id: page.id,
+      slug: "tra-cuu",
+      spaceSlug: `pg-${ids.space.slice(0, 8)}`,
+    });
+    expect(await getPageByShortId(as.outsider, { shortId: page.shortId })).toBeNull();
+    expect(await getPageByShortId(as.viewer, { shortId: "not-an-id" })).toBeNull();
+
+    // A rename changes the slug, never the short id: old links resolve to the renamed page.
+    await renamePage(as.editor, { pageId: page.id, title: "Tra cứu mới" });
+    expect(await getPageByShortId(as.viewer, { shortId: page.shortId })).toMatchObject({
+      shortId: page.shortId,
+      slug: "tra-cuu-moi",
+    });
+
+    expect(await setPageIcon(as.editor, { pageId: page.id, icon: " 🚀 " })).toMatchObject({
+      icon: "🚀",
+      title: "Tra cứu mới",
+    });
+    expect(await setPageIcon(as.editor, { pageId: page.id, icon: "" })).toMatchObject({
+      icon: null,
+    });
+    await expectCode(setPageIcon(as.viewer, { pageId: page.id, icon: "x" }), "FORBIDDEN");
+
+    expect(await getPageContent(as.viewer, { pageId: page.id })).toEqual({
+      contentJson: { type: "doc", content: [] },
+      schemaVersion: 1,
+    });
+    expect(await getPageContent(as.outsider, { pageId: page.id })).toBeNull();
+
+    // Trashed: editors still open it (to restore it), viewers no longer see it.
+    await trashPage(as.editor, { pageId: page.id });
+    expect(await getPageByShortId(as.editor, { shortId: page.shortId })).toMatchObject({
+      deletedAt: expect.any(String),
+    });
+    expect(await getPageByShortId(as.viewer, { shortId: page.shortId })).toBeNull();
+    await expectCode(setPageIcon(as.editor, { pageId: page.id, icon: "x" }), "PAGE_DELETED");
   });
 });
