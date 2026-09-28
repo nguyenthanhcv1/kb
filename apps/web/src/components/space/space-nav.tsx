@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
 import type { ReactNode } from "react";
 
+import { PageTree } from "@/components/tree/page-tree";
 import { cn } from "@/components/ui/utils";
 import { spaceTrashHref } from "@/lib/page-href";
 import type { SpaceSummary } from "@/server/space";
@@ -15,7 +16,10 @@ import { canEditSpaceContent } from "./permissions";
 import { SpaceIcon } from "./space-icon";
 
 type SpaceNavProps = {
-  /** With `role`, editors and admins get the trash link under the current Space. */
+  /**
+   * With `role`, the page tree of the current Space offers editing and editors/admins get the
+   * trash link under it.
+   */
   spaces: (Pick<SpaceSummary, "id" | "slug" | "name" | "icon"> &
     Partial<Pick<SpaceSummary, "role">>)[];
   /** Internal users only (`canCreateSpace`); guests never see the create button. */
@@ -30,7 +34,7 @@ export function isSpacePath(pathname: string, slug: string): boolean {
 /**
  * Sidebar section listing the Spaces the user can view (links to `/s/<slug>`, current one
  * marked with `aria-current`), plus the create button for internal users. The page tree of the
- * current Space (T2.3) goes under its entry.
+ * current Space (T2.3) shows under its entry.
  */
 export function SpaceNav({ spaces, canCreate }: SpaceNavProps) {
   const t = useTranslations("space");
@@ -69,6 +73,15 @@ export function SpaceNav({ spaces, canCreate }: SpaceNavProps) {
                   <SpaceIcon icon={space.icon} name={space.name} size="sm" />
                   <span className="truncate">{space.name}</span>
                 </Link>
+                {active && (
+                  <div className="pt-0.5 pb-1 pl-1">
+                    <PageTree
+                      key={space.id}
+                      space={space}
+                      canEdit={canEditSpaceContent(space.role)}
+                    />
+                  </div>
+                )}
                 {active && canEditSpaceContent(space.role) && (
                   <ul className="mt-0.5 flex flex-col gap-0.5 pl-6">
                     <li>

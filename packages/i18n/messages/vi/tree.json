@@ -2,12 +2,31 @@
   "actions": {
     "addSubpage": "Thêm trang con",
     "copyLink": "Sao chép liên kết",
+    "more": "Tuỳ chọn cho trang {title}",
     "moveTo": "Di chuyển tới…",
     "moveToTrash": "Chuyển vào thùng rác",
     "rename": "Đổi tên"
   },
+  "breadcrumb": {
+    "label": "Đường dẫn trang",
+    "more": "Các trang cha khác"
+  },
   "collapse": "Thu gọn",
+  "copyLinkFailed": "Không sao chép được liên kết.",
+  "dismiss": "Ẩn thông báo",
+  "dnd": {
+    "cancel": "Đã huỷ kéo trang {title}.",
+    "drop": "Đã thả trang {title}.",
+    "instructions": "Kéo bằng chuột hoặc chạm giữ để sắp xếp trang. Bằng bàn phím: Alt+Shift+mũi tên lên/xuống để đổi thứ tự, Alt+Shift+mũi tên phải/trái để lồng vào hoặc đưa ra khỏi trang cha.",
+    "over": "Trang {title} đang ở trên trang {over}.",
+    "start": "Đang kéo trang {title}."
+  },
+  "empty": "Chưa có trang nào.",
   "expand": "Mở rộng",
+  "label": "Các trang trong {space}",
+  "linkCopied": "Đã sao chép liên kết.",
+  "loading": "Đang tải…",
+  "moved": "Đã di chuyển trang {title}.",
   "newPage": "Trang mới",
   "page": {
     "content": {
@@ -33,6 +52,7 @@
       "title": "Trang này đang nằm trong thùng rác"
     }
   },
+  "renameLabel": "Tên trang",
   "trash": {
     "deletedAt": "Đã xoá lúc {date}",
     "description": "Các trang đã xoá của không gian {space}. Khôi phục sẽ đưa trang về vị trí cũ.",
@@ -56,5 +76,6 @@
     "restoring": "Đang khôi phục…",
     "subpages": "{count, plural, other {Kèm # trang con}}"
   },
+  "trashed": "Đã chuyển trang {title} vào thùng rác.",
   "untitled": "Chưa có tiêu đề"
 }

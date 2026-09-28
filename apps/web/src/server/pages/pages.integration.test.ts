@@ -19,6 +19,7 @@ import {
   getPageByShortId,
   getPageContent,
   listChildPages,
+  listPageAncestors,
   listTrash,
   movePage,
   PageError,
@@ -195,6 +196,24 @@ describe.skipIf(!URL || !SECRET || !ADMIN_URL)("page actions through PostgREST",
       spaceId: ids.space,
       afterId: null,
     });
+  });
+
+  it("lists the ancestors of a page, root first", async () => {
+    const [alpha] = await listChildPages(as.viewer, { spaceId: ids.space, parentId: null });
+    const [charlie] = await listChildPages(as.viewer, { spaceId: ids.space, parentId: alpha!.id });
+    const nested = await createPage(as.editor, {
+      spaceId: ids.space,
+      parentId: charlie!.id,
+      title: "Delta",
+    });
+    expect(titles(await listPageAncestors(as.viewer, { pageId: nested.id }))).toEqual([
+      "Alpha",
+      "Charlie",
+    ]);
+    expect(await listPageAncestors(as.viewer, { pageId: alpha!.id })).toEqual([]);
+    await expectCode(listPageAncestors(as.outsider, { pageId: nested.id }), "PAGE_NOT_FOUND");
+    await trashPage(as.editor, { pageId: nested.id });
+    await purgePage(as.admin, { pageId: nested.id });
   });
 
   it("trashes and restores a branch; restores under a trashed parent to the root", async () => {
