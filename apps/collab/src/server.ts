@@ -1,5 +1,6 @@
 import { Database } from "@hocuspocus/extension-database";
 import { Server } from "@hocuspocus/server";
+import * as Y from "yjs";
 import { EDITOR_SCHEMA_VERSION } from "@kb/editor/schema-version";
 
 import { type AccessTokenVerifier, createOriginCheck, parseDocumentName } from "./auth";
@@ -10,6 +11,7 @@ import { CollabAuthError, DocumentLoadError } from "./errors";
 import { healthExtension } from "./health";
 import { internalApiExtension } from "./internal-api";
 import type { Logger } from "./logger";
+import { SnapshotTracker } from "./snapshots";
 
 /** Per-connection context returned by onAuthenticate. */
 export interface CollabContext {
@@ -48,6 +50,8 @@ export function createCollabServer({
   // documentName → last editor and a change counter, set only by real edits. Unload also calls
   // onStoreDocument; without pending edits nothing is written (no fake last_edited_* / audit).
   const pending = new Map<string, { userId: string | null; seq: number }>();
+  // Stored changes not yet in any page version (snapshot policy, snapshots.ts).
+  const snapshots = new SnapshotTracker();
 
   return new Server<CollabContext>({
     name: "kb-collab",
@@ -59,7 +63,7 @@ export function createCollabServer({
     stopOnSignals: true,
     extensions: [
       healthExtension(env, store),
-      internalApiExtension({ secret: env.COLLAB_INTERNAL_SECRET, logger }),
+      internalApiExtension({ secret: env.COLLAB_INTERNAL_SECRET, logger, store, snapshots }),
       {
         async onAuthenticate({
           token,
@@ -140,14 +144,16 @@ export function createCollabServer({
           const started = performance.now();
 
           const content = deriveContent(document);
-          const stored = await store.store({
+          const outcome = await store.store({
             pageId,
             state,
             schemaVersion: EDITOR_SCHEMA_VERSION,
             content,
             editorId: change.userId,
+            snapshot: "due",
           });
           if (pending.get(documentName)?.seq === change.seq) pending.delete(documentName);
+          if (outcome !== "missing") snapshots.stored(documentName, outcome, change.userId);
 
           const bytes = state.byteLength;
           const log = logger.child({
@@ -155,12 +161,33 @@ export function createCollabServer({
             bytes,
             ms: Math.round(performance.now() - started),
           });
-          if (!stored) log.warn("page is gone, document not stored");
+          if (outcome === "missing") log.warn("page is gone, document not stored");
           else if (bytes > 5 * 1024 * 1024) log.warn("document larger than 5 MB");
           else log.debug("document stored");
         },
       }),
       {
+        // Last client left (or shutdown): runs after the final store. Changes stored since the
+        // last version become an `auto` version (§3.6 b). Never blocks the unload.
+        async beforeUnloadDocument({ documentName, document }) {
+          const change = snapshots.take(documentName);
+          if (!change) return;
+          const pageId = parseDocumentName(documentName)!;
+          try {
+            const version = await store.createVersion({
+              pageId,
+              state: Y.encodeStateAsUpdate(document),
+              schemaVersion: EDITOR_SCHEMA_VERSION,
+              content: deriveContent(document),
+              actorId: change.editorId,
+              reason: "auto",
+            });
+            logger.debug({ documentName, version }, "version written on unload");
+          } catch (error) {
+            logger.error({ documentName, err: error }, "could not write version on unload");
+          }
+        },
+
         async onDestroy() {
           await store.close();
           logger.info("stopped");
