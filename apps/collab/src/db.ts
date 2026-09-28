@@ -2,6 +2,7 @@ import pg from "pg";
 import * as Y from "yjs";
 
 import type { DerivedContent } from "./content";
+import { AUTO_SNAPSHOT_INTERVAL_MS } from "./snapshots";
 
 export type SpaceRole = "viewer" | "editor" | "admin";
 
@@ -18,13 +19,42 @@ export interface StoreInput {
   content: DerivedContent;
   /** Last user who changed the document (audit actor, pages.last_edited_by). */
   editorId: string | null;
+  /**
+   * `due`: also write an `auto` page version when the last one is older than
+   * {@link AUTO_SNAPSHOT_INTERVAL_MS} (snapshot policy, snapshots.ts). Default: no version.
+   */
+  snapshot?: "due";
+}
+
+/** `missing`: the page no longer exists (purged while open). `snapshotted`: stored + auto version. */
+export type StoreOutcome = "missing" | "stored" | "snapshotted";
+
+export type VersionReason = "auto" | "manual";
+
+export interface CreateVersionInput {
+  pageId: string;
+  /** Full Y state of the document at snapshot time. */
+  state: Uint8Array;
+  schemaVersion: number;
+  content: DerivedContent;
+  /** Author of the version (page_versions.created_by). */
+  actorId: string | null;
+  reason: VersionReason;
+  /** Name of a manual version. */
+  label?: string | undefined;
+}
+
+export interface CreatedVersion {
+  id: string;
+  versionNo: number;
 }
 
 export interface DocumentStore {
   authorize(pageId: string, userId: string): Promise<SpaceRole | null>;
   fetch(pageId: string): Promise<StoredDocument | null>;
-  /** Returns false when the page no longer exists (purged while open). */
-  store(input: StoreInput): Promise<boolean>;
+  store(input: StoreInput): Promise<StoreOutcome>;
+  /** Writes a page version; null when the page no longer exists. */
+  createVersion(input: CreateVersionInput): Promise<CreatedVersion | null>;
   /** Nightly retention of page_versions (T6.1a); returns the number of versions deleted. */
   prunePageVersions(): Promise<number>;
   ping(): Promise<void>;
@@ -64,7 +94,7 @@ export function createDocumentStore(
       return row ? { ydoc: new Uint8Array(row.ydoc), schemaVersion: row.schema_version } : null;
     },
 
-    async store({ pageId, state, schemaVersion, content, editorId }) {
+    async store({ pageId, state, schemaVersion, content, editorId, snapshot }) {
       const client = await pool.connect();
       try {
         await client.query("begin");
@@ -74,7 +104,7 @@ export function createDocumentStore(
         );
         if (!rows[0]) {
           await client.query("rollback");
-          return false;
+          return "missing";
         }
 
         // Merge instead of overwrite: another instance (V2, Redis) may have written meanwhile.
@@ -109,10 +139,69 @@ export function createDocumentStore(
           ]);
         }
 
+        // Same transaction and page lock as the content: the version is exactly what was stored.
+        let snapshotted = false;
+        if (snapshot === "due") {
+          const { rowCount } = await client.query(
+            `insert into public.page_versions
+               (page_id, ydoc_update, content_json, content_text, schema_version, reason)
+             select $1, $2, $3, $4, $5, 'auto'
+             where not exists (
+               select 1 from public.page_versions
+               where page_id = $1 and reason = 'auto'
+                 and created_at > now() - make_interval(secs => $6)
+             )`,
+            [
+              pageId,
+              Buffer.from(merged),
+              content.contentJson,
+              content.contentText,
+              schemaVersion,
+              AUTO_SNAPSHOT_INTERVAL_MS / 1000,
+            ],
+          );
+          snapshotted = rowCount === 1;
+        }
+
         await client.query("commit");
-        return true;
+        return snapshotted ? "snapshotted" : "stored";
       } catch (error) {
         await client.query("rollback").catch(() => undefined);
+        throw error;
+      } finally {
+        client.release();
+      }
+    },
+
+    async createVersion({ pageId, state, schemaVersion, content, actorId, reason, label }) {
+      const client = await pool.connect();
+      try {
+        await client.query("begin");
+        if (actorId) {
+          await client.query("select set_config('app.actor_id', $1, true)", [actorId]);
+        }
+        const { rows } = await client.query<{ id: string; version_no: number }>(
+          `insert into public.page_versions
+             (page_id, ydoc_update, content_json, content_text, schema_version, reason, label)
+           values ($1, $2, $3, $4, $5, $6, $7)
+           returning id, version_no`,
+          [
+            pageId,
+            Buffer.from(state),
+            content.contentJson,
+            content.contentText,
+            schemaVersion,
+            reason,
+            label ?? null,
+          ],
+        );
+        await client.query("commit");
+        const row = rows[0]!;
+        return { id: row.id, versionNo: row.version_no };
+      } catch (error) {
+        await client.query("rollback").catch(() => undefined);
+        // Raised by the page_versions trigger when the page was purged meanwhile.
+        if ((error as { message?: string }).message === "PAGE_NOT_FOUND") return null;
         throw error;
       } finally {
         client.release();
