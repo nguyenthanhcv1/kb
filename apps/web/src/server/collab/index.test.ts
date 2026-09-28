@@ -3,7 +3,7 @@ import type { AddressInfo } from "node:net";
 
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { CollabError, replaceDocument } from "./index";
+import { CollabError, createPageVersion, replaceDocument } from "./index";
 import { computeSignature, NONCE_HEADER, SIGNATURE_HEADER, TIMESTAMP_HEADER } from "./signature";
 
 const SECRET = "web-collab-client-secret-0123456789-abc";
@@ -181,5 +181,70 @@ describe("replaceDocument", () => {
     expect(await failure(replaceDocument({ pageId: PAGE_ID, content, actorId: ACTOR_ID }))).toEqual(
       { code: "PAGE_ACTION_FAILED", reason: "NOT_CONFIGURED" },
     );
+  });
+});
+
+describe("createPageVersion", () => {
+  const VERSION_ID = "3f1d2c4b-5a6e-4f70-8a9b-0c1d2e3f4a5b";
+
+  it("posts a signed request with the trimmed label and returns the version", async () => {
+    const { url, received } = await fakeCollab(200, {
+      pageId: PAGE_ID,
+      versionId: VERSION_ID,
+      versionNo: 12,
+    });
+
+    await expect(
+      createPageVersion(
+        { pageId: PAGE_ID, actorId: ACTOR_ID, label: "  Bản đã duyệt " },
+        { url, secret: SECRET },
+      ),
+    ).resolves.toEqual({ pageId: PAGE_ID, versionId: VERSION_ID, versionNo: 12 });
+
+    const [request] = received;
+    expect(request!.url).toBe(`/internal/documents/${PAGE_ID}/versions`);
+    expect(JSON.parse(request!.body)).toEqual({ actorId: ACTOR_ID, label: "Bản đã duyệt" });
+    expect(request!.headers[SIGNATURE_HEADER]).toBe(
+      computeSignature(SECRET, {
+        method: "POST",
+        path: `/internal/documents/${PAGE_ID}/versions`,
+        timestamp: Number(request!.headers[TIMESTAMP_HEADER]),
+        nonce: String(request!.headers[NONCE_HEADER]),
+        body: request!.body,
+      }),
+    );
+  });
+
+  it("leaves an empty label out", async () => {
+    const { url, received } = await fakeCollab(200, {
+      pageId: PAGE_ID,
+      versionId: VERSION_ID,
+      versionNo: 1,
+    });
+    await createPageVersion(
+      { pageId: PAGE_ID, actorId: ACTOR_ID, label: "  " },
+      { url, secret: SECRET },
+    );
+    expect(JSON.parse(received[0]!.body)).toEqual({ actorId: ACTOR_ID });
+  });
+
+  it("maps collab refusals to user-facing codes", async () => {
+    const { url } = await fakeCollab(403, { code: "FORBIDDEN" });
+    expect(
+      await failure(
+        createPageVersion({ pageId: PAGE_ID, actorId: ACTOR_ID }, { url, secret: SECRET }),
+      ),
+    ).toEqual({ code: "FORBIDDEN", reason: "FORBIDDEN" });
+  });
+
+  it("rejects a label longer than 200 characters before calling collab", async () => {
+    expect(
+      await failure(
+        createPageVersion(
+          { pageId: PAGE_ID, actorId: ACTOR_ID, label: "x".repeat(201) },
+          { url: "http://127.0.0.1:1", secret: SECRET },
+        ),
+      ),
+    ).toEqual({ code: "VALIDATION_FAILED", reason: "VALIDATION_FAILED" });
   });
 });

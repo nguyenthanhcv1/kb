@@ -26,7 +26,7 @@ export class CollabAuthError extends Error {
 }
 
 /**
- * Codes of the internal API (`POST /internal/documents/:id/replace`, T3.7) in `{ code }` JSON
+ * Codes of the internal API (`POST /internal/documents/:id/replace` T3.7, `…/versions` T6.1b) in `{ code }` JSON
  * bodies. Only kb-web reads them; `apps/web/src/server/collab` maps them to user-facing codes
  * (`errors.<CODE>`) before anything reaches the UI.
  */
@@ -47,6 +47,10 @@ export const INTERNAL_API_ERROR_CODES = [
   "DOCUMENT_SCHEMA_TOO_NEW",
   /** Unexpected failure while loading or changing the document. */
   "REPLACE_FAILED",
+  /** The actor may not save versions of this page (viewer). */
+  "FORBIDDEN",
+  /** Unexpected failure while saving a page version. */
+  "VERSION_FAILED",
 ] as const;
 export type InternalApiErrorCode = (typeof INTERNAL_API_ERROR_CODES)[number];
 

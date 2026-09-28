@@ -28,7 +28,54 @@
   "loading": "Loading…",
   "moved": "Moved {title}.",
   "newPage": "New page",
+  "page": {
+    "content": {
+      "empty": "This page has no content yet."
+    },
+    "icon": {
+      "add": "Add icon",
+      "apply": "Use",
+      "change": "Change icon",
+      "custom": "Or type an emoji",
+      "pickerTitle": "Page icon",
+      "remove": "Remove icon",
+      "suggestions": "Suggestions"
+    },
+    "menu": "Page actions",
+    "title": {
+      "label": "Page title",
+      "saving": "Saving…"
+    },
+    "trashed": {
+      "description": "Restore it to put the page back where it was and keep editing.",
+      "openTrash": "Open trash",
+      "title": "This page is in the trash"
+    }
+  },
   "renameLabel": "Page title",
+  "trash": {
+    "deletedAt": "Deleted {date}",
+    "description": "Deleted pages of the {space} space. Restoring puts a page back where it was.",
+    "empty": "The trash is empty.",
+    "forbidden": {
+      "description": "Only editors and admins of the space can see its trash.",
+      "title": "You can't view the trash"
+    },
+    "listLabel": "Pages in the trash",
+    "openPage": "Open page",
+    "parentInTrash": "Its parent page is also in the trash, so it will be restored at the top level of the space.",
+    "purge": "Delete permanently",
+    "purgeConfirmDescription": "{count, plural, =0 {“{title}” will be deleted permanently. This can't be undone.} one {“{title}” and # subpage will be deleted permanently. This can't be undone.} other {“{title}” and # subpages will be deleted permanently. This can't be undone.}}",
+    "purgeConfirmTitle": "Delete this page permanently?",
+    "purgeLabel": "Delete “{title}” permanently",
+    "purged": "“{title}” was deleted permanently.",
+    "purging": "Deleting…",
+    "restore": "Restore",
+    "restoreLabel": "Restore “{title}”",
+    "restored": "“{title}” was restored.",
+    "restoring": "Restoring…",
+    "subpages": "{count, plural, one {With # subpage} other {With # subpages}}"
+  },
   "trashed": "Moved {title} to the trash.",
   "untitled": "Untitled"
 }

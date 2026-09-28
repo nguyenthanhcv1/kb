@@ -1,0 +1,35 @@
+# Kiểm tra bảo mật dependency (T7.2, docs/runbooks/security.md §3).
+# `pnpm audit` đọc pnpm-lock.yaml, so với GitHub Advisory Database; fail khi có lỗ hổng mức high trở lên.
+# Chạy khi PR đổi dependency, khi merge vào main và hằng tuần (advisory mới xuất hiện cả khi code không đổi).
+# Không nằm trong job gom `ci` để một advisory mới không chặn mọi PR không liên quan — người điều phối
+# xử lý theo runbook khi workflow tuần đỏ.
+name: Security
+
+on:
+  pull_request:
+    paths:
+      - pnpm-lock.yaml
+      - "**/package.json"
+      - .github/workflows/security.yml
+  push:
+    branches: [main]
+  schedule:
+    - cron: "17 2 * * 1" # thứ Hai 09:17 giờ VN
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    name: audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4 # version lấy từ "packageManager" trong package.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - name: pnpm audit (high trở lên)
+        run: pnpm audit --audit-level high

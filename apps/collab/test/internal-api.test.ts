@@ -14,7 +14,7 @@ import * as Y from "yjs";
 
 import type { AccessTokenVerifier } from "../src/auth";
 import { deriveContent, parseContentJson, replaceContent } from "../src/content";
-import type { DocumentStore, SpaceRole, StoreInput } from "../src/db";
+import type { CreateVersionInput, DocumentStore, SpaceRole, StoreInput } from "../src/db";
 import { signRequest } from "../src/internal-signature";
 import { type CollabContext, createCollabServer } from "../src/server";
 
@@ -31,12 +31,13 @@ function initialState(...texts: string[]) {
   return Y.encodeStateAsUpdate(ydoc);
 }
 
-/** In-memory DocumentStore: pages in `docs`, every store call in `stored`. */
-function memoryStore(docs: Map<string, Uint8Array>) {
+/** In-memory DocumentStore: pages in `docs`, every store call in `stored`, versions in `versions`. */
+function memoryStore(docs: Map<string, Uint8Array>, roles = new Map<string, SpaceRole>()) {
   const stored: StoreInput[] = [];
+  const versions: CreateVersionInput[] = [];
   const store: DocumentStore = {
-    async authorize(pageId) {
-      return docs.has(pageId) ? ("editor" satisfies SpaceRole) : null;
+    async authorize(pageId, userId) {
+      return docs.has(pageId) ? (roles.get(userId) ?? ("editor" satisfies SpaceRole)) : null;
     },
     async fetch(pageId) {
       const ydoc = docs.get(pageId);
@@ -45,7 +46,11 @@ function memoryStore(docs: Map<string, Uint8Array>) {
     async store(input) {
       stored.push(input);
       docs.set(input.pageId, input.state);
-      return true;
+      return "stored";
+    },
+    async createVersion(input) {
+      versions.push(input);
+      return { id: randomUUID(), versionNo: versions.length };
     },
     async prunePageVersions() {
       return 0;
@@ -53,7 +58,7 @@ function memoryStore(docs: Map<string, Uint8Array>) {
     async ping() {},
     async close() {},
   };
-  return { store, stored };
+  return { store, stored, versions };
 }
 
 const verifyToken: AccessTokenVerifier = async (token) => ({ userId: token });
@@ -66,8 +71,11 @@ afterEach(async () => {
   for (const server of servers.splice(0)) await server.destroy();
 });
 
-async function startServer(docs: Map<string, Uint8Array>, { disabled = false } = {}) {
-  const { store, stored } = memoryStore(docs);
+async function startServer(
+  docs: Map<string, Uint8Array>,
+  { disabled = false, roles = new Map<string, SpaceRole>() } = {},
+) {
+  const { store, stored, versions } = memoryStore(docs, roles);
   const server = createCollabServer({
     env: {
       PORT: 0,
@@ -85,7 +93,7 @@ async function startServer(docs: Map<string, Uint8Array>, { disabled = false } =
   });
   await server.listen();
   servers.push(server);
-  return { server, stored, base: `http://127.0.0.1:${server.address.port}` };
+  return { server, stored, versions, base: `http://127.0.0.1:${server.address.port}` };
 }
 
 function connect(server: Server<CollabContext>, pageId: string) {
@@ -295,5 +303,133 @@ describe("POST /internal/documents/:id/replace", () => {
       status: 503,
       body: { code: "INTERNAL_API_DISABLED" },
     });
+  });
+});
+
+describe("POST /internal/documents/:id/versions", () => {
+  const versionsPath = (pageId: string) => `/internal/documents/${pageId}/versions`;
+
+  it("saves a named manual version of the live document, edits included", async () => {
+    const pageId = randomUUID();
+    const docs = new Map([[pageId, initialState("Bản nháp")]]);
+    const { server, base, versions } = await startServer(docs);
+    const client = await connect(server, pageId);
+    replaceContent(client.ydoc, parseContentJson(doc("Bản đã duyệt")));
+    expect(
+      await until(() =>
+        server.hocuspocus.documents.get(`page:${pageId}`)
+          ? deriveContent(server.hocuspocus.documents.get(`page:${pageId}`)!).contentText ===
+            "Bản đã duyệt"
+          : false,
+      ),
+    ).toBe(true);
+
+    const result = await replace(
+      base,
+      pageId,
+      { actorId: ACTOR, label: "  Duyệt lần 1  " },
+      { path: versionsPath(pageId) },
+    );
+
+    expect(result).toEqual({
+      status: 200,
+      body: { pageId, versionId: expect.any(String), versionNo: 1 },
+    });
+    expect(versions).toHaveLength(1);
+    expect(versions[0]).toMatchObject({
+      pageId,
+      actorId: ACTOR,
+      reason: "manual",
+      label: "Duyệt lần 1",
+      schemaVersion: EDITOR_SCHEMA_VERSION,
+    });
+    expect(versions[0]!.content.contentText).toBe("Bản đã duyệt");
+    const restored = new Y.Doc();
+    Y.applyUpdate(restored, versions[0]!.state);
+    expect(text(restored)).toBe("Bản đã duyệt");
+  });
+
+  it("refuses viewers, unknown pages and invalid labels", async () => {
+    const pageId = randomUUID();
+    const viewer = randomUUID();
+    const docs = new Map([[pageId, initialState("Nội dung")]]);
+    const { base, versions } = await startServer(docs, {
+      roles: new Map([[viewer, "viewer" as SpaceRole]]),
+    });
+
+    expect(
+      await replace(base, pageId, { actorId: viewer }, { path: versionsPath(pageId) }),
+    ).toEqual({ status: 403, body: { code: "FORBIDDEN" } });
+    const unknown = randomUUID();
+    expect(
+      await replace(base, unknown, { actorId: ACTOR }, { path: versionsPath(unknown) }),
+    ).toEqual({ status: 404, body: { code: "PAGE_NOT_FOUND" } });
+    expect(
+      await replace(
+        base,
+        pageId,
+        { actorId: ACTOR, label: "x".repeat(201) },
+        { path: versionsPath(pageId) },
+      ),
+    ).toEqual({ status: 400, body: { code: "VALIDATION_FAILED" } });
+    expect(versions).toHaveLength(0);
+  });
+
+  it("an empty label saves an unnamed version", async () => {
+    const pageId = randomUUID();
+    const { base, versions } = await startServer(new Map([[pageId, initialState("A")]]));
+    const result = await replace(
+      base,
+      pageId,
+      { actorId: ACTOR, label: "" },
+      { path: versionsPath(pageId) },
+    );
+    expect(result.status).toBe(200);
+    expect(versions[0]!.label).toBeUndefined();
+  });
+});
+
+describe("snapshot policy", () => {
+  it("asks for an auto version on every store and writes one when the document unloads", async () => {
+    const pageId = randomUUID();
+    const docs = new Map([[pageId, initialState("Trước")]]);
+    const { server, base, stored, versions } = await startServer(docs);
+
+    await replace(base, pageId, { content: doc("Sau"), actorId: ACTOR });
+    expect(stored[0]!.snapshot).toBe("due");
+    expect(await until(() => server.hocuspocus.getDocumentsCount() === 0)).toBe(true);
+
+    // The in-memory store never reports "snapshotted": the unload writes the auto version.
+    expect(versions).toHaveLength(1);
+    expect(versions[0]).toMatchObject({ pageId, reason: "auto", actorId: ACTOR });
+    expect(versions[0]!.content.contentText).toBe("Sau");
+  });
+
+  it("writes nothing on unload when no change was stored", async () => {
+    const pageId = randomUUID();
+    const { server, versions } = await startServer(new Map([[pageId, initialState("A")]]));
+    await connect(server, pageId);
+    for (const cleanup of cleanups.splice(0)) cleanup();
+    expect(await until(() => server.hocuspocus.getDocumentsCount() === 0)).toBe(true);
+    expect(versions).toHaveLength(0);
+  });
+
+  it("a manual version covers the stored changes: nothing more on unload", async () => {
+    const pageId = randomUUID();
+    const docs = new Map([[pageId, initialState("A")]]);
+    const { server, base, versions } = await startServer(docs);
+    const client = await connect(server, pageId);
+    replaceContent(client.ydoc, parseContentJson(doc("B")));
+    await new Promise((r) => setTimeout(r, 300)); // debounced store (50–200 ms)
+
+    await replace(
+      base,
+      pageId,
+      { actorId: ACTOR },
+      { path: `/internal/documents/${pageId}/versions` },
+    );
+    for (const cleanup of cleanups.splice(0)) cleanup();
+    expect(await until(() => server.hocuspocus.getDocumentsCount() === 0)).toBe(true);
+    expect(versions.map((v) => v.reason)).toEqual(["manual"]);
   });
 });

@@ -97,6 +97,26 @@ export type PageIdInput = z.input<typeof pageIdInputSchema>;
 export const listTrashInputSchema = z.object({ spaceId: z.guid() });
 export type ListTrashInput = z.input<typeof listTrashInputSchema>;
 
+/** `short_id` check of the DB: 8 base62 characters. */
+export const PAGE_SHORT_ID_PATTERN = /^[0-9A-Za-z]{8}$/;
+
+export const getPageByShortIdInputSchema = z.object({
+  shortId: z.string().regex(PAGE_SHORT_ID_PATTERN),
+});
+export type GetPageByShortIdInput = z.input<typeof getPageByShortIdInputSchema>;
+
+/** Page icon: an emoji (or a few characters); empty → no icon. */
+export const PAGE_ICON_MAX_LENGTH = 64;
+
+export const setPageIconInputSchema = z.object({
+  pageId: z.guid(),
+  icon: z
+    .string()
+    .max(PAGE_ICON_MAX_LENGTH)
+    .nullable()
+    .transform((value) => value?.trim() || null),
+});
+export type SetPageIconInput = z.input<typeof setPageIconInputSchema>;
 export const pageSummarySchema = z.object({
   id: z.guid(),
   spaceId: z.guid(),
@@ -115,6 +135,16 @@ export const pageSummarySchema = z.object({
 export type PageSummary = z.infer<typeof pageSummarySchema>;
 
 export type PageTreeNode = PageSummary & { hasChildren: boolean };
+
+/** A page with the slug of its Space, for building and checking its URL. */
+export type PageWithSpace = PageSummary & { spaceSlug: string };
+
+/** Derived read-only content of a page (`page_documents.content_json`, written by kb-collab). */
+export type PageContent = {
+  /** ProseMirror JSON of the shared editor schema. */
+  contentJson: { type: string; content?: unknown[] } & Record<string, unknown>;
+  schemaVersion: number;
+};
 
 const PAGE_COLUMNS =
   "id, space_id, parent_id, short_id, slug, title, icon, position, last_edited_at, deleted_at";
@@ -192,6 +222,55 @@ export async function getPageSummary(
     .maybeSingle();
   if (error) throw toPageError(error);
   return data ? pageRowSchema.parse(data) : null;
+}
+
+/**
+ * Page of a `/s/<space>/p/<slug>-<shortId>` URL, looked up by its short id only (the slug is
+ * cosmetic and may be outdated), with the slug of its current Space — or `null` when it does not
+ * exist or the caller cannot see it (trashed pages: editors only; archived Spaces: nobody).
+ *
+ * ```ts
+ * await getPageByShortId(supabase, { shortId: "a1B2c3D4" });
+ * // { id: "2000…0001", shortId: "a1B2c3D4", slug: "huong-dan", title: "Hướng dẫn", icon: "📘",
+ * //   spaceId: "0b9a…0001", spaceSlug: "design", deletedAt: null, … }
+ * ```
+ */
+export async function getPageByShortId(
+  supabase: SupabaseClient,
+  input: GetPageByShortIdInput,
+): Promise<PageWithSpace | null> {
+  const parsed = getPageByShortIdInputSchema.safeParse(input);
+  if (!parsed.success) return null;
+  const { data, error } = await supabase
+    .from("pages")
+    .select(`${PAGE_COLUMNS}, space:spaces!inner(slug)`)
+    .eq("short_id", parsed.data.shortId)
+    .maybeSingle();
+  if (error) throw toPageError(error);
+  if (!data) return null;
+  const space = (data as { space?: { slug?: unknown } | null }).space;
+  if (typeof space?.slug !== "string") return null;
+  return { ...pageRowSchema.parse(data), spaceSlug: space.slug };
+}
+
+/**
+ * Derived content of a page for read-only rendering (`null` when not visible). Never the Yjs
+ * state: editing goes through kb-collab (T3.5).
+ */
+export async function getPageContent(
+  supabase: SupabaseClient,
+  input: PageIdInput,
+): Promise<PageContent | null> {
+  const { pageId } = parseInput(pageIdInputSchema, input);
+  const { data, error } = await supabase
+    .from("page_documents")
+    .select("content_json, schema_version")
+    .eq("page_id", pageId)
+    .maybeSingle();
+  if (error) throw toPageError(error);
+  if (!data) return null;
+  const row = data as { content_json: PageContent["contentJson"]; schema_version: number };
+  return { contentJson: row.content_json, schemaVersion: row.schema_version };
 }
 
 async function requirePage(supabase: SupabaseClient, pageId: string): Promise<PageSummary> {
@@ -345,6 +424,17 @@ export async function renamePage(
   const page = await requirePage(supabase, pageId);
   if (page.deletedAt) throw new PageError("PAGE_DELETED");
   return updatePage(supabase, pageId, icon === undefined ? { title } : { title, icon });
+}
+
+/** Sets (or, with `null`/blank, removes) the page icon without touching its title. */
+export async function setPageIcon(
+  supabase: SupabaseClient,
+  input: SetPageIconInput,
+): Promise<PageSummary> {
+  const { pageId, icon } = parseInput(setPageIconInputSchema, input);
+  const page = await requirePage(supabase, pageId);
+  if (page.deletedAt) throw new PageError("PAGE_DELETED");
+  return updatePage(supabase, pageId, { icon });
 }
 
 export async function movePage(
