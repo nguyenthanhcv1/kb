@@ -1,5 +1,24 @@
 {
   "access": {
+    "add": {
+      "confirmPublic": "Tôi hiểu, vẫn thêm tên miền email công cộng",
+      "description": "Dán một hoặc nhiều email/tên miền, cách nhau bằng dấu phẩy, chấm phẩy, dấu cách hoặc xuống dòng. Người khớp đăng nhập được ngay; khách mời khớp sẽ thành người nội bộ.",
+      "empty": "Nhập ít nhất một email hoặc tên miền hợp lệ.",
+      "inputHint": "Ví dụ: an@congty.vn, @congty.vn hoặc congty.vn (cả tên miền).",
+      "inputLabel": "Email hoặc tên miền",
+      "notAdded": "Không thêm {count, plural, other {# mục}}:",
+      "noteLabel": "Ghi chú (không bắt buộc)",
+      "notePlaceholder": "Ví dụ: Team Vận hành",
+      "preview": "{valid, plural, other {# mục hợp lệ}} ({emails, plural, other {# email}}, {domains, plural, other {# tên miền}}) · {invalid, plural, other {# không hợp lệ}} · {duplicate, plural, other {# trùng}}",
+      "publicConfirmRequired": "Hãy xác nhận trước khi thêm tên miền email công cộng, hoặc bỏ chúng khỏi danh sách.",
+      "resultAdded": "{count, plural, =0 {Không thêm mục mới nào.} other {Đã thêm # mục.}}",
+      "resultMatched": "{count, plural, =0 {Chưa có người dùng đã đăng ký nào khớp các mục mới.} other {# người dùng đã đăng ký khớp các mục mới.}}",
+      "resultRow": "{value}: {status}",
+      "submit": "Thêm vào danh sách",
+      "submitting": "Đang thêm…",
+      "title": "Thêm email hoặc tên miền",
+      "tooMany": "Tối đa {max, number} mục mỗi lần."
+    },
     "addStatus": {
       "added": "Đã thêm",
       "duplicate": "Trùng trong danh sách nhập",
@@ -7,12 +26,53 @@
       "invalid": "Không hợp lệ",
       "publicDomainUnconfirmed": "Tên miền email công cộng — cần xác nhận"
     },
+    "description": "Ai có email hoặc tên miền trong danh sách này đăng nhập được với tư cách người nội bộ. Gỡ một mục thì người khớp bị đăng xuất ở lần truy cập kế tiếp.",
     "kinds": {
       "domain": "Tên miền",
       "email": "Email"
     },
+    "list": {
+      "addedBy": "Thêm bởi {email} · {date, date, medium}",
+      "addedBySystem": "Hệ thống · {date, date, medium}",
+      "count": "{count, plural, other {# mục}}",
+      "empty": "Danh sách đang trống: chỉ quản trị viên hệ thống đăng nhập được.",
+      "publicDomain": "Tên miền công cộng",
+      "remove": "Gỡ",
+      "removeLabel": "Gỡ {value} khỏi danh sách cho phép",
+      "self": "Email của bạn",
+      "selfHint": "Bạn không thể gỡ email của chính mình.",
+      "title": "Danh sách cho phép",
+      "users": "{count, plural, =0 {Chưa có người dùng} other {# người dùng}}"
+    },
     "publicDomainWarning": "{domain} là tên miền email công cộng: thêm nó sẽ cho mọi người dùng {domain} đăng nhập. Nên thêm từng email thay vì cả tên miền.",
+    "remove": {
+      "confirm": "Gỡ khỏi danh sách",
+      "description": "Người dùng khớp mục này bị đăng xuất ở lần truy cập kế tiếp, trừ khi họ vẫn khớp mục khác, là quản trị viên hệ thống hoặc là thành viên Space (khi đó họ thành khách mời).",
+      "impactGuest": "{count, plural, other {# người}} sẽ thành khách mời (vẫn là thành viên Space).",
+      "impactLoading": "Đang tính số người bị ảnh hưởng…",
+      "impactLosing": "{count, plural, other {# người}} sẽ mất quyền truy cập.",
+      "impactMatched": "{count, plural, =0 {Không có người dùng đang hoạt động nào khớp mục này.} other {# người dùng đang hoạt động khớp mục này.}}",
+      "removed": "Đã gỡ {value} khỏi danh sách cho phép.",
+      "removing": "Đang gỡ…",
+      "title": "Gỡ {value}?"
+    },
+    "testEmail": {
+      "description": "Gửi một email thử để kiểm tra cấu hình SMTP. Để trống ô người nhận để gửi tới chính bạn.",
+      "invalidEmail": "Email người nhận không hợp lệ.",
+      "send": "Gửi email thử",
+      "sending": "Đang gửi…",
+      "sent": "Đã gửi email thử tới {to}.",
+      "title": "Email thử",
+      "toLabel": "Người nhận"
+    },
     "title": "Truy cập"
+  },
+  "forbidden": {
+    "description": "Chỉ quản trị viên hệ thống mới mở được trang Quản trị.",
+    "title": "Bạn không có quyền truy cập"
+  },
+  "nav": {
+    "label": "Mục quản trị"
   },
   "title": "Quản trị",
   "users": {
@@ -23,7 +83,56 @@
       "none": "Không còn quyền truy cập",
       "super_admin": "Quản trị viên hệ thống"
     },
+    "actions": {
+      "grant": "Cấp quyền quản trị viên hệ thống",
+      "lock": "Khoá tài khoản",
+      "open": "Thao tác với {name}",
+      "revoke": "Gỡ quyền quản trị viên hệ thống",
+      "selfHint": "Bạn không thể khoá hoặc gỡ quyền quản trị của chính mình.",
+      "unlock": "Mở khoá tài khoản"
+    },
+    "confirm": {
+      "grantDescription": "{name} sẽ quản lý được danh sách truy cập, người dùng và mọi Space.",
+      "grantTitle": "Cấp quyền quản trị viên hệ thống cho {name}?",
+      "lockDescription": "{name} mất mọi quyền ngay và bị đăng xuất ở lần truy cập kế tiếp. Bạn có thể mở khoá lại sau.",
+      "lockTitle": "Khoá {name}?",
+      "revokeDescription": "{name} không còn quyền quản trị hệ thống. Nếu họ không có trong danh sách cho phép, họ thành khách mời hoặc bị đăng xuất.",
+      "revokeTitle": "Gỡ quyền quản trị viên hệ thống của {name}?",
+      "unlockDescription": "{name} đăng nhập lại được nếu vẫn khớp danh sách cho phép hoặc là thành viên Space.",
+      "unlockTitle": "Mở khoá {name}?",
+      "working": "Đang lưu…"
+    },
+    "count": "{count, plural, other {# người dùng}}",
+    "deactivatedAt": "Khoá lúc {date, date, medium}",
+    "description": "Mọi người đã đăng nhập KB, kể cả khách mời, và lý do họ còn đăng nhập được.",
+    "done": {
+      "grant": "Đã cấp quyền quản trị viên hệ thống cho {name}.",
+      "lock": "Đã khoá {name}.",
+      "revoke": "Đã gỡ quyền quản trị viên hệ thống của {name}.",
+      "unlock": "Đã mở khoá {name}."
+    },
+    "empty": "Không có người dùng nào khớp.",
     "guest": "Khách mời",
+    "lastSignIn": "Đăng nhập gần nhất {date, date, medium}",
+    "neverSignedIn": "Chưa đăng nhập",
+    "pagination": {
+      "label": "Phân trang người dùng",
+      "next": "Trang sau",
+      "previous": "Trang trước",
+      "range": "{from, number}–{to, number} / {total, number}"
+    },
+    "search": {
+      "label": "Tìm theo email hoặc tên",
+      "submit": "Tìm"
+    },
+    "self": "Bạn",
+    "spaces": "{count, plural, =0 {Không thuộc Space nào} other {# Space}}",
+    "status": {
+      "active": "Đang hoạt động",
+      "all": "Tất cả",
+      "deactivated": "Đã khoá",
+      "label": "Lọc theo trạng thái"
+    },
     "superAdmin": "Quản trị viên hệ thống",
     "title": "Người dùng"
   }
