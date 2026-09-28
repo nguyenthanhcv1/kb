@@ -357,6 +357,110 @@ describe.skipIf(!DATABASE_URL || !ADMIN_URL)("kb-collab with Postgres", () => {
     await stopServer(server);
   });
 
+  it("snapshots auto versions every 10 minutes, on last disconnect, and manual ones on request", async () => {
+    const pageId = randomUUID();
+    const name = `page:${pageId}`;
+    await admin.query(
+      "insert into public.pages (id, space_id, position, title, created_by) values ($1, $2, 'W', 'Versions', $3)",
+      [pageId, ids.space, ids.admin],
+    );
+    const versions = async () =>
+      (
+        await admin.query<{
+          reason: string;
+          label: string | null;
+          created_by: string | null;
+          content_text: string;
+        }>(
+          "select reason::text, label, created_by, content_text from public.page_versions where page_id = $1 order by version_no",
+          [pageId],
+        )
+      ).rows;
+    const storedText = async () =>
+      (
+        await admin.query<{ content_text: string }>(
+          "select content_text from public.page_documents where page_id = $1",
+          [pageId],
+        )
+      ).rows[0]!.content_text;
+
+    try {
+      const server = await startServer();
+      const editor = await connect(server, await token(ids.editor), { name });
+
+      // (a) first stored change: no auto version yet → one is written with the content.
+      writeParagraph(editor.doc, "Một");
+      await until(storedText, (t) => t.includes("Một"));
+      expect(await until(versions, (v) => v.length === 1)).toEqual([
+        { reason: "auto", label: null, created_by: ids.editor, content_text: "Một" },
+      ]);
+
+      // Within 10 minutes: stored, no new version.
+      writeParagraph(editor.doc, "Hai");
+      await until(storedText, (t) => t.includes("Hai"));
+      expect(await versions()).toHaveLength(1);
+
+      // 10 minutes later (backdated): the next store writes the second auto version.
+      await admin.query(
+        "update public.page_versions set created_at = created_at - interval '11 minutes' where page_id = $1",
+        [pageId],
+      );
+      writeParagraph(editor.doc, "Ba");
+      await until(storedText, (t) => t.includes("Ba"));
+      expect((await until(versions, (v) => v.length === 2)).map((v) => v.reason)).toEqual([
+        "auto",
+        "auto",
+      ]);
+
+      // (b) changes stored after the last version, then the last client leaves → auto version.
+      writeParagraph(editor.doc, "Bốn");
+      await until(storedText, (t) => t.includes("Bốn"));
+      expect(await versions()).toHaveLength(2);
+      disconnect(editor);
+      const afterUnload = await until(versions, (v) => v.length === 3);
+      expect(afterUnload[2]).toMatchObject({ reason: "auto", created_by: ids.editor });
+      expect(afterUnload[2]!.content_text).toContain("Bốn");
+
+      // manual: "Save version" through the internal API, named, authored by the caller.
+      const call = async (actorId: string, label?: string) => {
+        const path = `/internal/documents/${pageId}/versions`;
+        const body = JSON.stringify({ actorId, label });
+        const response = await fetch(`http://127.0.0.1:${server.address.port}${path}`, {
+          method: "POST",
+          body,
+          headers: {
+            "content-type": "application/json",
+            ...signRequest(INTERNAL_SECRET, { method: "POST", path, body }),
+          },
+        });
+        return { status: response.status, body: await response.json() };
+      };
+      expect(await call(ids.editor, "Bản duyệt")).toEqual({
+        status: 200,
+        body: { pageId, versionId: expect.any(String), versionNo: 4 },
+      });
+      expect((await versions())[3]).toMatchObject({
+        reason: "manual",
+        label: "Bản duyệt",
+        created_by: ids.editor,
+      });
+      expect(await call(ids.viewer)).toEqual({ status: 403, body: { code: "FORBIDDEN" } });
+      expect(await call(ids.outsider)).toEqual({ status: 404, body: { code: "PAGE_NOT_FOUND" } });
+      expect(
+        await until(
+          async () => server.hocuspocus.getDocumentsCount(),
+          (n) => n === 0,
+        ),
+      ).toBe(0);
+      expect(await versions()).toHaveLength(4);
+
+      await stopServer(server);
+    } finally {
+      await admin.query("update public.pages set deleted_at = now() where id = $1", [pageId]);
+      await admin.query("delete from public.pages where id = $1", [pageId]);
+    }
+  });
+
   it("runs the page version retention as kb_collab", async () => {
     const store = createDocumentStore(DATABASE_URL!, { max: 1 });
     try {
