@@ -4,11 +4,15 @@ import type { Extension, Hocuspocus, onRequestPayload } from "@hocuspocus/server
 import { EDITOR_SCHEMA_VERSION } from "@kb/editor/schema-version";
 import { z } from "zod";
 
+import * as Y from "yjs";
+
 import { parseDocumentName } from "./auth";
-import { parseContentJson, replaceContent } from "./content";
+import { deriveContent, parseContentJson, replaceContent } from "./content";
+import type { DocumentStore } from "./db";
 import { DocumentLoadError, type InternalApiErrorCode } from "./errors";
 import { createSignatureVerifier, type SignatureVerifier } from "./internal-signature";
 import type { Logger } from "./logger";
+import { type SnapshotTracker, VERSION_LABEL_MAX_LENGTH } from "./snapshots";
 
 /**
  * Internal API of kb-collab (docs/PLAN.md §1.2, task T3.7): the only way for kb-web to change a
@@ -34,6 +38,21 @@ import type { Logger } from "./logger";
  * `200 {"pageId","schemaVersion","connections"}` once the change is applied and the store hook has
  * run (`connections` = WebSocket clients that received it; a failing store is logged and retried
  * with the next change, the document stays in memory). Errors: `{"code": InternalApiErrorCode}`.
+ *
+ * ## `POST /internal/documents/:pageId/versions`
+ *
+ * Saves a `manual` page version of the live document (T6.1b, "Save version"). Body:
+ *
+ * ```json
+ * { "actorId": "00000000-0000-4000-8000-000000000001", "label": "Bản đã duyệt" }
+ * ```
+ *
+ * - `actorId`: author of the version; must be an editor or admin of the page (checked again here).
+ * - `label` (optional): name shown in the history, 1–200 characters after trimming.
+ *
+ * `200 {"pageId","versionId","versionNo"}`. The version holds the in-memory state, including
+ * edits still waiting for the debounced store. Errors: `FORBIDDEN` (403), `PAGE_NOT_FOUND` (404),
+ * `VALIDATION_FAILED` (400), `VERSION_FAILED` (500).
  *
  * ## Keeping it off the Internet
  *
@@ -61,6 +80,7 @@ const PROXY_HEADERS = [
 ];
 
 const REPLACE_ROUTE = /^\/internal\/documents\/([^/]+)\/replace$/;
+const VERSIONS_ROUTE = /^\/internal\/documents\/([^/]+)\/versions$/;
 
 export const REPLACE_REASONS = ["restore", "template", "import"] as const;
 
@@ -97,10 +117,25 @@ export const replaceBodySchema = z.object({
 });
 export type ReplaceBody = z.infer<typeof replaceBodySchema>;
 
+export const createVersionBodySchema = z.object({
+  actorId: z.guid(),
+  label: z
+    .string()
+    .trim()
+    .min(1)
+    .max(VERSION_LABEL_MAX_LENGTH)
+    .optional()
+    .or(z.literal("").transform(() => undefined)),
+});
+export type CreateVersionBody = z.infer<typeof createVersionBodySchema>;
+
 export interface InternalApiOptions {
   /** COLLAB_INTERNAL_SECRET; undefined disables the API. */
   secret: string | undefined;
   logger: Logger;
+  /** Page versions (manual "Save version"); without it the versions route answers 404. */
+  store?: Pick<DocumentStore, "authorize" | "createVersion">;
+  snapshots?: SnapshotTracker;
   /** Injected in tests. */
   verifier?: SignatureVerifier;
 }
@@ -132,7 +167,13 @@ async function readBody(request: IncomingMessage): Promise<Uint8Array> {
   return Buffer.concat(chunks);
 }
 
-export function internalApiExtension({ secret, logger, verifier }: InternalApiOptions): Extension {
+export function internalApiExtension({
+  secret,
+  logger,
+  verifier,
+  store,
+  snapshots,
+}: InternalApiOptions): Extension {
   const signatures = verifier ?? (secret ? createSignatureVerifier(secret) : null);
   const log = logger.child({ component: "internal-api" });
 
@@ -147,10 +188,75 @@ export function internalApiExtension({ secret, logger, verifier }: InternalApiOp
       throw new HttpError(401, "UNAUTHORIZED");
     }
 
-    const match = REPLACE_ROUTE.exec(new URL(path, "http://localhost").pathname);
-    if (!match) throw new HttpError(404, "NOT_FOUND");
+    const pathname = new URL(path, "http://localhost").pathname;
+    const replaceMatch = REPLACE_ROUTE.exec(pathname);
+    const versionsMatch = store ? VERSIONS_ROUTE.exec(pathname) : null;
+    if (!replaceMatch && !versionsMatch) throw new HttpError(404, "NOT_FOUND");
     if (method !== "POST") throw new HttpError(405, "METHOD_NOT_ALLOWED");
-    return replace(instance, match[1]!, body);
+    return replaceMatch
+      ? replace(instance, replaceMatch[1]!, body)
+      : createVersion(instance, versionsMatch![1]!, body);
+  }
+
+  async function createVersion(instance: Hocuspocus, rawPageId: string, raw: Uint8Array) {
+    const pageId = parseDocumentName(`page:${decodeURIComponent(rawPageId)}`);
+    if (!pageId || !store) throw new HttpError(400, "VALIDATION_FAILED");
+
+    let input: CreateVersionBody;
+    try {
+      input = createVersionBodySchema.parse(JSON.parse(Buffer.from(raw).toString("utf8")));
+    } catch (error) {
+      log.info({ pageId, err: error }, "invalid version request");
+      throw new HttpError(400, "VALIDATION_FAILED");
+    }
+
+    // Defence in depth: kb-web checks too, but a manual version is authored by `actorId`.
+    const role = await store.authorize(pageId, input.actorId);
+    if (role !== "editor" && role !== "admin") {
+      throw new HttpError(
+        role === null ? 404 : 403,
+        role === null ? "PAGE_NOT_FOUND" : "FORBIDDEN",
+      );
+    }
+
+    const documentName = `page:${pageId}`;
+    let connection: Awaited<ReturnType<Hocuspocus["openDirectConnection"]>>;
+    try {
+      connection = await instance.openDirectConnection(documentName, {
+        userId: input.actorId,
+        pageId,
+        role,
+        source: "internal-api",
+      });
+    } catch (error) {
+      if (error instanceof DocumentLoadError)
+        throw new HttpError(error.code === "PAGE_NOT_FOUND" ? 404 : 409, error.code);
+      log.error({ pageId, err: error }, "could not load document");
+      throw new HttpError(500, "VERSION_FAILED");
+    }
+
+    try {
+      const document = connection.document!;
+      const version = await store.createVersion({
+        pageId,
+        state: Y.encodeStateAsUpdate(document),
+        schemaVersion: EDITOR_SCHEMA_VERSION,
+        content: deriveContent(document),
+        actorId: input.actorId,
+        reason: "manual",
+        label: input.label,
+      });
+      if (!version) throw new HttpError(404, "PAGE_NOT_FOUND");
+      snapshots?.snapshotted(documentName);
+      log.info({ pageId, actorId: input.actorId, versionNo: version.versionNo }, "version saved");
+      return { pageId, versionId: version.id, versionNo: version.versionNo };
+    } catch (error) {
+      if (error instanceof HttpError) throw error;
+      log.error({ pageId, err: error }, "version failed");
+      throw new HttpError(500, "VERSION_FAILED");
+    } finally {
+      await connection.disconnect();
+    }
   }
 
   async function replace(instance: Hocuspocus, rawPageId: string, raw: Uint8Array) {

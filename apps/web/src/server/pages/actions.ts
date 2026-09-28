@@ -5,16 +5,22 @@ import { createClient } from "@/lib/supabase/server";
 import {
   createPage,
   type CreatePageInput,
+  listChildPages,
+  type ListChildPagesInput,
+  listPageAncestors,
   movePage,
   type MovePageInput,
   PageError,
   type PageErrorCode,
   type PageIdInput,
   type PageSummary,
+  type PageTreeNode,
   purgePage,
   renamePage,
   type RenamePageInput,
   restorePage,
+  setPageIcon,
+  type SetPageIconInput,
   trashPage,
 } from "./index";
 
@@ -35,6 +41,20 @@ async function run<T>(action: (supabase: Awaited<ReturnType<typeof createClient>
   }
 }
 
+/** Live children of `parentId` (`null` = roots) in order — the sidebar tree loads one level at a time. */
+export async function listChildPagesAction(
+  input: ListChildPagesInput,
+): Promise<PageActionResult<PageTreeNode[]>> {
+  return run((supabase) => listChildPages(supabase, input));
+}
+
+/** Ancestors of a page, root first (breadcrumb). */
+export async function listPageAncestorsAction(
+  input: PageIdInput,
+): Promise<PageActionResult<PageSummary[]>> {
+  return run((supabase) => listPageAncestors(supabase, input));
+}
+
 export async function createPageAction(
   input: CreatePageInput,
 ): Promise<PageActionResult<PageSummary>> {
@@ -45,6 +65,12 @@ export async function renamePageAction(
   input: RenamePageInput,
 ): Promise<PageActionResult<PageSummary>> {
   return run((supabase) => renamePage(supabase, input));
+}
+
+export async function setPageIconAction(
+  input: SetPageIconInput,
+): Promise<PageActionResult<PageSummary>> {
+  return run((supabase) => setPageIcon(supabase, input));
 }
 
 export async function movePageAction(input: MovePageInput): Promise<PageActionResult<PageSummary>> {
