@@ -11,6 +11,7 @@ export default defineConfig({
   test: {
     // Node by default; component tests opt into happy-dom with `// @vitest-environment happy-dom`.
     environment: "node",
+    setupFiles: ["./test/setup-dom.ts"],
     include: ["src/**/*.test.ts", "src/**/*.test.tsx", "test/**/*.test.ts"],
   },
 });
