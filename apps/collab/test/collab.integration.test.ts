@@ -430,7 +430,8 @@ describe.skipIf(!DATABASE_URL || !ADMIN_URL)("kb-collab with Postgres", () => {
 
       const rows = await versions();
       expect(rows.map((v) => v.reason)).toEqual(["auto", "pre_restore", "restore"]);
-      expect(rows[1]).toMatchObject({ content_text: "Bản sau", created_by: ids.admin });
+      // writeParagraph appends: the live content before the restore had both paragraphs.
+      expect(rows[1]).toMatchObject({ content_text: "Bản đầu\nBản sau", created_by: ids.admin });
       expect(rows[2]).toMatchObject({
         content_text: "Bản đầu",
         created_by: ids.admin,
