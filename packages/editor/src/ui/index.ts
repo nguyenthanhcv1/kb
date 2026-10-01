@@ -60,6 +60,18 @@ export {
   isCellBackgroundColor,
 } from "../extensions/table";
 export { CSV_MIME_TYPE } from "../table/csv";
+export {
+  getDropTargets,
+  getMovableSpan,
+  moveCurrentLine,
+  moveTableLine,
+  neighbourBoundary,
+  TABLE_DRAG_CLASSES,
+  TableDrag,
+  type TableAxis,
+  type TableDragOptions,
+  type LineSpan,
+} from "../table/drag";
 export { Placeholder } from "@tiptap/extensions";
 export type { SuggestionKeyDownProps, SuggestionProps } from "@tiptap/suggestion";
 export { normalizeImageSrc, normalizeLinkHref } from "./link";

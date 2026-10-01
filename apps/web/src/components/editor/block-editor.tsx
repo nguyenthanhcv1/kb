@@ -9,6 +9,7 @@ import {
   SLASH_ITEMS,
   SlashCommand,
   type SlashItem,
+  TableDrag,
   TableShortcuts,
 } from "@kb/editor/ui";
 import type { AnyExtension, JSONContent } from "@tiptap/core";
@@ -58,6 +59,7 @@ export function BlockEditor({
   className,
 }: BlockEditorProps) {
   const t = useTranslations("editor");
+  const tTable = useTranslations("table");
   const text = useBlockText();
   const [linkRequested, setLinkRequested] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
@@ -113,6 +115,9 @@ export function BlockEditor({
           setShortcutsOpen(true);
           return true;
         },
+      }),
+      TableDrag.configure({
+        labels: { row: tTable("drag.row"), column: tTable("drag.column") },
       }),
       TableShortcuts.configure({
         onMenuShortcut: () => {
