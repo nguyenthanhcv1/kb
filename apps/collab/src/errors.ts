@@ -26,7 +26,7 @@ export class CollabAuthError extends Error {
 }
 
 /**
- * Codes of the internal API (`POST /internal/documents/:id/replace` T3.7, `…/versions` T6.1b) in `{ code }` JSON
+ * Codes of the internal API (`POST /internal/documents/:id/replace` T3.7, `…/versions` T6.1b, `…/versions/:versionId/restore` T6.3a) in `{ code }` JSON
  * bodies. Only kb-web reads them; `apps/web/src/server/collab` maps them to user-facing codes
  * (`errors.<CODE>`) before anything reaches the UI.
  */
@@ -51,6 +51,10 @@ export const INTERNAL_API_ERROR_CODES = [
   "FORBIDDEN",
   /** Unexpected failure while saving a page version. */
   "VERSION_FAILED",
+  /** The version to restore does not exist (or belongs to another page). */
+  "VERSION_NOT_FOUND",
+  /** Unexpected failure in the restore flow (pre_restore → replace → restore). */
+  "RESTORE_FAILED",
 ] as const;
 export type InternalApiErrorCode = (typeof INTERNAL_API_ERROR_CODES)[number];
 

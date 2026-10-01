@@ -14,7 +14,13 @@ import * as Y from "yjs";
 
 import type { AccessTokenVerifier } from "../src/auth";
 import { deriveContent, parseContentJson, replaceContent } from "../src/content";
-import type { CreateVersionInput, DocumentStore, SpaceRole, StoreInput } from "../src/db";
+import type {
+  CreateVersionInput,
+  DocumentStore,
+  SpaceRole,
+  StoredVersion,
+  StoreInput,
+} from "../src/db";
 import { signRequest } from "../src/internal-signature";
 import { type CollabContext, createCollabServer } from "../src/server";
 
@@ -32,7 +38,11 @@ function initialState(...texts: string[]) {
 }
 
 /** In-memory DocumentStore: pages in `docs`, every store call in `stored`, versions in `versions`. */
-function memoryStore(docs: Map<string, Uint8Array>, roles = new Map<string, SpaceRole>()) {
+function memoryStore(
+  docs: Map<string, Uint8Array>,
+  roles = new Map<string, SpaceRole>(),
+  sources = new Map<string, StoredVersion>(),
+) {
   const stored: StoreInput[] = [];
   const versions: CreateVersionInput[] = [];
   const store: DocumentStore = {
@@ -51,6 +61,9 @@ function memoryStore(docs: Map<string, Uint8Array>, roles = new Map<string, Spac
     async createVersion(input) {
       versions.push(input);
       return { id: randomUUID(), versionNo: versions.length };
+    },
+    async getVersion(_pageId, versionId) {
+      return sources.get(versionId) ?? null;
     },
     async prunePageVersions() {
       return 0;
@@ -73,9 +86,13 @@ afterEach(async () => {
 
 async function startServer(
   docs: Map<string, Uint8Array>,
-  { disabled = false, roles = new Map<string, SpaceRole>() } = {},
+  {
+    disabled = false,
+    roles = new Map<string, SpaceRole>(),
+    sources = new Map<string, StoredVersion>(),
+  } = {},
 ) {
-  const { store, stored, versions } = memoryStore(docs, roles);
+  const { store, stored, versions } = memoryStore(docs, roles, sources);
   const server = createCollabServer({
     env: {
       PORT: 0,
@@ -386,6 +403,101 @@ describe("POST /internal/documents/:id/versions", () => {
     );
     expect(result.status).toBe(200);
     expect(versions[0]!.label).toBeUndefined();
+  });
+});
+
+describe("POST /internal/documents/:id/versions/:versionId/restore", () => {
+  const restorePath = (pageId: string, versionId: string) =>
+    `/internal/documents/${pageId}/versions/${versionId}/restore`;
+  const source = (id: string, schemaVersion = EDITOR_SCHEMA_VERSION): StoredVersion => ({
+    id,
+    versionNo: 3,
+    contentJson: doc("Bản cũ"),
+    schemaVersion,
+  });
+
+  it("saves pre_restore, replaces the live content for open editors, then saves restore", async () => {
+    const pageId = randomUUID();
+    const versionId = randomUUID();
+    const { server, base, versions } = await startServer(
+      new Map([[pageId, initialState("Bản hiện tại")]]),
+      { sources: new Map([[versionId, source(versionId)]]) },
+    );
+    const client = await connect(server, pageId);
+    expect(text(client.ydoc)).toBe("Bản hiện tại");
+
+    const result = await replace(
+      base,
+      pageId,
+      { actorId: ACTOR },
+      { path: restorePath(pageId, versionId) },
+    );
+
+    expect(result).toEqual({
+      status: 200,
+      body: {
+        pageId,
+        restoredFromVersionId: versionId,
+        restoredFromVersionNo: 3,
+        preRestoreVersionId: expect.any(String),
+        preRestoreVersionNo: 1,
+        versionId: expect.any(String),
+        versionNo: 2,
+        schemaVersion: EDITOR_SCHEMA_VERSION,
+        connections: 1,
+      },
+    });
+    expect(versions.map((v) => v.reason)).toEqual(["pre_restore", "restore"]);
+    expect(versions[0]!.content.contentText).toBe("Bản hiện tại");
+    expect(versions[1]!.content.contentText).toBe("Bản cũ");
+    expect(versions[1]).toMatchObject({ restoredFromVersionId: versionId, actorId: ACTOR });
+    expect(await until(() => text(client.ydoc) === "Bản cũ")).toBe(true);
+    expect(await until(() => client.stateless.length > 0)).toBe(true);
+    expect(JSON.parse(client.stateless[0]!)).toEqual({
+      type: "document.replaced",
+      reason: "restore",
+      actorId: ACTOR,
+    });
+  });
+
+  it("refuses viewers, unknown versions and versions of a newer schema without changing anything", async () => {
+    const pageId = randomUUID();
+    const viewer = randomUUID();
+    const versionId = randomUUID();
+    const newer = randomUUID();
+    const { base, versions, stored } = await startServer(
+      new Map([[pageId, initialState("Giữ nguyên")]]),
+      {
+        roles: new Map([[viewer, "viewer" as SpaceRole]]),
+        sources: new Map([
+          [versionId, source(versionId)],
+          [newer, source(newer, EDITOR_SCHEMA_VERSION + 1)],
+        ]),
+      },
+    );
+    const call = (actorId: string, id: string, page = pageId) =>
+      replace(base, page, { actorId }, { path: restorePath(page, id) });
+
+    expect(await call(viewer, versionId)).toEqual({ status: 403, body: { code: "FORBIDDEN" } });
+    expect(await call(ACTOR, randomUUID())).toEqual({
+      status: 404,
+      body: { code: "VERSION_NOT_FOUND" },
+    });
+    expect(await call(ACTOR, newer)).toEqual({
+      status: 409,
+      body: { code: "DOCUMENT_SCHEMA_TOO_NEW" },
+    });
+    const unknownPage = randomUUID();
+    expect(await call(ACTOR, versionId, unknownPage)).toEqual({
+      status: 404,
+      body: { code: "PAGE_NOT_FOUND" },
+    });
+    expect(await call("not-a-uuid", versionId)).toEqual({
+      status: 400,
+      body: { code: "VALIDATION_FAILED" },
+    });
+    expect(versions).toHaveLength(0);
+    expect(stored).toHaveLength(0);
   });
 });
 
