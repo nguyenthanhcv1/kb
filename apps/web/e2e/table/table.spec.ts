@@ -109,6 +109,49 @@ for (const locale of ["vi", "en"] as const) {
       await expect(table.locator("tr")).toHaveCount(6);
     });
 
+    test("paste spreadsheet data: new table, then overwrite and extend it (T4.4b)", async ({
+      page,
+    }) => {
+      const editor = await openEditor(page, locale);
+      await editor.locator(":scope > *").last().click();
+      await page.keyboard.press("End");
+      await page.keyboard.press("Enter");
+
+      const paste = (text: string, html?: string) =>
+        page.evaluate(
+          ({ text, html }) => {
+            const data = new DataTransfer();
+            data.setData("text/plain", text);
+            if (html) data.setData("text/html", html);
+            document.activeElement?.dispatchEvent(
+              new ClipboardEvent("paste", { clipboardData: data, bubbles: true, cancelable: true }),
+            );
+          },
+          { text, html },
+        );
+
+      // Excel-like HTML with a merged, coloured header cell → a new table.
+      await paste(
+        "Quý 1\t\nA\t1",
+        '<table><tr><td colspan="2" style="background:#FFF2CC">Quý 1</td></tr><tr><td>A</td><td>1</td></tr></table>',
+      );
+      const table = editor.locator("table").last();
+      await expect(table.locator("tr")).toHaveCount(2);
+      await expect(table.locator("td[colspan='2'][data-background-color='yellow']")).toHaveCount(1);
+
+      // Plain TSV from the last cell: overwrites it and appends the rows / columns it lacks.
+      await table.locator("tr").last().locator("td").last().click();
+      await paste("x\ty\nz\tw");
+      expect((await cellTexts(table)).slice(1)).toEqual([
+        ["A", "x", "y"],
+        ["", "z", "w"],
+      ]);
+
+      // One undo reverts the whole paste.
+      await page.keyboard.press("ControlOrMeta+z");
+      await expect(table.locator("tr")).toHaveCount(2);
+    });
+
     test("export the table as CSV", async ({ page }) => {
       const editor = await openEditor(page, locale);
       const table = await insertTable(page, editor, locale);
