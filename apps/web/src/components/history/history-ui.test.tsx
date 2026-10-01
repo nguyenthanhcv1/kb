@@ -65,6 +65,7 @@ const selected: PageVersionDetail = {
 };
 
 const base = {
+  pageId: "7b0c2a4e-1f5d-4c3b-9a8e-2d6f1b3c5a7e",
   pageHref: "/s/a/p/b-12345678",
   historyHref: "/s/a/p/b-12345678/history",
   pageTitle: "Trang",

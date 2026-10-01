@@ -13,11 +13,13 @@ import type { PageVersionContent, PageVersionDetail, PageVersionSummary } from "
 
 import { DiffView } from "./diff-view";
 import { authorName } from "./labels";
+import { RestoreVersionDialog, type RestoreVersionFn } from "./restore-version-dialog";
 
 export type HistoryMode = "preview" | "diff";
 export type DiffAgainst = "previous" | "current";
 
 type HistoryViewProps = {
+  pageId: string;
   pageHref: string;
   /** `/s/<space>/p/<ref>/history` (the versions' URLs are built on it). */
   historyHref: string;
@@ -28,6 +30,10 @@ type HistoryViewProps = {
   against: DiffAgainst;
   /** Document the selected version is compared with (null → nothing to compare). */
   compareWith: PageVersionContent | null;
+  /** Editors and admins of the Space may restore; viewers only read (kb-collab checks again). */
+  canRestore?: boolean;
+  /** Test seam for the restore action. */
+  restore?: RestoreVersionFn;
 };
 
 export function versionHref(
@@ -49,6 +55,7 @@ export function versionHref(
  * selected one on the right (stacked on narrow screens). The selection lives in the URL.
  */
 export function HistoryView({
+  pageId,
   pageHref,
   historyHref,
   pageTitle,
@@ -57,6 +64,8 @@ export function HistoryView({
   mode,
   against,
   compareWith,
+  canRestore = false,
+  restore,
 }: HistoryViewProps) {
   const t = useTranslations("history");
   const tTree = useTranslations("tree");
@@ -92,6 +101,10 @@ export function HistoryView({
           <section aria-live="polite" className="min-w-0">
             {selected ? (
               <VersionPanel
+                pageId={pageId}
+                pageHref={pageHref}
+                canRestore={canRestore}
+                restore={restore}
                 selected={selected}
                 versions={versions}
                 historyHref={historyHref}
@@ -162,6 +175,10 @@ function VersionList({
 }
 
 function VersionPanel({
+  pageId,
+  pageHref,
+  canRestore,
+  restore,
   selected,
   versions,
   historyHref,
@@ -169,6 +186,10 @@ function VersionPanel({
   against,
   compareWith,
 }: {
+  pageId: string;
+  pageHref: string;
+  canRestore: boolean;
+  restore?: RestoreVersionFn;
   selected: PageVersionDetail;
   versions: PageVersionSummary[];
   historyHref: string;
@@ -196,19 +217,32 @@ function VersionPanel({
               ` · ${t("restoredFrom", { no: selected.restoredFromVersionNo })}`}
           </p>
         </div>
-        <div role="group" aria-label={t("modes.label")} className="flex flex-wrap gap-1">
-          <ModeLink
-            href={versionHref(historyHref, selected.versionNo, "preview", against)}
-            active={mode === "preview"}
-          >
-            {t("modes.preview")}
-          </ModeLink>
-          <ModeLink
-            href={versionHref(historyHref, selected.versionNo, "diff", against)}
-            active={mode === "diff"}
-          >
-            {t("modes.diff")}
-          </ModeLink>
+        <div className="flex flex-wrap items-start gap-2">
+          {canRestore && (
+            <RestoreVersionDialog
+              key={selected.id}
+              pageId={pageId}
+              versionId={selected.id}
+              versionName={selected.label || t("versionNo", { no: selected.versionNo })}
+              pageHref={pageHref}
+              versionHrefFor={(no) => versionHref(historyHref, no, "preview", against)}
+              restore={restore}
+            />
+          )}
+          <div role="group" aria-label={t("modes.label")} className="flex flex-wrap gap-1">
+            <ModeLink
+              href={versionHref(historyHref, selected.versionNo, "preview", against)}
+              active={mode === "preview"}
+            >
+              {t("modes.preview")}
+            </ModeLink>
+            <ModeLink
+              href={versionHref(historyHref, selected.versionNo, "diff", against)}
+              active={mode === "diff"}
+            >
+              {t("modes.diff")}
+            </ModeLink>
+          </div>
         </div>
       </div>
 

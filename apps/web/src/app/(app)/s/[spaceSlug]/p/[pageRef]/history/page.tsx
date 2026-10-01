@@ -2,6 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 
 import { HistoryView, type DiffAgainst, type HistoryMode } from "@/components/history/history-view";
+import { canEditSpaceContent } from "@/components/space/permissions";
 import { createClient } from "@/lib/supabase/server";
 import { canonicalPageRedirect, pageHref } from "@/lib/page-href";
 import { getPageVersion, listPageVersions, VersionError } from "@/server/versions";
@@ -77,6 +78,8 @@ export default async function PageHistoryRoute({ params, searchParams }: Props) 
   return (
     <HistoryView
       key={page.id}
+      pageId={page.id}
+      canRestore={canEditSpaceContent(space.role)}
       pageHref={href}
       historyHref={`${href}/history`}
       pageTitle={page.title}

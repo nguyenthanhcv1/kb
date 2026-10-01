@@ -40,3 +40,26 @@ for (const locale of ["vi", "en"] as const) {
     await expect(page).toHaveURL(/against=current/);
   });
 }
+
+/**
+ * T6.3b — restore a version from the history (editor). Writes through kb-collab (a `pre_restore`
+ * and a `restore` version are added), so it also needs `E2E_RESTORE=1` and an editor session.
+ */
+for (const locale of ["vi", "en"] as const) {
+  test(`restore a version (${locale})`, async ({ page, context }) => {
+    test.skip(process.env.E2E_RESTORE !== "1", "E2E_RESTORE=1 is not set");
+    const m = messages[locale];
+    await context.addCookies([{ name: "NEXT_LOCALE", value: locale, url: BASE_URL }]);
+
+    await page.goto(`${PAGE_PATH!}/history`);
+    await page.getByRole("button", { name: m.restore, exact: true }).click();
+    const dialog = page.getByRole("alertdialog");
+    await expect(dialog).toBeVisible();
+    await page.screenshot({ path: `test-results/restore-dialog-${locale}.png` });
+    await dialog.getByRole("button", { name: m.restoreDialog.confirm }).click();
+
+    const status = page.getByRole("status").filter({ hasText: m.restoreDone.title });
+    await expect(status).toBeVisible();
+    await page.screenshot({ path: `test-results/restore-done-${locale}.png` });
+  });
+}

@@ -27,6 +27,22 @@
       "description": "The app was just updated. Reload the page to keep editing.",
       "reload": "Reload"
     },
+    "replaced": {
+      "dismiss": "Dismiss notification",
+      "import": {
+        "description": "The page content was replaced by an import. The text you see is now the imported content.",
+        "title": "This page was replaced by an import"
+      },
+      "openHistory": "Open version history",
+      "restore": {
+        "description": "Someone restored the page from its version history. The text you see is now the restored content.",
+        "title": "This page was restored to an earlier version"
+      },
+      "template": {
+        "description": "The page content was replaced by a template. The text you see is now the new content.",
+        "title": "A template was applied to this page"
+      }
+    },
     "status": {
       "connecting": "Connecting…",
       "offline": "Offline — changes will sync when you reconnect",
