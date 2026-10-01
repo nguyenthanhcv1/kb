@@ -2,6 +2,7 @@ import { createRequire } from "node:module";
 
 import type viHistory from "@kb/i18n/messages/vi/history.json";
 import { expect, test } from "@playwright/test";
+import { useLocale } from "../support/locale";
 
 /**
  * T6.2 — version history route: open it from the page header, pick a version, preview it and
@@ -10,7 +11,6 @@ import { expect, test } from "@playwright/test";
  */
 const STORAGE_STATE = process.env.E2E_STORAGE_STATE;
 const PAGE_PATH = process.env.E2E_PAGE_PATH;
-const BASE_URL = new URL(process.env.E2E_BASE_URL ?? "http://localhost:3000").origin;
 
 const require = createRequire(import.meta.url);
 const messages: Record<"vi" | "en", typeof viHistory> = {
@@ -24,7 +24,7 @@ test.use({ storageState: STORAGE_STATE });
 for (const locale of ["vi", "en"] as const) {
   test(`browse and compare versions (${locale})`, async ({ page, context }) => {
     const m = messages[locale];
-    await context.addCookies([{ name: "NEXT_LOCALE", value: locale, url: BASE_URL }]);
+    await useLocale(context, locale);
 
     await page.goto(PAGE_PATH!);
     await page.getByRole("link", { name: m.title }).click();

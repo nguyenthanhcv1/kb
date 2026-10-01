@@ -50,3 +50,9 @@ Spec cũ (T1–T6) vẫn dùng `@playwright/test` và tự lặp vi/en bên tron
 
 - [ ] GitHub › Settings › Branches › rule `main`: thêm required status check **`e2e`** (job gom kết quả; không chọn `e2e (vi)`/`e2e (en)` riêng).
 - [ ] Sau vài lần chạy thật: kiểm tra thời lượng job và tinh chỉnh `timeout-minutes`/`workers` nếu cần.
+
+## 6. Người dùng theo worker và ngôn ngữ
+
+- `global-setup` tạo `e2e-w0..3@kb.test`; mỗi worker Playwright đăng nhập bằng người dùng của riêng nó (`E2E_STORAGE_STATE` được `playwright.config.ts` trỏ theo `TEST_PARALLEL_INDEX`). Ngôn ngữ và múi giờ nằm trong profile nên không được dùng chung một người dùng giữa các spec chạy song song.
+- **Profile thắng cookie `NEXT_LOCALE`**: spec khẳng định theo ngôn ngữ phải gọi `useLocale(context, locale)` (`e2e/support/locale.ts`: đặt cookie + `profiles.locale`), không tự `addCookies`.
+- `members.spec.ts` đang `test.fixme`: khách chỉ có lời mời đang chờ bị `has_active_access` coi là không còn quyền nên middleware đăng xuất khi prefetch link ngoài `/invite`. Cần sửa ở DB/middleware (task riêng), rồi bỏ `fixme`.

@@ -3,6 +3,7 @@ import { createRequire } from "node:module";
 import type viSpace from "@kb/i18n/messages/vi/space.json";
 import type viTree from "@kb/i18n/messages/vi/tree.json";
 import { expect, type Locator, type Page, test } from "@playwright/test";
+import { useLocale } from "../support/locale";
 
 /**
  * T2.3 — sidebar page tree: create and rename pages inline, reorder with the keyboard, nest by
@@ -12,7 +13,6 @@ import { expect, type Locator, type Page, test } from "@playwright/test";
  * without it. Each run creates its own Space.
  */
 const STORAGE_STATE = process.env.E2E_STORAGE_STATE;
-const BASE_URL = new URL(process.env.E2E_BASE_URL ?? "http://localhost:3000").origin;
 
 const require = createRequire(import.meta.url);
 type Messages = { space: typeof viSpace; tree: typeof viTree };
@@ -54,7 +54,7 @@ async function dragOnto(page: Page, source: Locator, target: Locator, offsetX: n
 for (const locale of ["vi", "en"] as const) {
   test(`build a page tree in the sidebar (${locale})`, async ({ page, context }) => {
     const m = messages[locale];
-    await context.addCookies([{ name: "NEXT_LOCALE", value: locale, url: BASE_URL }]);
+    await useLocale(context, locale);
     const suffix = `${locale}-${Date.now().toString(36)}`;
     const name = `Tree ${suffix}`;
 

@@ -1,3 +1,5 @@
+import path from "node:path";
+
 import { defineConfig, devices } from "@playwright/test";
 
 /**
@@ -17,6 +19,16 @@ import { defineConfig, devices } from "@playwright/test";
 const locale = process.env.E2E_LOCALE === "en" ? "en" : "vi";
 const ci = Boolean(process.env.CI);
 
+// Each worker signs in as its own user (created by global-setup): language and time zone live in
+// the profile, so specs sharing one user would overwrite each other. This file is loaded again in
+// every worker before the specs, which is what makes the override visible to them.
+if (process.env.E2E_AUTH_DIR && process.env.TEST_PARALLEL_INDEX !== undefined) {
+  process.env.E2E_STORAGE_STATE = path.join(
+    process.env.E2E_AUTH_DIR,
+    `worker-${process.env.TEST_PARALLEL_INDEX}.json`,
+  );
+}
+
 export default defineConfig({
   testDir: "./e2e",
   globalSetup: "./e2e/global-setup.ts",
@@ -24,7 +36,7 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: ci,
   retries: ci ? 2 : 0,
-  workers: ci ? 2 : undefined,
+  workers: ci ? 2 : 4, // ≤ E2E_USER_COUNT in e2e/support/users.ts
   timeout: 60_000,
   expect: { timeout: 10_000 },
   reporter: ci

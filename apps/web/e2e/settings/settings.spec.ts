@@ -57,7 +57,9 @@ test("language and time zone follow the profile to another device", async ({ pag
   await page.setExtraHTTPHeaders({ "Accept-Language": "vi-VN,vi;q=0.9" });
   await page.reload();
   await expect(title).toHaveText(en.settings.title);
-  await expect(page.getByLabel(en.settings.timeZone.label)).toHaveValue("Europe/Berlin");
+  await expect(page.getByLabel(en.settings.timeZone.label, { exact: true })).toHaveValue(
+    "Europe/Berlin",
+  );
 
   await savePreferences(page, en, "vi", "Asia/Ho_Chi_Minh");
   await expect(title).toHaveText(vi.settings.title);
