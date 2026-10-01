@@ -44,6 +44,19 @@
     "template": "Tạo từ mẫu"
   },
   "restore": "Khôi phục",
+  "restoreDialog": {
+    "cancel": "Huỷ",
+    "confirm": "Khôi phục phiên bản này",
+    "description": "Trang sẽ được thay bằng phiên bản này cho mọi người đang mở trang. Nội dung hiện tại được lưu trước thành phiên bản \"Trước khi khôi phục\", nên bạn có thể lấy lại.",
+    "restoring": "Đang khôi phục…",
+    "title": "Khôi phục \"{name}\"?"
+  },
+  "restoreDone": {
+    "openPage": "Mở trang",
+    "title": "Đã khôi phục phiên bản",
+    "undo": "Nội dung trước đó đã được lưu thành phiên bản {no}. Khôi phục phiên bản đó để hoàn tác.",
+    "viewPrevious": "Xem nội dung trước đó"
+  },
   "restoredFrom": "Khôi phục từ phiên bản {no}",
   "selectPrompt": "Chọn một phiên bản để xem.",
   "title": "Lịch sử phiên bản",

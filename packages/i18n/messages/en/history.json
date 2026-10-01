@@ -44,6 +44,19 @@
     "template": "From template"
   },
   "restore": "Restore",
+  "restoreDialog": {
+    "cancel": "Cancel",
+    "confirm": "Restore this version",
+    "description": "The page will be replaced with this version for everyone who has it open. The current content is saved first as a \"Before restore\" version, so you can bring it back.",
+    "restoring": "Restoring…",
+    "title": "Restore \"{name}\"?"
+  },
+  "restoreDone": {
+    "openPage": "Open the page",
+    "title": "Version restored",
+    "undo": "The previous content was saved as version {no}. Restore it to undo.",
+    "viewPrevious": "View the previous content"
+  },
   "restoredFrom": "Restored from version {no}",
   "selectPrompt": "Select a version to view.",
   "title": "Version history",

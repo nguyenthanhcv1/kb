@@ -61,6 +61,7 @@ export function PageView({ page, spaceSlug, canEdit, content, collab = null }: P
         title={page.title}
         pageId={page.id}
         collab={editable ? collab : null}
+        historyHref={`${pageHref(spaceSlug, page)}/history`}
       />
     </article>
   );

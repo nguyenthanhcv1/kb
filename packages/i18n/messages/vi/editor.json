@@ -27,6 +27,22 @@
       "description": "Ứng dụng vừa được cập nhật. Hãy tải lại trang để tiếp tục chỉnh sửa.",
       "reload": "Tải lại"
     },
+    "replaced": {
+      "dismiss": "Đóng thông báo",
+      "import": {
+        "description": "Nội dung trang đã được thay bằng nội dung nhập. Nội dung bạn đang thấy là nội dung mới.",
+        "title": "Trang vừa được thay bằng nội dung nhập vào"
+      },
+      "openHistory": "Mở lịch sử phiên bản",
+      "restore": {
+        "description": "Có người đã khôi phục trang từ lịch sử phiên bản. Nội dung bạn đang thấy là nội dung đã khôi phục.",
+        "title": "Trang vừa được khôi phục về phiên bản cũ"
+      },
+      "template": {
+        "description": "Nội dung trang đã được thay bằng một mẫu. Nội dung bạn đang thấy là nội dung mới.",
+        "title": "Trang vừa được áp dụng mẫu"
+      }
+    },
     "status": {
       "connecting": "Đang kết nối…",
       "offline": "Mất kết nối — thay đổi sẽ được đồng bộ khi có mạng",

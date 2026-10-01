@@ -22,16 +22,27 @@ export function PageContent({
   title,
   pageId,
   collab = null,
+  historyHref,
 }: {
   content: JSONContent | null;
   title: string;
   pageId?: string;
   /** Set only when the viewer may edit this page and `COLLAB_PUBLIC_URL` is configured. */
   collab?: CollabClientConfig | null;
+  /** History route of the page, linked from the "content was restored" toast. */
+  historyHref?: string;
 }) {
   const t = useTranslations("tree.page.content");
   if (collab && pageId) {
-    return <CollabEditor pageId={pageId} config={collab} content={content} title={title} />;
+    return (
+      <CollabEditor
+        pageId={pageId}
+        config={collab}
+        content={content}
+        title={title}
+        historyHref={historyHref}
+      />
+    );
   }
   if (!content || isEmptyDocument(content)) {
     return <p className="text-muted-foreground md:pl-8">{t("empty")}</p>;
