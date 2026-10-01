@@ -12,6 +12,15 @@ export {
   type MoveDirection,
 } from "./block-actions";
 export {
+  attachmentHref,
+  FileUpload,
+  type FileUploadOptions,
+  insertAttachment,
+  parseAttachmentHref,
+  stripBase64Images,
+  type UploadedAttachment,
+} from "./file-upload";
+export {
   EDITOR_SHORTCUTS,
   type EditorShortcut,
   EditorShortcuts,

@@ -48,6 +48,7 @@ export function CollabEditor({ pageId, config, content, title }: CollabEditorPro
             uniqueId: { filterTransaction: (tr) => !isChangeOrigin(tr) },
           }}
           title={title}
+          pageId={pageId}
         />
       ) : (
         <BlockEditor key="static" content={content ?? undefined} editable={false} title={title} />

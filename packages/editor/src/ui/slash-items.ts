@@ -10,7 +10,7 @@ export const SLASH_GROUPS = ["basic", "lists", "blocks", "media"] as const;
 export type SlashGroup = (typeof SLASH_GROUPS)[number];
 
 /** Input the UI must collect before an item can run (e.g. an image URL). */
-export type SlashItemInput = { kind: "imageUrl" };
+export type SlashItemInput = { kind: "imageUrl" } | { kind: "file" };
 
 export interface SlashItem {
   /** Stable code; the UI maps it to a label/description (`editor.slash.items.<id>`) and an icon. */
@@ -124,6 +124,14 @@ export const SLASH_ITEMS: readonly SlashItem[] = [
     input: { kind: "imageUrl" },
     run: (chain, input) =>
       input?.src ? chain.setImage({ src: input.src }).command(caretAfterSelectedNode) : chain,
+  },
+  {
+    id: "file",
+    group: "media",
+    keywords: ["file", "attachment", "upload", "pdf", "tep", "dinh kem", "tai len"],
+    input: { kind: "file" },
+    // The UI opens a file picker; the upload inserts the link itself (`insertAttachment`).
+    run: (chain) => chain,
   },
 ];
 

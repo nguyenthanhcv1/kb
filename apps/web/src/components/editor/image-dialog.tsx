@@ -16,21 +16,25 @@ import {
 import { Input } from "@/components/ui/input";
 
 /**
- * Asks for an image URL (slash item "Image"). Uploads (drag & drop, paste) arrive with T3.6b;
- * only absolute http(s) URLs are accepted — never base64.
+ * Asks for an image URL (slash item "Image"). With `onUpload` it also offers
+ * picking image files to upload (T3.6b); typed URLs must be absolute http(s) — never base64.
  */
 export function ImageDialog({
   open,
   onOpenChange,
   onInsert,
+  onUpload,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onInsert: (src: string) => void;
+  /** Set when the page can store files: shows "Upload from your computer". */
+  onUpload?: (files: File[]) => void;
 }) {
   const t = useTranslations("editor");
   const inputId = useId();
   const errorId = useId();
+  const fileId = useId();
   const [value, setValue] = useState("");
   const [invalid, setInvalid] = useState(false);
 
@@ -85,6 +89,23 @@ export function ImageDialog({
               </p>
             )}
           </div>
+          {onUpload && (
+            <div className="flex flex-col gap-2 border-t pt-4">
+              <label htmlFor={fileId} className="text-sm font-medium">
+                {t("image.upload")}
+              </label>
+              <Input
+                id={fileId}
+                type="file"
+                accept="image/avif,image/gif,image/jpeg,image/png,image/webp"
+                multiple
+                onChange={(event) => {
+                  const files = Array.from(event.target.files ?? []);
+                  if (files.length > 0) onUpload(files);
+                }}
+              />
+            </div>
+          )}
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               {t("image.cancel")}

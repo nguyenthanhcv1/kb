@@ -39,11 +39,12 @@
   },
   "image": {
     "cancel": "Cancel",
-    "description": "Paste the address of an image (starting with https://). Uploading from your computer comes in a later release.",
+    "description": "Paste the address of an image (starting with https://) or upload one from your computer.",
     "insert": "Insert",
     "invalid": "This address is not valid. Use a link starting with http:// or https://.",
     "label": "Image address",
-    "title": "Insert image"
+    "title": "Insert image",
+    "upload": "Upload an image from your computer"
   },
   "link": {
     "apply": "Apply",
@@ -143,6 +144,10 @@
         "description": "Horizontal line between sections",
         "title": "Divider"
       },
+      "file": {
+        "description": "Upload a file and insert a download link",
+        "title": "File attachment"
+      },
       "heading1": {
         "description": "Large section heading",
         "title": "Heading 1"
@@ -156,7 +161,7 @@
         "title": "Heading 3"
       },
       "image": {
-        "description": "Insert an image from a link",
+        "description": "Insert an image from a link or upload one",
         "title": "Image"
       },
       "orderedList": {
@@ -177,5 +182,12 @@
       }
     },
     "label": "Insert block"
+  },
+  "upload": {
+    "dismiss": "Dismiss",
+    "failed": "Could not upload “{name}”: {error}",
+    "pick": "Choose files to upload",
+    "unnamed": "Unnamed file",
+    "uploading": "Uploading “{name}”…"
   }
 }

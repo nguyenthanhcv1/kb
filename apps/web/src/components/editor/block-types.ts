@@ -4,6 +4,7 @@ import {
   CircleCheckIcon,
   Heading1Icon,
   Heading2Icon,
+  FileIcon,
   Heading3Icon,
   ImageIcon,
   InfoIcon,
@@ -40,6 +41,7 @@ export const BLOCK_ICONS: Record<string, LucideIcon> = {
   divider: MinusIcon,
   table: TableIcon,
   image: ImageIcon,
+  file: FileIcon,
 };
 
 /**
