@@ -3,7 +3,7 @@ import type { AddressInfo } from "node:net";
 
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { CollabError, createPageVersion, replaceDocument } from "./index";
+import { CollabError, createPageVersion, replaceDocument, restorePageVersion } from "./index";
 import { computeSignature, NONCE_HEADER, SIGNATURE_HEADER, TIMESTAMP_HEADER } from "./signature";
 
 const SECRET = "web-collab-client-secret-0123456789-abc";
@@ -246,5 +246,73 @@ describe("createPageVersion", () => {
         ),
       ),
     ).toEqual({ code: "VALIDATION_FAILED", reason: "VALIDATION_FAILED" });
+  });
+});
+
+describe("restorePageVersion", () => {
+  const VERSION_ID = "3f1d2c4b-5a6e-4f70-8a9b-0c1d2e3f4a5b";
+  const result = {
+    pageId: PAGE_ID,
+    restoredFromVersionId: VERSION_ID,
+    restoredFromVersionNo: 4,
+    preRestoreVersionId: "9a2e2c4b-5a6e-4f70-8a9b-0c1d2e3f4a5b",
+    preRestoreVersionNo: 12,
+    versionId: "c7b12c4b-5a6e-4f70-8a9b-0c1d2e3f4a5b",
+    versionNo: 13,
+    schemaVersion: 1,
+    connections: 2,
+  };
+
+  it("posts a signed request to the restore route and returns the result", async () => {
+    const { url, received } = await fakeCollab(200, result);
+
+    await expect(
+      restorePageVersion(
+        { pageId: PAGE_ID, versionId: VERSION_ID, actorId: ACTOR_ID },
+        { url, secret: SECRET },
+      ),
+    ).resolves.toEqual(result);
+
+    const [request] = received;
+    const path = `/internal/documents/${PAGE_ID}/versions/${VERSION_ID}/restore`;
+    expect(request!.url).toBe(path);
+    expect(JSON.parse(request!.body)).toEqual({ actorId: ACTOR_ID });
+    expect(request!.headers[SIGNATURE_HEADER]).toBe(
+      computeSignature(SECRET, {
+        method: "POST",
+        path,
+        timestamp: Number(request!.headers[TIMESTAMP_HEADER]),
+        nonce: String(request!.headers[NONCE_HEADER]),
+        body: request!.body,
+      }),
+    );
+  });
+
+  it("validates input and maps collab errors", async () => {
+    const { url, received } = await fakeCollab(404, { code: "VERSION_NOT_FOUND" });
+    expect(
+      await failure(
+        restorePageVersion(
+          { pageId: PAGE_ID, versionId: "nope", actorId: ACTOR_ID },
+          { url, secret: SECRET },
+        ),
+      ),
+    ).toEqual({ code: "VALIDATION_FAILED", reason: "VALIDATION_FAILED" });
+    expect(received).toHaveLength(0);
+
+    const input = { pageId: PAGE_ID, versionId: VERSION_ID, actorId: ACTOR_ID };
+    expect(await failure(restorePageVersion(input, { url, secret: SECRET }))).toEqual({
+      code: "VERSION_NOT_FOUND",
+      reason: "VERSION_NOT_FOUND",
+    });
+    const forbidden = await fakeCollab(403, { code: "FORBIDDEN" });
+    expect(
+      await failure(restorePageVersion(input, { url: forbidden.url, secret: SECRET })),
+    ).toEqual({ code: "FORBIDDEN", reason: "FORBIDDEN" });
+    const failed = await fakeCollab(500, { code: "RESTORE_FAILED" });
+    expect(await failure(restorePageVersion(input, { url: failed.url, secret: SECRET }))).toEqual({
+      code: "PAGE_ACTION_FAILED",
+      reason: "RESTORE_FAILED",
+    });
   });
 });

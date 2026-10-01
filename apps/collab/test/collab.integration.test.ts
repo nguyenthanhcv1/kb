@@ -357,6 +357,99 @@ describe.skipIf(!DATABASE_URL || !ADMIN_URL)("kb-collab with Postgres", () => {
     await stopServer(server);
   });
 
+  it("restores a version: pre_restore, live replace for open editors, restore version and audit", async () => {
+    const pageId = randomUUID();
+    const name = `page:${pageId}`;
+    await admin.query(
+      "insert into public.pages (id, space_id, position, title, created_by) values ($1, $2, 'R', 'Restore', $3)",
+      [pageId, ids.space, ids.admin],
+    );
+    const versions = async () =>
+      (
+        await admin.query<{
+          id: string;
+          reason: string;
+          restored_from_version_id: string | null;
+          created_by: string | null;
+          content_text: string;
+        }>(
+          "select id, reason::text, restored_from_version_id, created_by, content_text from public.page_versions where page_id = $1 order by version_no",
+          [pageId],
+        )
+      ).rows;
+    const storedText = async () =>
+      (
+        await admin.query<{ content_text: string }>(
+          "select content_text from public.page_documents where page_id = $1",
+          [pageId],
+        )
+      ).rows[0]!.content_text;
+    const restore = (versionId: string, actorId: string, server: Server<CollabContext>) => {
+      const path = `/internal/documents/${pageId}/versions/${versionId}/restore`;
+      const body = JSON.stringify({ actorId });
+      return fetch(`http://127.0.0.1:${server.address.port}${path}`, {
+        method: "POST",
+        body,
+        headers: {
+          "content-type": "application/json",
+          ...signRequest(INTERNAL_SECRET, { method: "POST", path, body }),
+        },
+      });
+    };
+
+    try {
+      const server = await startServer();
+      const editor = await connect(server, await token(ids.editor), { name });
+      writeParagraph(editor.doc, "Bản đầu");
+      await until(storedText, (t) => t.includes("Bản đầu"));
+      const [first] = await until(versions, (v) => v.length === 1);
+      writeParagraph(editor.doc, "Bản sau");
+      await until(storedText, (t) => t.includes("Bản sau"));
+
+      const viewerResponse = await restore(first!.id, ids.viewer, server);
+      expect(viewerResponse.status).toBe(403);
+      expect(await versions()).toHaveLength(1);
+
+      const response = await restore(first!.id, ids.admin, server);
+      expect(response.status).toBe(200);
+      expect(await response.json()).toMatchObject({
+        pageId,
+        restoredFromVersionId: first!.id,
+        preRestoreVersionNo: 2,
+        versionNo: 3,
+        connections: 1,
+      });
+
+      expect(
+        await until(
+          async () => textOf(editor.doc),
+          (t) => t.includes("Bản đầu") && !t.includes("Bản sau"),
+        ),
+      ).toContain("Bản đầu");
+      await until(storedText, (t) => t === "Bản đầu");
+
+      const rows = await versions();
+      expect(rows.map((v) => v.reason)).toEqual(["auto", "pre_restore", "restore"]);
+      expect(rows[1]).toMatchObject({ content_text: "Bản sau", created_by: ids.admin });
+      expect(rows[2]).toMatchObject({
+        content_text: "Bản đầu",
+        created_by: ids.admin,
+        restored_from_version_id: first!.id,
+      });
+      const audit = await admin.query(
+        "select actor_id from public.audit_logs where action = 'version.restore' and entity_id = $1",
+        [rows[2]!.id],
+      );
+      expect(audit.rows).toEqual([{ actor_id: ids.admin }]);
+
+      disconnect(editor);
+      await stopServer(server);
+    } finally {
+      await admin.query("update public.pages set deleted_at = now() where id = $1", [pageId]);
+      await admin.query("delete from public.pages where id = $1", [pageId]);
+    }
+  });
+
   it("snapshots auto versions every 10 minutes, on last disconnect, and manual ones on request", async () => {
     const pageId = randomUUID();
     const name = `page:${pageId}`;

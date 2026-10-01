@@ -5,7 +5,7 @@ import { webEnv } from "@/lib/env";
 import { signRequest } from "./signature";
 
 /**
- * kb-web → kb-collab internal API client (tasks T3.7, T6.1b; docs/PLAN.md §1.2). Server-only.
+ * kb-web → kb-collab internal API client (tasks T3.7, T6.1b, T6.3a; docs/PLAN.md §1.2). Server-only.
  *
  * The single way for kb-web to change page content (restore a version T6.3, apply a template,
  * import): kb-collab applies it through a Hocuspocus direct connection, so every open editor sees
@@ -31,6 +31,7 @@ export const COLLAB_ERROR_CODES = [
   "FORBIDDEN",
   "PAGE_NOT_FOUND",
   "VALIDATION_FAILED",
+  "VERSION_NOT_FOUND",
   "PAGE_ACTION_FAILED",
 ] as const;
 export type CollabErrorCode = (typeof COLLAB_ERROR_CODES)[number];
@@ -83,6 +84,7 @@ const DEFAULT_TIMEOUT_MS = 15_000;
 function toUserCode(collabCode: string): CollabErrorCode {
   if (collabCode === "PAGE_NOT_FOUND") return "PAGE_NOT_FOUND";
   if (collabCode === "FORBIDDEN") return "FORBIDDEN";
+  if (collabCode === "VERSION_NOT_FOUND") return "VERSION_NOT_FOUND";
   if (collabCode === "VALIDATION_FAILED" || collabCode === "PAYLOAD_TOO_LARGE") {
     return "VALIDATION_FAILED";
   }
@@ -161,6 +163,64 @@ export async function createPageVersion(
     `/internal/documents/${pageId}/versions`,
     { actorId, ...(label ? { label } : {}) },
     createPageVersionResultSchema,
+    options,
+  );
+}
+
+export const restorePageVersionInputSchema = z.object({
+  pageId: z.guid(),
+  /** Version to restore (must belong to `pageId`). */
+  versionId: z.guid(),
+  /** User restoring; kb-collab checks again that they are an editor or admin. */
+  actorId: z.guid(),
+});
+export type RestorePageVersionInput = z.input<typeof restorePageVersionInputSchema>;
+
+export const restorePageVersionResultSchema = z.object({
+  pageId: z.guid(),
+  restoredFromVersionId: z.guid(),
+  restoredFromVersionNo: z.number().int().positive(),
+  /** Version holding the content as it was just before the restore: restore it to undo. */
+  preRestoreVersionId: z.guid(),
+  preRestoreVersionNo: z.number().int().positive(),
+  /** The new `restore` version (audited as `version.restore`). */
+  versionId: z.guid(),
+  versionNo: z.number().int().positive(),
+  schemaVersion: z.number().int(),
+  /** Editors connected at that moment; they already show the restored content. */
+  connections: z.number().int().min(0),
+});
+export type RestorePageVersionResult = z.infer<typeof restorePageVersionResultSchema>;
+
+/**
+ * Restore a page version (T6.3a). kb-collab saves a `pre_restore` version of the live document,
+ * replaces the content for everyone (open editors get the stateless message `document.replaced`
+ * with `reason: "restore"` — T6.3b shows the toast), saves a `restore` version and the DB audits
+ * it as `version.restore`. Check edit rights before calling (collab re-checks `actorId`).
+ *
+ * ```ts
+ * await restorePageVersion({ pageId, versionId, actorId: user.id });
+ * // { pageId: "7b0c2a4e-…", restoredFromVersionId: "3f1d…", restoredFromVersionNo: 4,
+ * //   preRestoreVersionId: "9a2e…", preRestoreVersionNo: 12, versionId: "c7b1…", versionNo: 13,
+ * //   schemaVersion: 1, connections: 2 }
+ * ```
+ *
+ * Errors ({@link CollabError}): `FORBIDDEN` (viewer), `PAGE_NOT_FOUND`, `VERSION_NOT_FOUND`,
+ * `VALIDATION_FAILED`, `PAGE_ACTION_FAILED` (`reason` `DOCUMENT_SCHEMA_TOO_NEW`, `RESTORE_FAILED`, …).
+ */
+export async function restorePageVersion(
+  input: RestorePageVersionInput,
+  options: CollabClientOptions = {},
+): Promise<RestorePageVersionResult> {
+  const parsed = restorePageVersionInputSchema.safeParse(input);
+  if (!parsed.success) {
+    throw new CollabError("VALIDATION_FAILED", "VALIDATION_FAILED", { cause: parsed.error });
+  }
+  const { pageId, versionId, actorId } = parsed.data;
+  return postInternal(
+    `/internal/documents/${pageId}/versions/${versionId}/restore`,
+    { actorId },
+    restorePageVersionResultSchema,
     options,
   );
 }
