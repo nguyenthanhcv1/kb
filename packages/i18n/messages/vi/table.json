@@ -25,6 +25,10 @@
     "red": "Đỏ",
     "yellow": "Vàng"
   },
+  "drag": {
+    "column": "Kéo để di chuyển cột",
+    "row": "Kéo để di chuyển hàng"
+  },
   "groups": {
     "cells": "Ô",
     "columns": "Cột",

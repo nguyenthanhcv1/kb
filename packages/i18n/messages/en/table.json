@@ -25,6 +25,10 @@
     "red": "Red",
     "yellow": "Yellow"
   },
+  "drag": {
+    "column": "Drag to move column",
+    "row": "Drag to move row"
+  },
   "groups": {
     "cells": "Cells",
     "columns": "Columns",

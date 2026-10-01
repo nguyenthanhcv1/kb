@@ -148,6 +148,63 @@
     @apply cursor-col-resize;
   }
 
+  /*
+   * Row / column drag handles (T4.3, `TableDrag`). A handle sits on the outer edge of the first
+   * cell of each row / of each cell of the first row; shown while the table is hovered or holds
+   * the caret, and always on touch screens (no hover there).
+   */
+  & .kb-table-handle {
+    @apply absolute z-[4] flex touch-none items-center justify-center rounded-sm border border-border bg-background fill-muted-foreground text-muted-foreground opacity-0 shadow-xs select-none;
+    cursor: grab;
+  }
+  & .kb-table-handle:hover,
+  & .kb-table-handle:focus-visible {
+    @apply bg-accent fill-foreground;
+  }
+  & .kb-table-handle:focus-visible {
+    @apply ring-2 ring-ring outline-none;
+  }
+  & .kb-table-handle-row {
+    @apply top-1/2 -left-1 h-5 w-3 -translate-x-1/2 -translate-y-1/2;
+  }
+  & .kb-table-handle-column {
+    @apply -top-1 left-1/2 h-3 w-5 -translate-x-1/2 -translate-y-1/2 rotate-90;
+  }
+  & .tableWrapper:hover .kb-table-handle,
+  & .tableWrapper:focus-within .kb-table-handle,
+  & .kb-table-dragging .kb-table-handle {
+    @apply opacity-100;
+  }
+  @media (hover: none) {
+    & .kb-table-handle {
+      @apply opacity-100;
+    }
+  }
+  /* Room for the row handles that stick out on the left. */
+  & .tableWrapper:has(.kb-table-handle) {
+    @apply pt-3 pl-3;
+  }
+  & .kb-table-dragging {
+    cursor: grabbing;
+    user-select: none;
+  }
+  & .kb-drag-source {
+    @apply bg-primary/10;
+  }
+  /* Drop position preview: a bar on the edge where the line would land. */
+  & .kb-drop-before.kb-drag-row {
+    box-shadow: inset 0 2px 0 0 var(--primary);
+  }
+  & .kb-drop-after.kb-drag-row {
+    box-shadow: inset 0 -2px 0 0 var(--primary);
+  }
+  & .kb-drop-before.kb-drag-column {
+    box-shadow: inset 2px 0 0 0 var(--primary);
+  }
+  & .kb-drop-after.kb-drag-column {
+    box-shadow: inset -2px 0 0 0 var(--primary);
+  }
+
   /* Placeholder of the empty block holding the cursor (Placeholder extension). */
   & .is-empty::before {
     @apply pointer-events-none float-left h-0 text-muted-foreground;

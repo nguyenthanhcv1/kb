@@ -187,6 +187,43 @@ for (const locale of ["vi", "en"] as const) {
       expect((await cellTexts(table))[1]).toEqual(["a", "", ""]);
     });
 
+    test("drag a row and a column by their handles, undo in one step (T4.3)", async ({ page }) => {
+      const editor = await openEditor(page, locale);
+      const table = await insertTable(page, editor, locale);
+      for (const text of ["A", "B", "C", "1", "2", "3"]) {
+        await page.keyboard.type(text);
+        await page.keyboard.press("Tab");
+      }
+      const before = await cellTexts(table);
+
+      const rowHandles = table.locator(`button[aria-label="${t.drag.row}"]`);
+      const columnHandles = table.locator(`button[aria-label="${t.drag.column}"]`);
+      await expect(rowHandles).toHaveCount(3);
+      await expect(columnHandles).toHaveCount(3);
+
+      // Row 2 above the header row.
+      await table.hover();
+      const handle = (await rowHandles.nth(1).boundingBox())!;
+      const target = (await table.locator("tr").first().boundingBox())!;
+      await page.mouse.move(handle.x + handle.width / 2, handle.y + handle.height / 2);
+      await page.mouse.down();
+      await page.mouse.move(handle.x + 20, target.y + 2, { steps: 8 });
+      await expect(table.locator(".kb-drop-before").first()).toBeVisible();
+      await page.mouse.up();
+      expect(await cellTexts(table)).toEqual([before[1], before[0], before[2]]);
+
+      // Column 3 to the front (keyboard: Ctrl/Cmd+Alt+Shift+Left from a cell of that column).
+      await table.locator("tr").nth(1).locator("th, td").nth(2).click();
+      await page.keyboard.press("ControlOrMeta+Alt+Shift+ArrowLeft");
+      expect((await cellTexts(table))[1]).toEqual([before[0]![0], before[0]![2], before[0]![1]]);
+
+      // Undo reverts the column move alone, then the row move.
+      await page.keyboard.press("ControlOrMeta+z");
+      expect((await cellTexts(table))[1]).toEqual(before[0]);
+      await page.keyboard.press("ControlOrMeta+z");
+      expect(await cellTexts(table)).toEqual(before);
+    });
+
     test("wide tables scroll inside the table on a 360 px screen", async ({ page }) => {
       await page.setViewportSize({ width: 360, height: 740 });
       const editor = await openEditor(page, locale);

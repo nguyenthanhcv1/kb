@@ -35,6 +35,10 @@ export const EDITOR_SHORTCUTS = [
   { id: "previousCell", group: "table", keys: ["Shift", "Tab"] },
   { id: "addRowBelow", group: "table", keys: ["Mod", "Enter"] },
   { id: "tableMenu", group: "table", keys: ["Alt", "F10"] },
+  { id: "moveRowUp", group: "table", keys: ["Mod", "Alt", "Shift", "↑"] },
+  { id: "moveRowDown", group: "table", keys: ["Mod", "Alt", "Shift", "↓"] },
+  { id: "moveColumnLeft", group: "table", keys: ["Mod", "Alt", "Shift", "←"] },
+  { id: "moveColumnRight", group: "table", keys: ["Mod", "Alt", "Shift", "→"] },
 ] as const;
 
 export type EditorShortcut = (typeof EDITOR_SHORTCUTS)[number];
