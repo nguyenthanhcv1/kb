@@ -1,6 +1,40 @@
 {
+  "authorUnknown": "Người dùng không xác định",
+  "back": "Về trang",
+  "blockTypes": {
+    "blockquote": "Trích dẫn",
+    "bulletList": "Danh sách",
+    "codeBlock": "Khối mã",
+    "heading": "Tiêu đề",
+    "image": "Hình ảnh",
+    "orderedList": "Danh sách số",
+    "other": "Khối",
+    "paragraph": "Đoạn văn",
+    "table": "Bảng",
+    "taskList": "Việc cần làm"
+  },
   "compare": "So sánh",
   "current": "Phiên bản hiện tại",
+  "diff": {
+    "added": "Thêm",
+    "against": {
+      "current": "So với bản hiện tại",
+      "previous": "So với bản trước"
+    },
+    "changed": "Sửa",
+    "identical": "Không có thay đổi giữa hai bản.",
+    "noPrevious": "Đây là phiên bản đầu tiên, chưa có bản trước để so sánh.",
+    "removed": "Xoá",
+    "summary": "{added, plural, other {# khối thêm}} · {changed, plural, other {# khối sửa}} · {removed, plural, other {# khối xoá}}"
+  },
+  "empty": "Chưa có phiên bản nào. Phiên bản được lưu tự động khi bạn sửa trang.",
+  "emptyContent": "Phiên bản này không có nội dung.",
+  "listLabel": "Danh sách phiên bản",
+  "modes": {
+    "diff": "So sánh",
+    "label": "Cách xem",
+    "preview": "Xem trước"
+  },
   "reasons": {
     "auto": "Tự động lưu",
     "import": "Đã nhập",
@@ -10,5 +44,8 @@
     "template": "Tạo từ mẫu"
   },
   "restore": "Khôi phục",
-  "title": "Lịch sử phiên bản"
+  "restoredFrom": "Khôi phục từ phiên bản {no}",
+  "selectPrompt": "Chọn một phiên bản để xem.",
+  "title": "Lịch sử phiên bản",
+  "versionNo": "Phiên bản {no}"
 }
