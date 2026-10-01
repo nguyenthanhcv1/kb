@@ -1,0 +1,184 @@
+[
+  {
+    "key": "a01",
+    "title": "Quy trình nghỉ phép năm",
+    "headings": "Điều kiện\nCách đăng ký",
+    "content": "Nhân viên chính thức được nghỉ phép năm 12 ngày. Đăng ký nghỉ phép trên hệ thống nhân sự trước ít nhất 3 ngày làm việc. Quản lý trực tiếp duyệt đơn.",
+    "table": ""
+  },
+  {
+    "key": "a02",
+    "title": "Chính sách làm việc từ xa",
+    "headings": "Điều kiện áp dụng",
+    "content": "Nhân viên được làm việc từ xa tối đa hai ngày mỗi tuần sau khi hoàn thành thử việc. Cần thiết bị của công ty và kết nối an toàn.",
+    "table": ""
+  },
+  {
+    "key": "a03",
+    "title": "Hướng dẫn cài đặt VPN",
+    "headings": "Windows\nmacOS",
+    "content": "Tải ứng dụng OpenVPN từ cổng nội bộ, nhập tên đăng nhập công ty và mã xác thực hai lớp để kết nối.",
+    "table": ""
+  },
+  {
+    "key": "a04",
+    "title": "Quy định thanh toán công tác phí",
+    "headings": "Hoàn ứng",
+    "content": "Chi phí đi lại, khách sạn và ăn uống khi đi công tác được hoàn ứng trong 5 ngày làm việc, kèm hóa đơn đỏ hợp lệ.",
+    "table": ""
+  },
+  {
+    "key": "a05",
+    "title": "Cơ sở dữ liệu khách hàng",
+    "headings": "Sơ đồ bảng\nSao lưu",
+    "content": "Cơ sở dữ liệu khách hàng chạy trên PostgreSQL, sao lưu mỗi đêm lúc 2 giờ sáng và lưu giữ 30 ngày.",
+    "table": ""
+  },
+  {
+    "key": "a06",
+    "title": "Bảng phụ cấp theo cấp bậc",
+    "headings": "",
+    "content": "Tổng hợp các khoản phụ cấp hàng tháng.",
+    "table": "Cấp bậc | Phụ cấp ăn trưa | Phụ cấp xăng xe\nNhân viên | 730.000 | 500.000\nTrưởng nhóm | 730.000 | 800.000\nQuản lý | 730.000 | 1.200.000"
+  },
+  {
+    "key": "a07",
+    "title": "Danh sách nhân sự phòng kỹ thuật",
+    "headings": "",
+    "content": "Danh sách cập nhật theo quý.",
+    "table": "Mã | Họ tên | Chức danh\nNV-20417 | Nguyễn Thị Thuỳ Dương | Kỹ sư backend\nNV-20418 | Trần Quốc Đạt | Kỹ sư hạ tầng"
+  },
+  {
+    "key": "a08",
+    "title": "Quy trình onboarding nhân viên mới",
+    "headings": "Tuần đầu tiên",
+    "content": "Ngày đầu tiên nhân viên mới nhận laptop, tài khoản email và thẻ ra vào. Người hướng dẫn hỗ trợ trong ba tháng thử việc.",
+    "table": ""
+  },
+  {
+    "key": "a09",
+    "title": "Quy trình xử lý sự cố production",
+    "headings": "Phân loại mức độ\nBáo cáo hậu kiểm",
+    "content": "Khi có sự cố production, người trực mở kênh sự cố, xác định mức độ SEV1 đến SEV3 và viết báo cáo hậu kiểm trong 48 giờ.",
+    "table": ""
+  },
+  {
+    "key": "a10",
+    "title": "Lịch trực on-call tháng này",
+    "headings": "",
+    "content": "Phân công người trực theo tuần, đổi ca cần báo trước một ngày.",
+    "table": ""
+  },
+  {
+    "key": "a11",
+    "title": "Hướng dẫn viết tài liệu kỹ thuật",
+    "headings": "Cấu trúc bài viết",
+    "content": "Tài liệu kỹ thuật cần có mục tiêu, phạm vi, ví dụ và danh sách thay đổi rõ ràng.",
+    "table": ""
+  },
+  {
+    "key": "a12",
+    "title": "Mẫu hợp đồng lao động",
+    "headings": "Điều khoản chung",
+    "content": "Mẫu hợp đồng lao động xác định thời hạn và không xác định thời hạn, dùng cho nhân viên chính thức.",
+    "table": ""
+  },
+  {
+    "key": "a13",
+    "title": "Chính sách bảo mật thông tin",
+    "headings": "Mật khẩu\nThiết bị cá nhân",
+    "content": "Không chia sẻ mật khẩu. Dữ liệu khách hàng thuộc loại bí mật, không lưu trên thiết bị cá nhân.",
+    "table": ""
+  },
+  {
+    "key": "a14",
+    "title": "Kế hoạch đào tạo quý 4",
+    "headings": "",
+    "content": "Các khóa học nội bộ về kỹ năng mềm và an toàn thông tin trong quý 4.",
+    "table": ""
+  },
+  {
+    "key": "a15",
+    "title": "Biên bản họp tổng kết năm",
+    "headings": "Kết quả kinh doanh",
+    "content": "Cuộc họp tổng kết ghi nhận doanh thu tăng trưởng và kế hoạch cho năm tới.",
+    "table": ""
+  },
+  {
+    "key": "a16",
+    "title": "Thiết lập môi trường phát triển",
+    "headings": "Cài đặt Node.js\nChạy Docker",
+    "content": "Cài Node.js phiên bản mới, bật Docker và chạy lệnh khởi tạo dự án.",
+    "table": ""
+  },
+  {
+    "key": "a17",
+    "title": "Quy định an toàn phòng cháy chữa cháy",
+    "headings": "",
+    "content": "Vị trí bình chữa cháy và lối thoát hiểm ở mỗi tầng.",
+    "table": ""
+  },
+  {
+    "key": "a18",
+    "title": "Đánh giá hiệu suất nhân viên",
+    "headings": "Chu kỳ đánh giá\nThang điểm OKR",
+    "content": "Mỗi nửa năm quản lý đánh giá kết quả theo mục tiêu OKR đã thống nhất.",
+    "table": ""
+  },
+  {
+    "key": "a19",
+    "title": "Bảng giá dịch vụ vận chuyển",
+    "headings": "",
+    "content": "Giá cước theo trọng lượng và khu vực.",
+    "table": "Khu vực | Dưới 1kg | Mỗi 0,5kg tiếp theo\nNội thành | 15.000 | 2.500\nLiên tỉnh | 32.000 | 5.000"
+  },
+  {
+    "key": "a20",
+    "title": "Câu hỏi thường gặp về bảo hiểm xã hội",
+    "headings": "Mức đóng\nChế độ thai sản",
+    "content": "Người lao động đóng bảo hiểm xã hội theo tỷ lệ quy định trên mức lương đóng bảo hiểm.",
+    "table": ""
+  },
+  {
+    "key": "a21",
+    "title": "Ghi chú nghỉ lễ Quốc khánh",
+    "headings": "",
+    "content": "Lịch nghỉ lễ Quốc khánh và lịch làm bù.",
+    "table": ""
+  },
+  {
+    "key": "a22",
+    "title": "Hướng dẫn đặt phòng họp",
+    "headings": "",
+    "content": "Đặt phòng họp trên lịch chung, mỗi lần tối đa hai giờ.",
+    "table": ""
+  },
+  {
+    "key": "a23",
+    "title": "Quy trình mua sắm thiết bị",
+    "headings": "Phê duyệt\nNhà cung cấp",
+    "content": "Đề xuất mua sắm thiết bị cần ba báo giá và được trưởng phòng phê duyệt.",
+    "table": ""
+  },
+  {
+    "key": "a24",
+    "title": "Tổng quan kiến trúc hệ thống",
+    "headings": "",
+    "content": "Hệ thống gồm cổng web, dịch vụ cộng tác thời gian thực và cơ sở dữ liệu.",
+    "table": ""
+  },
+  {
+    "key": "a25",
+    "title": "Danh sách ngày nghỉ lễ trong năm",
+    "headings": "",
+    "content": "Các ngày nghỉ lễ theo quy định của nhà nước.",
+    "table": ""
+  },
+  {
+    "key": "a26",
+    "title": "Quy trình nghỉ không lương",
+    "headings": "",
+    "content": "Nghỉ phép không lương tối đa 30 ngày mỗi năm khi được quản lý đồng ý. Lương không được tính trong thời gian này.",
+    "table": ""
+  }
+]

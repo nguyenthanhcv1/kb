@@ -15,6 +15,8 @@
     "test:scripts": "node --test \"scripts/**/*.test.mjs\"",
     "changelog:build": "node scripts/release/build-changelog.mjs",
     "changelog:inject-vi": "node scripts/release/inject-vi-changelog.mjs",
+    "search:seed": "node scripts/seed-perf.ts",
+    "search:bench": "node scripts/search-bench.ts",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "i18n:check": "pnpm --filter @kb/i18n i18n:check",
