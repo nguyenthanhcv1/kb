@@ -44,5 +44,6 @@
   "USER_DEACTIVATED": "This user is deactivated.",
   "USER_IS_GUEST": "Guests cannot be super admins. Add their email or domain to the allowlist first.",
   "USER_NOT_FOUND": "User not found.",
-  "VALIDATION_FAILED": "The data is not valid."
+  "VALIDATION_FAILED": "The data is not valid.",
+  "VERSION_NOT_FOUND": "This version was not found or you do not have access to it."
 }
