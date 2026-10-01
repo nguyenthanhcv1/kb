@@ -13,6 +13,8 @@ import { z } from "zod";
  * const page = await listAuditLogs(supabase, { spaceId, actions: ["member.role_change"], limit: 50 });
  * // next page:
  * await listAuditLogs(supabase, { spaceId, cursor: page.nextCursor });
+ * // extended filters (T6.4a): by kind of thing, person and time range
+ * await listAuditLogs(supabase, { spaceId, entityTypes: ["page", "version"], actorId, from, to });
  * ```
  *
  * Labels: `audit.actions.<action with "." → "_">` (see {@link auditActionMessageKey}) and
@@ -62,7 +64,47 @@ export const AUDIT_ENTITY_TYPES = [
 ] as const;
 export type AuditEntityType = (typeof AUDIT_ENTITY_TYPES)[number];
 
-export const AUDIT_ERROR_CODES = ["AUDIT_QUERY_FAILED", "FORBIDDEN", "VALIDATION_FAILED"] as const;
+/** Entity type each action is written for (the DB `entity_type` column). */
+export const AUDIT_ACTION_ENTITY_TYPE: Record<AuditAction, AuditEntityType> = {
+  "access.add": "access_entry",
+  "access.remove": "access_entry",
+  "access.update": "access_entry",
+  "invitation.accept": "invitation",
+  "invitation.create": "invitation",
+  "invitation.revoke": "invitation",
+  "member.add": "member",
+  "member.remove": "member",
+  "member.role_change": "member",
+  "page.create": "page",
+  "page.delete": "page",
+  "page.move": "page",
+  "page.purge": "page",
+  "page.restore_from_trash": "page",
+  "page.update_content": "page",
+  "page.update_title": "page",
+  "settings.update": "settings",
+  "space.archive": "space",
+  "space.create": "space",
+  "space.unarchive": "space",
+  "space.update": "space",
+  "user.deactivate": "user",
+  "user.reactivate": "user",
+  "user.super_admin_grant": "user",
+  "user.super_admin_revoke": "user",
+  "version.restore": "version",
+};
+
+/** Actions written for the given entity types (the "type" filter of the audit UI). */
+export function auditActionsForEntityTypes(types: readonly AuditEntityType[]): AuditAction[] {
+  return AUDIT_ACTIONS.filter((action) => types.includes(AUDIT_ACTION_ENTITY_TYPE[action]));
+}
+
+export const AUDIT_ERROR_CODES = [
+  "AUDIT_QUERY_FAILED",
+  "FORBIDDEN",
+  "UNAUTHORIZED",
+  "VALIDATION_FAILED",
+] as const;
 export type AuditErrorCode = (typeof AUDIT_ERROR_CODES)[number];
 
 export class AuditError extends Error {
@@ -91,6 +133,11 @@ export const listAuditLogsInputSchema = z.object({
   spaceId: z.guid().optional(),
   actions: z.array(auditActionSchema).min(1).max(AUDIT_ACTIONS.length).optional(),
   actorId: z.guid().optional(),
+  /**
+   * Filter by kind of thing (`page`, `member`…); combined with `actions` by intersection.
+   * Unknown/empty values → `VALIDATION_FAILED`.
+   */
+  entityTypes: z.array(z.enum(AUDIT_ENTITY_TYPES)).min(1).max(AUDIT_ENTITY_TYPES.length).optional(),
   entityId: z.guid().optional(),
   /** Inclusive lower bound, ISO 8601 with offset. */
   from: z.iso.datetime({ offset: true }).optional(),
@@ -233,12 +280,18 @@ export async function listAuditLogs(
 ): Promise<ListAuditLogsOutput> {
   const parsed = listAuditLogsInputSchema.safeParse(input);
   if (!parsed.success) throw new AuditError("VALIDATION_FAILED", { cause: parsed.error });
-  const { spaceId, actions, actorId, entityId, from, to, cursor, limit } = parsed.data;
+  const { spaceId, actorId, entityId, from, to, cursor, limit, entityTypes } = parsed.data;
+  let actions: readonly AuditAction[] | undefined = parsed.data.actions;
+  if (entityTypes) {
+    const ofTypes = auditActionsForEntityTypes(entityTypes);
+    actions = actions ? actions.filter((a) => ofTypes.includes(a)) : ofTypes;
+    if (actions.length === 0) return { entries: [], nextCursor: null };
+  }
   const before = cursor ? decodeAuditCursor(cursor) : undefined;
 
   const { data, error } = await db.rpc("list_audit_logs", {
     p_space_id: spaceId,
-    p_actions: actions,
+    p_actions: actions ? [...actions] : undefined,
     p_actor_id: actorId,
     p_entity_id: entityId,
     p_from: from,
