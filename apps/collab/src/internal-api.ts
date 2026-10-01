@@ -54,6 +54,27 @@ import { type SnapshotTracker, VERSION_LABEL_MAX_LENGTH } from "./snapshots";
  * edits still waiting for the debounced store. Errors: `FORBIDDEN` (403), `PAGE_NOT_FOUND` (404),
  * `VALIDATION_FAILED` (400), `VERSION_FAILED` (500).
  *
+ * ## `POST /internal/documents/:pageId/versions/:versionId/restore`
+ *
+ * Restores a page version (T6.3a): one request, one flow, all through kb-collab so open editors
+ * get the content live and nothing else writes `page_documents`:
+ *
+ * 1. checks `actorId` is an editor or admin of the page (viewers: `FORBIDDEN`),
+ * 2. loads the source version (`VERSION_NOT_FOUND` when missing / of another page; a version
+ *    written by a newer editor schema: `DOCUMENT_SCHEMA_TOO_NEW`),
+ * 3. saves a `pre_restore` version of the live document (edits not yet stored included) so the
+ *    restore can be undone by restoring that version,
+ * 4. replaces the content with the source version's, broadcasting the stateless message
+ *    `{"type":"document.replaced","reason":"restore","actorId":"…"}` to open editors,
+ * 5. saves a `restore` version (`restored_from_version_id` = source). A DB trigger audits it as
+ *    `version.restore` (actor = `actorId`).
+ *
+ * Body `{ "actorId": "…" }`. `200 {"pageId","restoredFromVersionId","restoredFromVersionNo",
+ * "preRestoreVersionId","preRestoreVersionNo","versionId","versionNo","schemaVersion","connections"}`.
+ * If a step fails nothing later runs: failing before 4 leaves the content untouched (a
+ * `pre_restore` version may exist); errors `FORBIDDEN` (403), `PAGE_NOT_FOUND` / `VERSION_NOT_FOUND`
+ * (404), `DOCUMENT_SCHEMA_TOO_NEW` (409), `VALIDATION_FAILED` (400), `RESTORE_FAILED` (500).
+ *
  * ## Keeping it off the Internet
  *
  * The route shares port 3001 with the public WebSocket endpoint (kb-web calls
@@ -81,6 +102,7 @@ const PROXY_HEADERS = [
 
 const REPLACE_ROUTE = /^\/internal\/documents\/([^/]+)\/replace$/;
 const VERSIONS_ROUTE = /^\/internal\/documents\/([^/]+)\/versions$/;
+const RESTORE_ROUTE = /^\/internal\/documents\/([^/]+)\/versions\/([^/]+)\/restore$/;
 
 export const REPLACE_REASONS = ["restore", "template", "import"] as const;
 
@@ -129,12 +151,14 @@ export const createVersionBodySchema = z.object({
 });
 export type CreateVersionBody = z.infer<typeof createVersionBodySchema>;
 
+export const restoreBodySchema = z.object({ actorId: z.guid() });
+
 export interface InternalApiOptions {
   /** COLLAB_INTERNAL_SECRET; undefined disables the API. */
   secret: string | undefined;
   logger: Logger;
   /** Page versions (manual "Save version"); without it the versions route answers 404. */
-  store?: Pick<DocumentStore, "authorize" | "createVersion">;
+  store?: Pick<DocumentStore, "authorize" | "createVersion" | "getVersion">;
   snapshots?: SnapshotTracker;
   /** Injected in tests. */
   verifier?: SignatureVerifier;
@@ -191,8 +215,10 @@ export function internalApiExtension({
     const pathname = new URL(path, "http://localhost").pathname;
     const replaceMatch = REPLACE_ROUTE.exec(pathname);
     const versionsMatch = store ? VERSIONS_ROUTE.exec(pathname) : null;
-    if (!replaceMatch && !versionsMatch) throw new HttpError(404, "NOT_FOUND");
+    const restoreMatch = store ? RESTORE_ROUTE.exec(pathname) : null;
+    if (!replaceMatch && !versionsMatch && !restoreMatch) throw new HttpError(404, "NOT_FOUND");
     if (method !== "POST") throw new HttpError(405, "METHOD_NOT_ALLOWED");
+    if (restoreMatch) return restore(instance, restoreMatch[1]!, restoreMatch[2]!, body);
     return replaceMatch
       ? replace(instance, replaceMatch[1]!, body)
       : createVersion(instance, versionsMatch![1]!, body);
@@ -254,6 +280,122 @@ export function internalApiExtension({
       if (error instanceof HttpError) throw error;
       log.error({ pageId, err: error }, "version failed");
       throw new HttpError(500, "VERSION_FAILED");
+    } finally {
+      await connection.disconnect();
+    }
+  }
+
+  async function restore(
+    instance: Hocuspocus,
+    rawPageId: string,
+    rawVersionId: string,
+    raw: Uint8Array,
+  ) {
+    const pageId = parseDocumentName(`page:${decodeURIComponent(rawPageId)}`);
+    const versionId = z.guid().safeParse(decodeURIComponent(rawVersionId));
+    if (!pageId || !versionId.success || !store) throw new HttpError(400, "VALIDATION_FAILED");
+
+    let input: z.infer<typeof restoreBodySchema>;
+    try {
+      input = restoreBodySchema.parse(JSON.parse(Buffer.from(raw).toString("utf8")));
+    } catch (error) {
+      log.info({ pageId, err: error }, "invalid restore request");
+      throw new HttpError(400, "VALIDATION_FAILED");
+    }
+
+    const role = await store.authorize(pageId, input.actorId);
+    if (role !== "editor" && role !== "admin") {
+      throw new HttpError(
+        role === null ? 404 : 403,
+        role === null ? "PAGE_NOT_FOUND" : "FORBIDDEN",
+      );
+    }
+
+    const source = await store.getVersion(pageId, versionId.data);
+    if (!source) throw new HttpError(404, "VERSION_NOT_FOUND");
+    if (source.schemaVersion > EDITOR_SCHEMA_VERSION) {
+      throw new HttpError(409, "DOCUMENT_SCHEMA_TOO_NEW");
+    }
+    let node: ReturnType<typeof parseContentJson>;
+    try {
+      node = parseContentJson(source.contentJson);
+    } catch (error) {
+      log.error({ pageId, versionId: source.id, err: error }, "version content is not valid");
+      throw new HttpError(500, "RESTORE_FAILED");
+    }
+
+    const documentName = `page:${pageId}`;
+    let connection: Awaited<ReturnType<Hocuspocus["openDirectConnection"]>>;
+    try {
+      connection = await instance.openDirectConnection(documentName, {
+        userId: input.actorId,
+        pageId,
+        role,
+        source: "internal-api",
+      });
+    } catch (error) {
+      if (error instanceof DocumentLoadError)
+        throw new HttpError(error.code === "PAGE_NOT_FOUND" ? 404 : 409, error.code);
+      log.error({ pageId, err: error }, "could not load document");
+      throw new HttpError(500, "RESTORE_FAILED");
+    }
+
+    try {
+      const document = connection.document!;
+      const snapshot = async (
+        reason: "pre_restore" | "restore",
+        restoredFromVersionId?: string,
+      ) => {
+        const version = await store.createVersion({
+          pageId,
+          state: Y.encodeStateAsUpdate(document),
+          schemaVersion: EDITOR_SCHEMA_VERSION,
+          content: deriveContent(document),
+          actorId: input.actorId,
+          reason,
+          restoredFromVersionId,
+        });
+        if (!version) throw new HttpError(404, "PAGE_NOT_FOUND");
+        return version;
+      };
+
+      // 1. Safety net first: whatever happens next, the live content is in a version.
+      const preRestore = await snapshot("pre_restore");
+      // 2. Replace for everyone (open editors receive it through Yjs).
+      await connection.transact((doc) => {
+        replaceContent(doc, node);
+      });
+      const connections = document.getConnections().length;
+      document.broadcastStateless(
+        JSON.stringify({
+          type: DOCUMENT_REPLACED_MESSAGE,
+          reason: "restore",
+          actorId: input.actorId,
+        }),
+      );
+      // 3. The restore itself (audited as `version.restore` by the DB).
+      const restored = await snapshot("restore", source.id);
+      snapshots?.snapshotted(documentName);
+
+      log.info(
+        { pageId, actorId: input.actorId, from: source.versionNo, versionNo: restored.versionNo },
+        "version restored",
+      );
+      return {
+        pageId,
+        restoredFromVersionId: source.id,
+        restoredFromVersionNo: source.versionNo,
+        preRestoreVersionId: preRestore.id,
+        preRestoreVersionNo: preRestore.versionNo,
+        versionId: restored.id,
+        versionNo: restored.versionNo,
+        schemaVersion: EDITOR_SCHEMA_VERSION,
+        connections,
+      };
+    } catch (error) {
+      if (error instanceof HttpError) throw error;
+      log.error({ pageId, err: error }, "restore failed");
+      throw new HttpError(500, "RESTORE_FAILED");
     } finally {
       await connection.disconnect();
     }

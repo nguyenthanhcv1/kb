@@ -29,7 +29,7 @@ export interface StoreInput {
 /** `missing`: the page no longer exists (purged while open). `snapshotted`: stored + auto version. */
 export type StoreOutcome = "missing" | "stored" | "snapshotted";
 
-export type VersionReason = "auto" | "manual";
+export type VersionReason = "auto" | "manual" | "pre_restore" | "restore";
 
 export interface CreateVersionInput {
   pageId: string;
@@ -42,6 +42,17 @@ export interface CreateVersionInput {
   reason: VersionReason;
   /** Name of a manual version. */
   label?: string | undefined;
+  /** Source version of a `restore` version (page_versions.restored_from_version_id). */
+  restoredFromVersionId?: string | undefined;
+}
+
+/** A stored version as the restore flow needs it (never the Yjs update: content is replaced). */
+export interface StoredVersion {
+  id: string;
+  versionNo: number;
+  /** TipTap JSON derived when the version was written. */
+  contentJson: unknown;
+  schemaVersion: number;
 }
 
 export interface CreatedVersion {
@@ -55,6 +66,8 @@ export interface DocumentStore {
   store(input: StoreInput): Promise<StoreOutcome>;
   /** Writes a page version; null when the page no longer exists. */
   createVersion(input: CreateVersionInput): Promise<CreatedVersion | null>;
+  /** One version of a page (restore source); null when it does not exist or belongs to another page. */
+  getVersion(pageId: string, versionId: string): Promise<StoredVersion | null>;
   /** Nightly retention of page_versions (T6.1a); returns the number of versions deleted. */
   prunePageVersions(): Promise<number>;
   ping(): Promise<void>;
@@ -173,7 +186,16 @@ export function createDocumentStore(
       }
     },
 
-    async createVersion({ pageId, state, schemaVersion, content, actorId, reason, label }) {
+    async createVersion({
+      pageId,
+      state,
+      schemaVersion,
+      content,
+      actorId,
+      reason,
+      label,
+      restoredFromVersionId,
+    }) {
       const client = await pool.connect();
       try {
         await client.query("begin");
@@ -182,8 +204,9 @@ export function createDocumentStore(
         }
         const { rows } = await client.query<{ id: string; version_no: number }>(
           `insert into public.page_versions
-             (page_id, ydoc_update, content_json, content_text, schema_version, reason, label)
-           values ($1, $2, $3, $4, $5, $6, $7)
+             (page_id, ydoc_update, content_json, content_text, schema_version, reason, label,
+              restored_from_version_id)
+           values ($1, $2, $3, $4, $5, $6, $7, $8)
            returning id, version_no`,
           [
             pageId,
@@ -193,6 +216,7 @@ export function createDocumentStore(
             schemaVersion,
             reason,
             label ?? null,
+            restoredFromVersionId ?? null,
           ],
         );
         await client.query("commit");
@@ -202,10 +226,33 @@ export function createDocumentStore(
         await client.query("rollback").catch(() => undefined);
         // Raised by the page_versions trigger when the page was purged meanwhile.
         if ((error as { message?: string }).message === "PAGE_NOT_FOUND") return null;
+        if ((error as { message?: string }).message === "VERSION_NOT_FOUND") return null;
         throw error;
       } finally {
         client.release();
       }
+    },
+
+    async getVersion(pageId, versionId) {
+      const { rows } = await pool.query<{
+        id: string;
+        version_no: number;
+        content_json: unknown;
+        schema_version: number;
+      }>(
+        `select id, version_no, content_json, schema_version
+         from public.page_versions where id = $1 and page_id = $2`,
+        [versionId, pageId],
+      );
+      const row = rows[0];
+      return row
+        ? {
+            id: row.id,
+            versionNo: row.version_no,
+            contentJson: row.content_json,
+            schemaVersion: row.schema_version,
+          }
+        : null;
     },
 
     async prunePageVersions() {
