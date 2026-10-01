@@ -35,6 +35,7 @@
   "PAGE_PARENT_SPACE_MISMATCH": "Trang cha phải thuộc cùng không gian.",
   "PROFILE_UPDATE_FAILED": "Không lưu được cài đặt cá nhân. Bạn thử lại nhé.",
   "RATE_LIMITED": "Bạn thao tác quá nhiều lần. Vui lòng đợi một lúc rồi thử lại.",
+  "SEARCH_FAILED": "Không thể tìm kiếm. Vui lòng thử lại.",
   "SPACE_NOT_FOUND": "Không gian này không tồn tại hoặc bạn không có quyền truy cập.",
   "SPACE_REQUIRES_ADMIN": "Không gian phải còn ít nhất một quản trị viên.",
   "SPACE_SLUG_TAKEN": "Đường dẫn này đã được không gian khác sử dụng.",
