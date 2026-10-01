@@ -39,11 +39,12 @@
   },
   "image": {
     "cancel": "Huỷ",
-    "description": "Dán đường dẫn tới hình ảnh (bắt đầu bằng https://). Tải ảnh lên từ máy sẽ có ở bản sau.",
+    "description": "Dán đường dẫn tới hình ảnh (bắt đầu bằng https://) hoặc tải ảnh lên từ máy.",
     "insert": "Chèn",
     "invalid": "Đường dẫn chưa hợp lệ. Hãy dùng liên kết bắt đầu bằng http:// hoặc https://.",
     "label": "Đường dẫn hình ảnh",
-    "title": "Chèn hình ảnh"
+    "title": "Chèn hình ảnh",
+    "upload": "Tải ảnh lên từ máy tính"
   },
   "link": {
     "apply": "Áp dụng",
@@ -143,6 +144,10 @@
         "description": "Đường kẻ ngang phân cách nội dung",
         "title": "Đường phân cách"
       },
+      "file": {
+        "description": "Tải một tệp lên và chèn liên kết tải xuống",
+        "title": "Tệp đính kèm"
+      },
       "heading1": {
         "description": "Tiêu đề mục lớn",
         "title": "Tiêu đề 1"
@@ -156,7 +161,7 @@
         "title": "Tiêu đề 3"
       },
       "image": {
-        "description": "Chèn hình ảnh từ đường dẫn",
+        "description": "Chèn hình ảnh từ đường dẫn hoặc tải lên từ máy",
         "title": "Hình ảnh"
       },
       "orderedList": {
@@ -177,5 +182,12 @@
       }
     },
     "label": "Chèn khối"
+  },
+  "upload": {
+    "dismiss": "Đóng",
+    "failed": "Không tải được “{name}”: {error}",
+    "pick": "Chọn tệp để tải lên",
+    "unnamed": "Tệp không tên",
+    "uploading": "Đang tải lên “{name}”…"
   }
 }

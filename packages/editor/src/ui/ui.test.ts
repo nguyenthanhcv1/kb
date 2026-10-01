@@ -88,6 +88,7 @@ describe("slash items", () => {
         heading2: "heading",
         heading3: "heading",
         divider: "horizontalRule",
+        file: "paragraph",
       };
       const type = expected[item.id] ?? item.id.split(".")[0];
       expect(json).toContain(`"type":"${type}"`);
