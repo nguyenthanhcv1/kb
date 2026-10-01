@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { createClient } from "@/lib/supabase/server";
 import { SearchError, searchPages, type SearchErrorCode } from "@/server/search";
+import { withPageLinks } from "@/server/search/links";
 
 export const dynamic = "force-dynamic";
 
@@ -17,7 +18,7 @@ const STATUS: Record<SearchErrorCode, number> = {
 
 /**
  * `GET /api/search?q=nghi+phep&space=<uuid>&space=<uuid>&limit=20&offset=0` (T5.2).
- * 200 `{ results: SearchResult[] }`; errors `{ error: <CODE> }` (client shows `errors.<CODE>`),
+ * 200 `{ results: SearchHit[] }` (a `SearchResult` plus `href`, Space slug/name and icon; T5.3); errors `{ error: <CODE> }` (client shows `errors.<CODE>`),
  * 429 carries `Retry-After`. Per-user rate limit is enforced inside the `search_pages` RPC.
  */
 export async function GET(request: NextRequest) {
@@ -33,7 +34,8 @@ export async function GET(request: NextRequest) {
       limit: numberParam(params.get("limit")),
       offset: numberParam(params.get("offset")),
     });
-    return NextResponse.json(output, { headers: noStore });
+    const results = await withPageLinks(supabase, output.results);
+    return NextResponse.json({ results }, { headers: noStore });
   } catch (error) {
     return fail(error instanceof SearchError ? error : new SearchError("SEARCH_FAILED"));
   }
