@@ -1,0 +1,180 @@
+# E2E Playwright (T7.1b, docs/PLAN.md §8 + §10). Chạy toàn bộ bộ test ở CẢ HAI ngôn ngữ (vi, en)
+# trên bản build production của kb-web + kb-collab, trước Supabase local (migration + seed thật).
+# Branch protection chỉ cần yêu cầu job `e2e` (gom kết quả matrix), cùng với `ci` và `pr-title`.
+# Hướng dẫn viết test chống flaky: docs/runbooks/e2e.md.
+name: E2E
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  merge_group:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: e2e-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  TURBO_TELEMETRY_DISABLED: "1"
+  NEXT_TELEMETRY_DISABLED: "1"
+
+jobs:
+  run:
+    name: e2e (${{ matrix.locale }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        locale: [vi, en]
+    env:
+      CI: "true"
+      E2E_LOCALE: ${{ matrix.locale }}
+      E2E_BASE_URL: http://127.0.0.1:3000
+      # config.toml tham chiếu env() cho Google OAuth — E2E dùng email+password nên giá trị giả.
+      SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID: ci-dummy-client-id
+      SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET: ci-dummy-secret
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.118.0 # giữ khớp supabase/README.md và ci.yml
+      - uses: ./.github/actions/setup
+        with:
+          turbo-cache-key: e2e
+
+      - name: Khởi động Supabase (db, auth, rest, storage, realtime, mailpit) + migration + seed
+        run: supabase start -x imgproxy,postgres-meta,studio,edge-runtime,logflare,vector,supavisor
+
+      - name: Xuất cấu hình Supabase local vào môi trường
+        run: |
+          supabase status -o env > "$RUNNER_TEMP/supabase.env"
+          set -a; . "$RUNNER_TEMP/supabase.env"; set +a
+          {
+            echo "::add-mask::$ANON_KEY"
+            echo "::add-mask::$SERVICE_ROLE_KEY"
+            echo "::add-mask::$JWT_SECRET"
+          }
+          {
+            echo "APP_ENV=test"
+            echo "NEXT_PUBLIC_SUPABASE_URL=$API_URL"
+            echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=$ANON_KEY"
+            echo "SUPABASE_URL=$API_URL"
+            echo "SUPABASE_ANON_KEY=$ANON_KEY"
+            echo "SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY"
+            echo "SUPABASE_JWT_SECRET=$JWT_SECRET"
+            echo "E2E_SUPABASE_URL=$API_URL"
+            echo "E2E_SUPABASE_ANON_KEY=$ANON_KEY"
+            echo "E2E_SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY"
+            echo "APP_URL=http://127.0.0.1:3000"
+            echo "COLLAB_PUBLIC_URL=ws://127.0.0.1:3001"
+            echo "COLLAB_INTERNAL_URL=http://127.0.0.1:3001"
+            echo "COLLAB_INTERNAL_SECRET=e2e-internal-secret-not-for-production-0000"
+            echo "DATABASE_URL=postgresql://kb_collab:kb_collab_local@127.0.0.1:54322/postgres"
+            echo "ALLOWED_ORIGINS=http://127.0.0.1:3000,http://localhost:3000"
+            echo "SMTP_HOST=127.0.0.1"
+            echo "SMTP_PORT=54325"
+            echo "SMTP_FROM=KB <kb@localhost>"
+          } >> "$GITHUB_ENV"
+
+      - name: Build production (web + collab)
+        run: pnpm build
+
+      - name: Chạy kb-collab và kb-web (nền)
+        run: |
+          mkdir -p "$RUNNER_TEMP/logs"
+          PORT=3001 nohup node apps/collab/dist/index.js > "$RUNNER_TEMP/logs/collab.log" 2>&1 &
+          PORT=3000 nohup pnpm --filter @kb/web start > "$RUNNER_TEMP/logs/web.log" 2>&1 &
+
+      - name: Chờ web và collab sẵn sàng
+        run: |
+          for url in http://127.0.0.1:3000/api/health http://127.0.0.1:3001/health; do
+            for i in $(seq 1 60); do
+              curl -fsS "$url" > /dev/null && break
+              if [ "$i" = 60 ]; then
+                echo "::error::$url không phản hồi sau 60 giây"
+                tail -n 50 "$RUNNER_TEMP"/logs/*.log
+                exit 1
+              fi
+              sleep 1
+            done
+          done
+
+      - name: Cache trình duyệt Playwright
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+
+      - name: Cài Chromium (kèm thư viện hệ thống)
+        run: pnpm --filter @kb/web exec playwright install --with-deps chromium
+
+      - name: Playwright (${{ matrix.locale }}; retry 2 lần, test cần retry bị báo là flaky)
+        working-directory: apps/web
+        run: pnpm exec playwright test
+
+      - name: Không được có MISSING_MESSAGE phía server (next-intl)
+        if: always()
+        run: |
+          if grep -E "MISSING_MESSAGE|INVALID_MESSAGE" "$RUNNER_TEMP"/logs/web.log; then
+            echo "::error::next-intl báo thiếu/sai message khi chạy E2E (${{ matrix.locale }})"
+            exit 1
+          fi
+
+      - name: Test flaky (qua được nhờ retry) — báo cáo
+        if: always()
+        run: |
+          f=apps/web/test-results/results.json
+          [ -f "$f" ] || exit 0
+          n=$(node -e 'const r=require("./'"$f"'");console.log(r.stats?.flaky??0)')
+          if [ "$n" != "0" ]; then
+            echo "::warning::$n test flaky (cần retry mới xanh) ở ${{ matrix.locale }} — sửa theo docs/runbooks/e2e.md"
+          fi
+
+      - name: Upload báo cáo, trace, video khi lỗi
+        if: failure() || cancelled()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-${{ matrix.locale }}-report
+          path: |
+            apps/web/playwright-report
+            apps/web/test-results
+          retention-days: 14
+          if-no-files-found: ignore
+
+      - name: Upload log server khi lỗi
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-${{ matrix.locale }}-server-logs
+          path: ${{ runner.temp }}/logs
+          retention-days: 14
+          if-no-files-found: ignore
+
+      - name: Dừng Supabase
+        if: always()
+        run: supabase stop --no-backup
+
+  e2e:
+    name: e2e
+    if: always()
+    needs: [run]
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Mọi ngôn ngữ phải thành công
+        env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          echo "Kết quả: $RESULTS"
+          for r in $RESULTS; do
+            if [ "$r" != "success" ]; then
+              echo "::error::E2E không thành công ($r)"
+              exit 1
+            fi
+          done

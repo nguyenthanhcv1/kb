@@ -29,3 +29,8 @@ apps/web/src/generated/
 
 # i18n message types (packages/i18n/scripts/gen-types.ts)
 packages/i18n/src/messages.gen.ts
+
+# Playwright
+apps/web/.auth/
+apps/web/test-results/
+apps/web/playwright-report/
