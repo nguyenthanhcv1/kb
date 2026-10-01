@@ -75,8 +75,9 @@ export function BlockEditor({
   });
 
   const editor = useEditor({
-    // Render on the client only; SSR read-only rendering comes with T3.5.
-    immediatelyRender: false,
+    // A read-only view renders on the server too (first paint without JS); an editable one only
+    // on the client.
+    immediatelyRender: !editable,
     editable,
     content,
     extensions: [

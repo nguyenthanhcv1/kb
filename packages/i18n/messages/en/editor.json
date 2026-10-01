@@ -19,6 +19,21 @@
     "underline": "Underline"
   },
   "close": "Close",
+  "collab": {
+    "forbidden": {
+      "description": "You can't edit this page right now."
+    },
+    "outdated": {
+      "description": "The app was just updated. Reload the page to keep editing.",
+      "reload": "Reload"
+    },
+    "status": {
+      "connecting": "Connecting…",
+      "offline": "Offline — changes will sync when you reconnect",
+      "saved": "Saved",
+      "saving": "Saving…"
+    }
+  },
   "content": {
     "label": "Page content"
   },
