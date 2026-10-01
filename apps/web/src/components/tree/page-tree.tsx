@@ -46,6 +46,7 @@ import {
   typeaheadMatch,
 } from "./tree-model";
 import { usePageTree } from "./use-page-tree";
+import { type TreeRealtimeSubscribe, useTreeRealtime } from "./use-tree-realtime";
 
 type PageTreeProps = {
   space: { id: string; slug: string; name: string };
@@ -53,6 +54,8 @@ type PageTreeProps = {
   canEdit: boolean;
   /** Server access; defaults to the T2.2 Server Actions. */
   api?: PageTreeApi;
+  /** Live updates from other tabs/users; defaults to Supabase Realtime (T2.5). */
+  subscribe?: TreeRealtimeSubscribe;
 };
 
 const KEYBOARD_MOVES: Record<string, KeyboardMove> = {
@@ -71,12 +74,13 @@ type DragState = { activeId: string; overId: string; depthDelta: number };
  * same from the keyboard, actions menu (… button, right click, Shift+F10), optimistic updates
  * rolled back with a translated error.
  */
-export function PageTree({ space, canEdit, api = serverPageTreeApi }: PageTreeProps) {
+export function PageTree({ space, canEdit, api = serverPageTreeApi, subscribe }: PageTreeProps) {
   const t = useTranslations("tree");
   const tErrors = useTranslations("errors");
   const pathname = usePathname();
   const router = useRouter();
   const tree = usePageTree(space.id, api);
+  useTreeRealtime(space.id, tree, subscribe);
   const instructionsId = useId();
 
   const [focusedId, setFocusedId] = useState<string | null>(null);

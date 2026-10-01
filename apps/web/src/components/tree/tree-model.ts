@@ -1,4 +1,5 @@
-import type { PageTreeNode } from "@/server/pages";
+import type { PageSummary, PageTreeNode } from "@/server/pages";
+import { comparePositions } from "@/server/pages/position";
 
 /**
  * Pure page-tree logic for the sidebar (T2.3): normalised state, flattening to visible rows,
@@ -358,4 +359,52 @@ export function saveExpanded(spaceId: string, ids: Iterable<string>): void {
   } catch {
     // Private mode / blocked storage: the tree just forgets what was open.
   }
+}
+
+/**
+ * Applies a page row changed by someone else (Supabase Realtime) to the tree. Idempotent, so the
+ * echo of our own optimistic edits changes nothing. Only levels already loaded are touched; the
+ * rest load fresh (with the change) when expanded.
+ */
+export function applyRemote(data: TreeData, page: PageSummary): TreeData {
+  if (page.deletedAt) return applyRemove(data, page.id);
+  const known = data.nodes[page.id];
+  const parent = page.parentId ? data.nodes[page.parentId] : undefined;
+  // Moved under a page this client does not show (or never loaded): it leaves the view.
+  if (page.parentId && !parent) return known ? applyRemove(data, page.id) : data;
+
+  const key = parentKey(page.parentId);
+  const loaded = page.parentId
+    ? data.children[key] !== undefined || !parent?.hasChildren
+    : !!data.children[ROOT];
+  if (!loaded) {
+    const removed = known ? applyRemove(data, page.id) : data;
+    const holder = parent && removed.nodes[parent.id];
+    return holder
+      ? { ...removed, nodes: { ...removed.nodes, [holder.id]: { ...holder, hasChildren: true } } }
+      : removed;
+  }
+
+  let next = data;
+  if (!known || known.parentId !== page.parentId || known.position !== page.position) {
+    const siblings = (data.children[key] ?? []).filter((id) => id !== page.id);
+    let afterId: string | null = null;
+    for (const id of siblings) {
+      const sibling = data.nodes[id];
+      if (sibling && comparePositions(sibling.position, page.position) < 0) afterId = id;
+    }
+    next = known
+      ? applyMove(data, page.id, { parentId: page.parentId, afterId })
+      : applyInsert(data, { ...page, hasChildren: false }, afterId);
+  }
+  const node = next.nodes[page.id]!;
+  const merged: PageTreeNode = { ...page, hasChildren: node.hasChildren };
+  if (
+    known &&
+    next === data &&
+    (Object.keys(merged) as (keyof PageTreeNode)[]).every((k) => merged[k] === node[k])
+  ) {
+    return data;
+  }
+  return { ...next, nodes: { ...next.nodes, [page.id]: merged } };
 }
