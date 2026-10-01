@@ -30,10 +30,13 @@ afterEach(() => {
   editors.splice(0).forEach((editor) => editor.destroy());
 });
 
-function clipboardEvent(files: File[], html = "") {
+function clipboardEvent(files: File[], html = "", text = "") {
   const event = new Event("paste", { bubbles: true, cancelable: true });
   Object.assign(event, {
-    clipboardData: { files, getData: (t: string) => (t === "text/html" ? html : "") },
+    clipboardData: {
+      files,
+      getData: (t: string) => (t === "text/html" ? html : t === "text/plain" ? text : ""),
+    },
   });
   return event;
 }
@@ -65,6 +68,15 @@ describe("FileUpload", () => {
     expect(onFiles).toHaveBeenCalledWith([file], null);
     expect(event.defaultPrevented).toBe(true);
     expect(editor.getText()).toBe("hello");
+  });
+
+  it("leaves a copied spreadsheet range (cells + picture) to the table paste", () => {
+    const onFiles = vi.fn();
+    const editor = createEditor(onFiles);
+    const picture = new File(["x"], "image.png", { type: "image/png" });
+    editor.view.dom.dispatchEvent(clipboardEvent([picture], "<table><tr><td>1</td></tr></table>"));
+    editor.view.dom.dispatchEvent(clipboardEvent([picture], "", "1\t2"));
+    expect(onFiles).not.toHaveBeenCalled();
   });
 
   it("ignores pastes without files", () => {

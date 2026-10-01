@@ -61,6 +61,14 @@ export const FileUpload = Extension.create<FileUploadOptions>({
             if (!editor.isEditable) return false;
             const files = filesOf(event.clipboardData);
             if (files.length === 0) return false;
+            // Spreadsheets put a picture of the cells next to the cells themselves: text or a
+            // table wins, so pasting a range reaches the table paste handler instead of uploading.
+            const data = event.clipboardData;
+            if (
+              data?.getData("text/plain").trim() ||
+              /<table[\s>]/i.test(data?.getData("text/html") ?? "")
+            )
+              return false;
             event.preventDefault();
             onFiles(files, null);
             return true;
