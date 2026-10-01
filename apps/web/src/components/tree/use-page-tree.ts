@@ -9,6 +9,7 @@ import {
   applyChildren,
   applyInsert,
   applyMove,
+  applyRemote,
   applyRemove,
   currentTarget,
   EMPTY_TREE,
@@ -41,6 +42,10 @@ export type PageTreeActions = {
   trash(pageId: string): Promise<boolean>;
   /** Creates an untitled page (last child of `parentId`) and resolves its id. */
   create(parentId: string | null): Promise<string | null>;
+  /** Applies a page changed by someone else (Realtime); `null` page = removed by id. */
+  applyRemote(change: { page: PageSummary } | { removedId: string }): void;
+  /** Reloads every loaded level, e.g. after the Realtime connection dropped and came back. */
+  refresh(): Promise<void>;
   getState(): PageTreeState;
 };
 
@@ -105,6 +110,17 @@ export function createPageTreeStore(spaceId: string, api: PageTreeApi) {
       } finally {
         setLoading(key, false);
       }
+    },
+
+    applyRemote(change) {
+      update((data) =>
+        "page" in change ? applyRemote(data, change.page) : applyRemove(data, change.removedId),
+      );
+    },
+
+    async refresh() {
+      const keys = Object.keys(state.data.children);
+      await Promise.all(keys.map((key) => actions.load(key === ROOT ? null : key)));
     },
 
     setExpandedFor,
