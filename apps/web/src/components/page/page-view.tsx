@@ -1,14 +1,14 @@
 "use client";
 
 import type { JSONContent } from "@tiptap/core";
-import { ArchiveRestoreIcon, Trash2Icon } from "lucide-react";
+import { ArchiveRestoreIcon, HistoryIcon, Trash2Icon } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 
 import type { CollabClientConfig } from "@/lib/collab/config";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { pageHref, spaceTrashHref } from "@/lib/page-href";
 import type { PageSummary } from "@/server/pages";
 import { restorePageAction } from "@/server/pages/actions";
@@ -53,6 +53,7 @@ export function PageView({ page, spaceSlug, canEdit, content, collab = null }: P
           <PageIconPicker page={page} editable={editable} onChanged={() => router.refresh()} />
           <PageTitle page={page} editable={editable} onRenamed={onRenamed} />
         </div>
+        {!trashed && <HistoryLink spaceSlug={spaceSlug} page={page} />}
         {editable && <PageActionsMenu page={page} />}
       </header>
       <PageContent
@@ -62,6 +63,20 @@ export function PageView({ page, spaceSlug, canEdit, content, collab = null }: P
         collab={editable ? collab : null}
       />
     </article>
+  );
+}
+
+function HistoryLink({ spaceSlug, page }: { spaceSlug: string; page: PageSummary }) {
+  const t = useTranslations("history");
+  return (
+    <Link
+      href={`${pageHref(spaceSlug, page)}/history`}
+      className={buttonVariants({ variant: "ghost", size: "icon" })}
+      aria-label={t("title")}
+      title={t("title")}
+    >
+      <HistoryIcon aria-hidden />
+    </Link>
   );
 }
 

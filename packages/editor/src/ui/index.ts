@@ -72,6 +72,13 @@ export {
   type TableDragOptions,
   type LineSpan,
 } from "../table/drag";
+export {
+  pasteAsNewTable,
+  pasteIntoTable,
+  TablePaste,
+  tablePastePluginKey,
+  type TablePasteOptions,
+} from "../table/paste-extension";
 export { Placeholder } from "@tiptap/extensions";
 export type { SuggestionKeyDownProps, SuggestionProps } from "@tiptap/suggestion";
 export { normalizeImageSrc, normalizeLinkHref } from "./link";

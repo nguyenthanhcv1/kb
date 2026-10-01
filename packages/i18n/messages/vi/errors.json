@@ -45,5 +45,5 @@
   "USER_IS_GUEST": "Khách mời không thể là quản trị viên hệ thống. Hãy thêm email hoặc tên miền của họ vào danh sách cho phép trước.",
   "USER_NOT_FOUND": "Không tìm thấy người dùng.",
   "VALIDATION_FAILED": "Dữ liệu không hợp lệ.",
-  "VERSION_NOT_FOUND": "Không tìm thấy phiên bản này. Có thể nó đã bị xoá."
+  "VERSION_NOT_FOUND": "Không tìm thấy phiên bản này hoặc bạn không có quyền xem."
 }
