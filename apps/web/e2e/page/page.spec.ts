@@ -4,6 +4,7 @@ import type viCommon from "@kb/i18n/messages/vi/common.json";
 import type viNav from "@kb/i18n/messages/vi/nav.json";
 import type viTree from "@kb/i18n/messages/vi/tree.json";
 import { expect, test } from "@playwright/test";
+import { useLocale } from "../support/locale";
 
 /**
  * T2.4 — page route: rename in place (the URL follows the new slug and the old link still opens
@@ -15,7 +16,6 @@ import { expect, test } from "@playwright/test";
  */
 const STORAGE_STATE = process.env.E2E_STORAGE_STATE;
 const PAGE_PATH = process.env.E2E_PAGE_PATH;
-const BASE_URL = new URL(process.env.E2E_BASE_URL ?? "http://localhost:3000").origin;
 
 const require = createRequire(import.meta.url);
 type Messages = { common: typeof viCommon; nav: typeof viNav; tree: typeof viTree };
@@ -40,7 +40,7 @@ test.describe.configure({ mode: "serial" });
 for (const locale of ["vi", "en"] as const) {
   test(`rename, trash and restore a page (${locale})`, async ({ page, context }) => {
     const m = messages[locale];
-    await context.addCookies([{ name: "NEXT_LOCALE", value: locale, url: BASE_URL }]);
+    await useLocale(context, locale);
     const spacePath = PAGE_PATH!.split("/p/")[0]!;
     const shortId = PAGE_PATH!.slice(-8);
     const suffix = `${locale}-${Date.now().toString(36)}`;

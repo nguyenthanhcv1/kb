@@ -4,6 +4,7 @@ import type viAdmin from "@kb/i18n/messages/vi/admin.json";
 import type viAuth from "@kb/i18n/messages/vi/auth.json";
 import type viNav from "@kb/i18n/messages/vi/nav.json";
 import { expect, test } from "@playwright/test";
+import { useLocale } from "../support/locale";
 
 /**
  * T1.7b — Administration: reach `/admin/access` from the account menu, add an email and a domain
@@ -15,7 +16,6 @@ import { expect, test } from "@playwright/test";
  * Without it the spec is skipped.
  */
 const STORAGE_STATE = process.env.E2E_SUPER_ADMIN_STORAGE_STATE;
-const BASE_URL = new URL(process.env.E2E_BASE_URL ?? "http://localhost:3000").origin;
 
 const require = createRequire(import.meta.url);
 type Messages = { admin: typeof viAdmin; auth: typeof viAuth; nav: typeof viNav };
@@ -46,7 +46,7 @@ test.use({ storageState: STORAGE_STATE });
 for (const locale of ["vi", "en"] as const) {
   test(`manage the allowlist and see users (${locale})`, async ({ page, context }) => {
     const m = messages[locale];
-    await context.addCookies([{ name: "NEXT_LOCALE", value: locale, url: BASE_URL }]);
+    await useLocale(context, locale);
     const suffix = `${locale}-${Date.now().toString(36)}`;
     const email = `e2e-${suffix}@example.com`;
     const domain = `e2e-${suffix}.example.com`;

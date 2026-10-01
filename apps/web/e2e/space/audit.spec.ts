@@ -3,6 +3,7 @@ import { createRequire } from "node:module";
 import type viAudit from "@kb/i18n/messages/vi/audit.json";
 import type viSpace from "@kb/i18n/messages/vi/space.json";
 import { expect, test } from "@playwright/test";
+import { useLocale } from "../support/locale";
 
 /**
  * T1.6b — Space activity log: a new Space shows its "created" and "updated" entries with
@@ -11,7 +12,6 @@ import { expect, test } from "@playwright/test";
  * Needs a signed-in internal (non-guest) user: `E2E_STORAGE_STATE` (see `space.spec.ts`).
  */
 const STORAGE_STATE = process.env.E2E_STORAGE_STATE;
-const BASE_URL = new URL(process.env.E2E_BASE_URL ?? "http://localhost:3000").origin;
 
 const require = createRequire(import.meta.url);
 type Messages = { audit: typeof viAudit; space: typeof viSpace };
@@ -32,7 +32,7 @@ test.use({ storageState: STORAGE_STATE });
 for (const locale of ["vi", "en"] as const) {
   test(`space activity log with action filter (${locale})`, async ({ page, context }) => {
     const m = messages[locale];
-    await context.addCookies([{ name: "NEXT_LOCALE", value: locale, url: BASE_URL }]);
+    await useLocale(context, locale);
     const suffix = `${locale}-${Date.now().toString(36)}`;
     const name = `Audit ${suffix}`;
     const slug = `audit-${suffix}`;

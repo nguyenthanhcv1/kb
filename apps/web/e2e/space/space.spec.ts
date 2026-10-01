@@ -3,6 +3,7 @@ import { createRequire } from "node:module";
 import type viErrors from "@kb/i18n/messages/vi/errors.json";
 import type viSpace from "@kb/i18n/messages/vi/space.json";
 import { expect, type Page, test } from "@playwright/test";
+import { useLocale } from "../support/locale";
 
 /**
  * T1.4b — Space: create (slug derived from the name, default `restricted`), duplicate slug error,
@@ -13,7 +14,6 @@ import { expect, type Page, test } from "@playwright/test";
  * Without it the spec is skipped.
  */
 const STORAGE_STATE = process.env.E2E_STORAGE_STATE;
-const BASE_URL = new URL(process.env.E2E_BASE_URL ?? "http://localhost:3000").origin;
 
 const require = createRequire(import.meta.url);
 type Messages = { space: typeof viSpace; errors: typeof viErrors };
@@ -40,7 +40,7 @@ async function openCreateDialog(page: Page, m: Messages) {
 for (const locale of ["vi", "en"] as const) {
   test(`create, configure and archive a space (${locale})`, async ({ page, context }) => {
     const m = messages[locale];
-    await context.addCookies([{ name: "NEXT_LOCALE", value: locale, url: BASE_URL }]);
+    await useLocale(context, locale);
     const suffix = `${locale}-${Date.now().toString(36)}`;
     const name = locale === "vi" ? `Kỹ thuật ${suffix}` : `Engineering ${suffix}`;
     const slug = locale === "vi" ? `ky-thuat-${suffix}` : `engineering-${suffix}`;

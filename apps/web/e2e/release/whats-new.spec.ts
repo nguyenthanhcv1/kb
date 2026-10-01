@@ -6,6 +6,7 @@ import type viNav from "@kb/i18n/messages/vi/nav.json";
 import type viSettings from "@kb/i18n/messages/vi/settings.json";
 import type viWhatsNew from "@kb/i18n/messages/vi/whatsNew.json";
 import { expect, test } from "@playwright/test";
+import { useLocale } from "../support/locale";
 
 /**
  * T0.6b — the running version in the sidebar footer leads to What's new; Settings › About shows it.
@@ -15,7 +16,6 @@ import { expect, test } from "@playwright/test";
  * any CHANGELOG.md: it only checks what every build has (title, version, a list or the empty state).
  */
 const STORAGE_STATE = process.env.E2E_STORAGE_STATE;
-const BASE_URL = new URL(process.env.E2E_BASE_URL ?? "http://localhost:3000").origin;
 
 const require = createRequire(import.meta.url);
 type Messages = {
@@ -50,7 +50,7 @@ for (const locale of ["vi", "en"] as const) {
     const m = messages[locale];
 
     test.beforeEach(async ({ context }) => {
-      await context.addCookies([{ name: "NEXT_LOCALE", value: locale, url: BASE_URL }]);
+      await useLocale(context, locale);
     });
 
     test("the footer version opens What's new and matches /api/health", async ({
