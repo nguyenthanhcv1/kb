@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 
+import type { CollabClientConfig } from "@/lib/collab/config";
 import { Button } from "@/components/ui/button";
 import { pageHref, spaceTrashHref } from "@/lib/page-href";
 import type { PageSummary } from "@/server/pages";
@@ -24,6 +25,8 @@ type PageViewProps = {
   /** Editors and admins of the Space (RLS decides; this only shows the controls). */
   canEdit: boolean;
   content: JSONContent | null;
+  /** kb-collab settings; null → read-only body. */
+  collab?: CollabClientConfig | null;
 };
 
 /**
@@ -31,7 +34,7 @@ type PageViewProps = {
  * "restore", and the read-only content. A rename changes the slug, so the URL is replaced with
  * the new canonical one (old links keep working through the route's redirect).
  */
-export function PageView({ page, spaceSlug, canEdit, content }: PageViewProps) {
+export function PageView({ page, spaceSlug, canEdit, content, collab = null }: PageViewProps) {
   const router = useRouter();
   const trashed = page.deletedAt !== null;
   const editable = canEdit && !trashed;
@@ -52,7 +55,12 @@ export function PageView({ page, spaceSlug, canEdit, content }: PageViewProps) {
         </div>
         {editable && <PageActionsMenu page={page} />}
       </header>
-      <PageContent content={content} title={page.title} />
+      <PageContent
+        content={content}
+        title={page.title}
+        pageId={page.id}
+        collab={editable ? collab : null}
+      />
     </article>
   );
 }

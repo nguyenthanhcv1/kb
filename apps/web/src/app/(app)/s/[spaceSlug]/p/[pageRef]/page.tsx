@@ -4,6 +4,7 @@ import { getTranslations } from "next-intl/server";
 
 import { PageView } from "@/components/page/page-view";
 import { canEditSpaceContent } from "@/components/space/permissions";
+import { collabClientConfig } from "@/lib/collab/config";
 import { canonicalPageRedirect } from "@/lib/page-href";
 
 import { loadSpace } from "../../../../_lib/data";
@@ -40,6 +41,7 @@ export default async function PageRoute({ params }: Props) {
       page={page}
       spaceSlug={space.slug}
       canEdit={canEditSpaceContent(space.role)}
+      collab={collabClientConfig()}
       content={(content?.contentJson as JSONContent | undefined) ?? null}
     />
   );

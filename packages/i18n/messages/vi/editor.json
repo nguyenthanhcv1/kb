@@ -19,6 +19,21 @@
     "underline": "Gạch chân"
   },
   "close": "Đóng",
+  "collab": {
+    "forbidden": {
+      "description": "Bạn không thể chỉnh sửa trang này lúc này."
+    },
+    "outdated": {
+      "description": "Ứng dụng vừa được cập nhật. Hãy tải lại trang để tiếp tục chỉnh sửa.",
+      "reload": "Tải lại"
+    },
+    "status": {
+      "connecting": "Đang kết nối…",
+      "offline": "Mất kết nối — thay đổi sẽ được đồng bộ khi có mạng",
+      "saved": "Đã lưu",
+      "saving": "Đang lưu…"
+    }
+  },
   "content": {
     "label": "Nội dung trang"
   },
