@@ -1,11 +1,47 @@
 {
+  "matchIn": {
+    "body": "Nội dung",
+    "heading": "Tiêu đề mục",
+    "table": "Trong bảng",
+    "title": "Tiêu đề"
+  },
   "placeholder": "Tìm kiếm trang…",
   "quickSwitcher": {
+    "close": "Đóng",
+    "description": "Gõ để tìm trang. Dùng phím mũi tên để chọn, Enter để mở, Esc để đóng.",
+    "empty": "Không tìm thấy trang nào cho “{query}”.",
+    "listLabel": "Kết quả tìm kiếm",
     "recent": "Trang gần đây",
-    "title": "Chuyển nhanh"
+    "searching": "Đang tìm…",
+    "seeAll": "Xem tất cả kết quả cho “{query}”",
+    "title": "Chuyển nhanh",
+    "trigger": "Tìm kiếm"
   },
   "results": {
     "count": "{count, plural, =0 {Không có kết quả} other {# kết quả}}",
+    "editedAt": "Sửa {date}",
+    "empty": {
+      "description": "Thử từ khoá khác, bỏ bớt từ, hoặc chọn tất cả không gian. Không cần gõ dấu.",
+      "title": "Không tìm thấy kết quả cho “{query}”"
+    },
+    "error": {
+      "title": "Không thực hiện được tìm kiếm"
+    },
+    "filters": {
+      "allSpaces": "Tất cả không gian",
+      "space": "Không gian",
+      "submit": "Tìm kiếm"
+    },
+    "intro": {
+      "description": "Nhập từ khoá để tìm trang. Gõ không dấu vẫn ra kết quả.",
+      "title": "Tìm kiếm trang"
+    },
+    "pagination": {
+      "label": "Phân trang",
+      "next": "Trang sau",
+      "page": "Trang {page}",
+      "previous": "Trang trước"
+    },
     "title": "Kết quả tìm kiếm"
   }
 }
