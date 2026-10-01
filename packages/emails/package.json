@@ -1,0 +1,39 @@
+{
+  "name": "@kb/emails",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@kb/config": "workspace:*",
+    "@types/node": "^22.20.4",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "eslint": "^9.39.5",
+    "typescript": "~5.9.3",
+    "vitest": "^5.0.2"
+  },
+  "dependencies": {
+    "@react-email/body": "^0.3.0",
+    "@react-email/button": "^0.2.1",
+    "@react-email/container": "^0.0.16",
+    "@react-email/head": "^0.0.13",
+    "@react-email/heading": "^0.0.16",
+    "@react-email/hr": "^0.0.12",
+    "@react-email/html": "^0.0.12",
+    "@react-email/link": "^0.0.13",
+    "@react-email/preview": "^0.0.14",
+    "@react-email/render": "^2.1.0",
+    "@react-email/section": "^0.0.17",
+    "@react-email/text": "^0.1.6",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0"
+  }
+}

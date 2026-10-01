@@ -6,12 +6,10 @@ import { useTranslations } from "next-intl";
 
 import { cn } from "@/components/ui/utils";
 
-/**
- * Sections of the Space settings. T1.5b (members) and T1.6b (audit log) add their entry here:
- * `{ segment: "members", label: "members" }` → `/s/<slug>/settings/members`.
- */
+/** Sections of the Space settings: `{ segment: "members" }` → `/s/<slug>/settings/members`. */
 export const SPACE_SETTINGS_SECTIONS = [
   { segment: "", label: "settingsPage.general" },
+  { segment: "members", label: "members" },
   { segment: "audit", label: "settingsPage.audit" },
 ] as const;
 

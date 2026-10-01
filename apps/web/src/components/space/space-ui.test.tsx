@@ -37,6 +37,7 @@ const { SpaceHeader } = await import("./space-header");
 const { SpaceList } = await import("./space-list");
 const { SpaceNav } = await import("./space-nav");
 const { SpaceSettingsForm } = await import("./space-settings-form");
+const { SpaceSettingsNav } = await import("./space-settings-nav");
 
 const messages = {
   vi: { common: viCommon, errors: viErrors, nav: viNav, space: viSpace },
@@ -175,6 +176,29 @@ describe("SpaceHeader", () => {
     const link = screen.queryByRole("link", { name: enNav.trash });
     expect(Boolean(link)).toBe(visible);
     if (link) expect(link.getAttribute("href")).toBe("/s/design/trash");
+  });
+
+  it("renders extra actions (e.g. leave space)", () => {
+    renderWith(
+      <SpaceHeader space={makeSpace({ role: "viewer" })} actions={<button>{"extra"}</button>} />,
+    );
+    expect(screen.getByRole("button", { name: "extra" })).toBeTruthy();
+  });
+});
+
+describe("SpaceSettingsNav", () => {
+  it("links the general, members and audit sections and marks the current one", () => {
+    pathname = "/s/design/settings/members";
+    renderWith(<SpaceSettingsNav slug="design" />, "en");
+    const nav = screen.getByRole("navigation", { name: enSpace.settingsPage.navLabel });
+    const links = within(nav).getAllByRole("link");
+    expect(links.map((link) => [link.textContent, link.getAttribute("href")])).toEqual([
+      [enSpace.settingsPage.general, "/s/design/settings"],
+      [enSpace.members, "/s/design/settings/members"],
+      [enSpace.settingsPage.audit, "/s/design/settings/audit"],
+    ]);
+    expect(links[1]!.getAttribute("aria-current")).toBe("page");
+    expect(links[0]!.getAttribute("aria-current")).toBeNull();
   });
 });
 

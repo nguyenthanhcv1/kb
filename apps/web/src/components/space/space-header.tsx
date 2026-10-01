@@ -1,6 +1,7 @@
 import { SettingsIcon, Trash2Icon } from "lucide-react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
+import type { ReactNode } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -10,8 +11,11 @@ import type { Space } from "@/server/space";
 import { canEditSpaceContent, canManageSpace } from "./permissions";
 import { SpaceIcon } from "./space-icon";
 
-/** Title block of a Space page: icon, name, visibility, description; settings link for admins. */
-export function SpaceHeader({ space }: { space: Space }) {
+/**
+ * Title block of a Space page: icon, name, visibility, description; trash link for editors,
+ * settings link for admins and optional extra `actions` (e.g. "leave space" for members, T1.5b).
+ */
+export function SpaceHeader({ space, actions }: { space: Space; actions?: ReactNode }) {
   const t = useTranslations();
   return (
     <header className="flex flex-col gap-3 sm:flex-row sm:items-start">
@@ -42,6 +46,7 @@ export function SpaceHeader({ space }: { space: Space }) {
             </Link>
           </Button>
         )}
+        {actions}
       </div>
     </header>
   );
