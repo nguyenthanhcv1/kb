@@ -147,7 +147,7 @@ select is(
 );
 
 select throws_ok(
-  $$ select count(public.search_pages('nghi')) from generate_series(1, 100) $$,
+  $$ select public.search_pages('nghi') from generate_series(1, 100) $$,
   'P0001', 'RATE_LIMITED', 'more than 60 searches per minute are rate limited'
 );
 
