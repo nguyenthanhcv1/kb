@@ -12,6 +12,7 @@ import {
   SlashCommand,
   type SlashItem,
   TableDrag,
+  TablePaste,
   TableShortcuts,
 } from "@kb/editor/ui";
 import type { AnyExtension, Editor, JSONContent } from "@tiptap/core";
@@ -182,6 +183,7 @@ export function BlockEditor({
       TableDrag.configure({
         labels: { row: tTable("drag.row"), column: tTable("drag.column") },
       }),
+      TablePaste,
       TableShortcuts.configure({
         onMenuShortcut: () => {
           setTableMenuRequest((count) => count + 1);

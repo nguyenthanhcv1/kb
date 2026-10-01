@@ -24,6 +24,13 @@ export {
   TABLE_NODE_NAMES,
 } from "./table";
 
+/**
+ * Transaction meta that makes UniqueID skip a transaction. For bulk inserts that create every
+ * node with its own ID already (table paste, T4.4b): UniqueID's duplicate check is quadratic
+ * in the number of new blocks and takes seconds for a few thousand table cells.
+ */
+export const SKIP_UNIQUE_ID_META = "kbSkipUniqueId";
+
 export const HEADING_LEVELS = [1, 2, 3] as const;
 
 /**
@@ -96,6 +103,8 @@ export function createExtensions(options: CreateExtensionsOptions = {}): AnyExte
     UniqueID.configure({
       types: [...BLOCK_ID_TYPES],
       ...options.uniqueId,
+      filterTransaction: (tr) =>
+        !tr.getMeta(SKIP_UNIQUE_ID_META) && (options.uniqueId?.filterTransaction?.(tr) ?? true),
     }),
   ];
 }
