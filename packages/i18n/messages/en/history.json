@@ -1,6 +1,40 @@
 {
+  "authorUnknown": "Unknown user",
+  "back": "Back to page",
+  "blockTypes": {
+    "blockquote": "Quote",
+    "bulletList": "List",
+    "codeBlock": "Code block",
+    "heading": "Heading",
+    "image": "Image",
+    "orderedList": "Numbered list",
+    "other": "Block",
+    "paragraph": "Paragraph",
+    "table": "Table",
+    "taskList": "To-do list"
+  },
   "compare": "Compare",
   "current": "Current version",
+  "diff": {
+    "added": "Added",
+    "against": {
+      "current": "Against current version",
+      "previous": "Against previous version"
+    },
+    "changed": "Changed",
+    "identical": "The two versions are identical.",
+    "noPrevious": "This is the first version, there is nothing earlier to compare with.",
+    "removed": "Removed",
+    "summary": "{added, plural, one {# block added} other {# blocks added}} · {changed, plural, one {# block changed} other {# blocks changed}} · {removed, plural, one {# block removed} other {# blocks removed}}"
+  },
+  "empty": "No versions yet. Versions are saved automatically while you edit the page.",
+  "emptyContent": "This version has no content.",
+  "listLabel": "Version list",
+  "modes": {
+    "diff": "Compare",
+    "label": "View",
+    "preview": "Preview"
+  },
   "reasons": {
     "auto": "Autosave",
     "import": "Imported",
@@ -10,5 +44,8 @@
     "template": "From template"
   },
   "restore": "Restore",
-  "title": "Version history"
+  "restoredFrom": "Restored from version {no}",
+  "selectPrompt": "Select a version to view.",
+  "title": "Version history",
+  "versionNo": "Version {no}"
 }
