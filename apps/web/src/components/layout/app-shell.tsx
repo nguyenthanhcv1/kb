@@ -4,6 +4,7 @@ import { MenuIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState, type ReactNode } from "react";
 
+import { QuickSwitcher } from "@/components/search/quick-switcher";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import type { CurrentUser } from "@/server/auth/mock";
@@ -76,6 +77,7 @@ export function AppShell({ sidebar, user, version, children }: AppShellProps) {
             <Brand />
           </div>
           <div className="ml-auto flex items-center gap-1">
+            {user && <QuickSwitcher />}
             <LocaleSwitcher />
             <ThemeToggle />
             {user && <UserMenu user={user} />}
