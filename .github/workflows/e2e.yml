@@ -67,6 +67,9 @@ jobs:
             echo "SUPABASE_ANON_KEY=$ANON_KEY"
             echo "SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY"
             echo "SUPABASE_JWT_SECRET=$JWT_SECRET"
+            # User access tokens are signed with the asymmetric key (ES256): kb-collab verifies
+            # them with the JWKS (it takes priority over the HS256 secret).
+            echo "SUPABASE_JWKS_URL=$API_URL/auth/v1/.well-known/jwks.json"
             echo "E2E_SUPABASE_URL=$API_URL"
             echo "E2E_SUPABASE_ANON_KEY=$ANON_KEY"
             echo "E2E_SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY"
