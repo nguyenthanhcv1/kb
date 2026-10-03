@@ -22,6 +22,8 @@ test.skip(
   !process.env.E2E_STORAGE_STATE,
   "E2E_STORAGE_STATE is not set (signed-in internal user, see T7.1b)",
 );
+// The worker's signed-in user (playwright.config.ts points it at e2e-w<N>@kb.test).
+test.use({ storageState: process.env.E2E_STORAGE_STATE });
 
 /** Inserts a table on a new line at the end of the document with the "/" menu. */
 async function insertTable(page: Page, editor: Locator, m: EditorFixture["m"]) {

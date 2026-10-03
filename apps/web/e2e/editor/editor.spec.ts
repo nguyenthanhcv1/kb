@@ -11,6 +11,8 @@ test.skip(
   !process.env.E2E_STORAGE_STATE,
   "E2E_STORAGE_STATE is not set (signed-in internal user, see T7.1b)",
 );
+// The worker's signed-in user (playwright.config.ts points it at e2e-w<N>@kb.test).
+test.use({ storageState: process.env.E2E_STORAGE_STATE });
 
 const escape = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
