@@ -186,3 +186,65 @@ describe("nameInitials", () => {
     expect(nameInitials("  ")).toBe("");
   });
 });
+
+describe("audit filters (T6.4b)", () => {
+  const ACTOR = "5d2f0000-0000-4000-8000-000000000002";
+
+  it("parses valid filters and ignores invalid ones", async () => {
+    const { parseAuditFilters } = await import("./audit-entry");
+    expect(
+      parseAuditFilters({
+        type: "page",
+        action: "page.create",
+        actor: ACTOR.toUpperCase(),
+        from: "2026-09-01",
+        to: "2026-09-30",
+      }),
+    ).toEqual({
+      type: "page",
+      action: "page.create",
+      actor: ACTOR,
+      from: "2026-09-01",
+      to: "2026-09-30",
+    });
+    expect(
+      parseAuditFilters({
+        type: "access_entry",
+        action: "access.add",
+        actor: "x",
+        from: "2026-02-31",
+        to: "nope",
+      }),
+    ).toEqual({ type: null, action: null, actor: null, from: null, to: null });
+  });
+
+  it("drops an inverted range's upper bound", async () => {
+    const { parseAuditFilters } = await import("./audit-entry");
+    expect(parseAuditFilters({ from: "2026-09-10", to: "2026-09-01" })).toMatchObject({
+      from: "2026-09-10",
+      to: null,
+    });
+  });
+
+  it("turns days into Vietnam-time instants, `to` exclusive", async () => {
+    const { auditRange } = await import("./audit-entry");
+    expect(auditRange({ from: "2026-09-01", to: "2026-09-30" })).toEqual({
+      from: "2026-09-01T00:00:00+07:00",
+      to: "2026-10-01T00:00:00+07:00",
+    });
+    expect(auditRange({ from: null, to: null })).toEqual({ from: undefined, to: undefined });
+  });
+
+  it("builds page and export URLs", async () => {
+    const { auditPageHref, auditExportHref, NO_AUDIT_FILTERS } = await import("./audit-entry");
+    const f = { ...NO_AUDIT_FILTERS, type: "page" as const, from: "2026-09-01" };
+    expect(auditPageHref("/b", { ...f, cursor: "c" })).toBe(
+      "/b?type=page&from=2026-09-01&cursor=c",
+    );
+    const url = new URL(auditExportHref("sp", f), "http://x");
+    expect(url.pathname).toBe("/api/audit/export");
+    expect(url.searchParams.get("space")).toBe("sp");
+    expect(url.searchParams.get("type")).toBe("page");
+    expect(url.searchParams.get("from")).toBe("2026-09-01T00:00:00+07:00");
+  });
+});

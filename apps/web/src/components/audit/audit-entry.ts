@@ -30,28 +30,127 @@ export const SPACE_AUDIT_ACTIONS: AuditAction[] = SPACE_AUDIT_ACTION_GROUPS.flat
   (g) => g.actions,
 );
 
-/** `?action=` of the Space audit page → a Space action, or `null` (all actions) when invalid. */
-export function parseSpaceAuditAction(value: string | string[] | undefined): AuditAction | null {
-  const raw = Array.isArray(value) ? value[0] : value;
-  return raw && isAuditAction(raw) && SPACE_AUDIT_ACTIONS.includes(raw) ? raw : null;
-}
+type QueryValue = string | string[] | undefined;
 
-/** `?cursor=` → the cursor string, or `null`. The contract validates it (`VALIDATION_FAILED`). */
-export function parseAuditCursor(value: string | string[] | undefined): string | null {
+function first(value: QueryValue): string | null {
   const raw = Array.isArray(value) ? value[0] : value;
   return raw ? raw : null;
 }
 
-/** URL of the audit page with the given filter and page. */
+/** `?action=` of the Space audit page → a Space action, or `null` (all actions) when invalid. */
+export function parseSpaceAuditAction(value: QueryValue): AuditAction | null {
+  const raw = first(value);
+  return raw && isAuditAction(raw) && SPACE_AUDIT_ACTIONS.includes(raw) ? raw : null;
+}
+
+/** `?type=` → a Space entity type, or `null` (all types) when invalid. */
+export function parseSpaceAuditType(value: QueryValue): SpaceAuditActionGroup | null {
+  const raw = first(value);
+  return (SPACE_ACTION_GROUPS as readonly string[]).includes(raw ?? "")
+    ? (raw as SpaceAuditActionGroup)
+    : null;
+}
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const DAY = /^\d{4}-\d{2}-\d{2}$/;
+
+/** A real calendar day `YYYY-MM-DD` (rejects `2026-02-31`), else `null`. */
+function parseDay(value: QueryValue): string | null {
+  const raw = first(value);
+  if (!raw || !DAY.test(raw)) return null;
+  const date = new Date(`${raw}T00:00:00Z`);
+  return Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== raw ? null : raw;
+}
+
+/** `?cursor=` → the cursor string, or `null`. The contract validates it (`VALIDATION_FAILED`). */
+export function parseAuditCursor(value: QueryValue): string | null {
+  return first(value);
+}
+
+/** Filters of the Space audit page; `from`/`to` are inclusive days (`YYYY-MM-DD`). */
+export type AuditFilters = {
+  action: AuditAction | null;
+  type: SpaceAuditActionGroup | null;
+  actor: string | null;
+  from: string | null;
+  to: string | null;
+};
+
+export const NO_AUDIT_FILTERS: AuditFilters = {
+  action: null,
+  type: null,
+  actor: null,
+  from: null,
+  to: null,
+};
+
+/** Reads every filter from `searchParams`; invalid values fall back to "no filter". */
+export function parseAuditFilters(query: Record<string, QueryValue>): AuditFilters {
+  const actor = first(query.actor);
+  const from = parseDay(query.from);
+  const to = parseDay(query.to);
+  return {
+    action: parseSpaceAuditAction(query.action),
+    type: parseSpaceAuditType(query.type),
+    actor: actor && UUID.test(actor) ? actor.toLowerCase() : null,
+    // An inverted range would always be empty: ignore the upper bound instead.
+    from,
+    to: from && to && to < from ? null : to,
+  };
+}
+
+export function hasAuditFilters(filters: AuditFilters): boolean {
+  return Object.values(filters).some(Boolean);
+}
+
+/** Business time zone: the day filters are days in Vietnam (docs: múi giờ mặc định). */
+const DAY_OFFSET = "+07:00";
+
+/** Day range → ISO instants for the contract: `from` inclusive, `to` exclusive (next midnight). */
+export function auditRange(filters: Pick<AuditFilters, "from" | "to">): {
+  from?: string;
+  to?: string;
+} {
+  const next = (day: string) => {
+    const d = new Date(`${day}T00:00:00Z`);
+    d.setUTCDate(d.getUTCDate() + 1);
+    return d.toISOString().slice(0, 10);
+  };
+  return {
+    from: filters.from ? `${filters.from}T00:00:00${DAY_OFFSET}` : undefined,
+    to: filters.to ? `${next(filters.to)}T00:00:00${DAY_OFFSET}` : undefined,
+  };
+}
+
+function filterParams(filters: Partial<AuditFilters>): URLSearchParams {
+  const params = new URLSearchParams();
+  if (filters.type) params.set("type", filters.type);
+  if (filters.action) params.set("action", filters.action);
+  if (filters.actor) params.set("actor", filters.actor);
+  if (filters.from) params.set("from", filters.from);
+  if (filters.to) params.set("to", filters.to);
+  return params;
+}
+
+/** URL of the audit page with the given filters and page. */
 export function auditPageHref(
   base: string,
-  { action, cursor }: { action?: string | null; cursor?: string | null },
+  { cursor, ...filters }: Partial<AuditFilters> & { cursor?: string | null },
 ): string {
-  const params = new URLSearchParams();
-  if (action) params.set("action", action);
+  const params = filterParams(filters);
   if (cursor) params.set("cursor", cursor);
   const query = params.toString();
   return query ? `${base}?${query}` : base;
+}
+
+/** URL of the CSV export (T6.4a route) for the same filters, in the Space `spaceId`. */
+export function auditExportHref(spaceId: string, filters: AuditFilters): string {
+  const params = new URLSearchParams({ space: spaceId });
+  for (const [key, value] of filterParams(filters)) params.set(key, value);
+  const { from, to } = auditRange(filters);
+  if (from) params.set("from", from);
+  if (to) params.set("to", to);
+  return `/api/audit/export?${params.toString()}`;
 }
 
 type DotToUnderscore<S extends string> = S extends `${infer A}.${infer B}` ? `${A}_${B}` : S;

@@ -16,7 +16,7 @@ import type { AuditLogEntry } from "@/server/audit";
 const router = { push: vi.fn(), replace: vi.fn(), refresh: vi.fn() };
 vi.mock("next/navigation", () => ({ useRouter: () => router, usePathname: () => "/" }));
 
-const { AuditActionFilter } = await import("./audit-action-filter");
+const { AuditFilterBar } = await import("./audit-filter-bar");
 const { AuditLogList } = await import("./audit-log-list");
 
 const messages = {
@@ -135,11 +135,15 @@ describe("AuditLogList", () => {
   });
 });
 
-describe("AuditActionFilter", () => {
+describe("AuditFilterBar", () => {
   const base = "/s/design/settings/audit";
+  const none = { action: null, type: null, actor: null, from: null, to: null };
+  const members = [{ id: BINH, name: "Bình Trần" }];
+
+  beforeEach(() => router.push.mockClear());
 
   it("lists translated Space actions and navigates to the filtered first page", async () => {
-    renderWith(<AuditActionFilter base={base} action={null} />);
+    renderWith(<AuditFilterBar base={base} filters={none} people={members} />);
     const select = screen.getByLabelText(viAudit.page.filterLabel);
     expect((select as HTMLSelectElement).value).toBe("");
     expect(
@@ -151,11 +155,30 @@ describe("AuditActionFilter", () => {
     expect(router.push).toHaveBeenCalledWith(`${base}?action=member.role_change`);
   });
 
-  it("clears the filter (en)", async () => {
-    renderWith(<AuditActionFilter base={base} action="member.add" />, "en");
-    const select = screen.getByLabelText(enAudit.page.filterLabel);
-    expect((select as HTMLSelectElement).value).toBe("member.add");
-    await userEvent.selectOptions(select, "");
+  it("filters by type, dropping an action of another type (en)", async () => {
+    renderWith(
+      <AuditFilterBar base={base} filters={{ ...none, action: "member.add" }} people={members} />,
+      "en",
+    );
+    await userEvent.selectOptions(screen.getByLabelText(enAudit.page.typeLabel), "page");
+    expect(router.push).toHaveBeenCalledWith(`${base}?type=page`);
+  });
+
+  it("filters by person and day range", async () => {
+    renderWith(<AuditFilterBar base={base} filters={none} people={members} />);
+    await userEvent.selectOptions(screen.getByLabelText(viAudit.page.actorLabel), BINH);
+    expect(router.push).toHaveBeenLastCalledWith(`${base}?actor=${BINH}`);
+  });
+
+  it("shows the clear button only when a filter is set", async () => {
+    const { unmount } = renderWith(<AuditFilterBar base={base} filters={none} people={[]} />, "en");
+    expect(screen.queryByRole("button", { name: enAudit.page.clearFilters })).toBeNull();
+    unmount();
+    renderWith(
+      <AuditFilterBar base={base} filters={{ ...none, from: "2026-09-01" }} people={[]} />,
+      "en",
+    );
+    await userEvent.click(screen.getByRole("button", { name: enAudit.page.clearFilters }));
     expect(router.push).toHaveBeenCalledWith(base);
   });
 });

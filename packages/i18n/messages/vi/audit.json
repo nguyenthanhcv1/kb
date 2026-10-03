@@ -58,18 +58,28 @@
     "visibility": "Ai được xem"
   },
   "page": {
+    "actorLabel": "Người thực hiện",
     "allActions": "Tất cả thao tác",
-    "clearFilter": "Xem mọi thao tác",
+    "allActors": "Tất cả mọi người",
+    "allTypes": "Tất cả loại",
+    "clearFilters": "Xoá bộ lọc",
     "description": "Các thay đổi của không gian, thành viên và lời mời, mới nhất trước. Không thể sửa hay xoá mục nhật ký.",
     "empty": "Chưa có hoạt động nào được ghi lại.",
     "emptyFiltered": "Không có hoạt động nào khớp bộ lọc.",
     "errorTitle": "Không tải được nhật ký hoạt động",
+    "export": "Xuất CSV",
+    "exportHint": "Xuất toàn bộ nhật ký của không gian này.",
+    "exportHintFiltered": "Xuất các mục khớp với bộ lọc hiện tại.",
     "filterLabel": "Thao tác",
+    "filtersLabel": "Lọc nhật ký hoạt động",
+    "fromLabel": "Từ ngày",
     "listLabel": "Các mục nhật ký",
     "newest": "Về mục mới nhất",
     "older": "Mục cũ hơn",
     "paginationLabel": "Các trang nhật ký",
-    "title": "Nhật ký hoạt động"
+    "title": "Nhật ký hoạt động",
+    "toLabel": "Đến ngày",
+    "typeLabel": "Loại"
   },
   "values": {
     "empty": "(trống)",

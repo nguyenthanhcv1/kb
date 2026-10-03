@@ -58,18 +58,28 @@
     "visibility": "Who can view"
   },
   "page": {
+    "actorLabel": "Person",
     "allActions": "All actions",
-    "clearFilter": "Show all actions",
+    "allActors": "Everyone",
+    "allTypes": "All types",
+    "clearFilters": "Clear filters",
     "description": "Changes to this space, its members and invitations, newest first. Entries cannot be edited or deleted.",
     "empty": "No activity has been recorded yet.",
     "emptyFiltered": "No activity matches this filter.",
     "errorTitle": "Could not load the activity log",
+    "export": "Export CSV",
+    "exportHint": "Exports the whole log of this space.",
+    "exportHintFiltered": "Exports the entries matching the current filters.",
     "filterLabel": "Action",
+    "filtersLabel": "Filter the activity log",
+    "fromLabel": "From",
     "listLabel": "Activity entries",
     "newest": "Back to newest",
     "older": "Older entries",
     "paginationLabel": "Activity log pages",
-    "title": "Activity log"
+    "title": "Activity log",
+    "toLabel": "To",
+    "typeLabel": "Type"
   },
   "values": {
     "empty": "(empty)",

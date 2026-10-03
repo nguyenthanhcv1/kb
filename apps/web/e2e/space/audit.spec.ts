@@ -68,8 +68,18 @@ for (const locale of ["vi", "en"] as const) {
 
     await page.getByLabel(m.audit.page.filterLabel).selectOption("space.archive");
     await expect(page.getByText(m.audit.page.emptyFiltered)).toBeVisible();
-    await page.getByRole("link", { name: m.audit.page.clearFilter }).click();
+    await page.getByRole("link", { name: m.audit.page.clearFilters }).click();
     await expect(page).toHaveURL(`/s/${slug}/settings/audit`);
     await expect(list.getByText(m.audit.actions.space_update)).toBeVisible();
+
+    // Type and day filters + CSV export link carrying the filters.
+    await page.getByLabel(m.audit.page.typeLabel).selectOption("space");
+    await expect(page).toHaveURL(`/s/${slug}/settings/audit?type=space`);
+    await page.getByLabel(m.audit.page.fromLabel).fill("2099-01-01");
+    await expect(page.getByText(m.audit.page.emptyFiltered)).toBeVisible();
+    await expect(page.getByRole("link", { name: m.audit.page.export })).toHaveAttribute(
+      "href",
+      /\/api\/audit\/export\?.*type=space.*from=2099-01-01/,
+    );
   });
 }
