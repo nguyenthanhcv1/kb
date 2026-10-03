@@ -19,8 +19,8 @@ const escape = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 test("insert every kind of block from the slash menu", async ({ page, doc }) => {
   const { editor, m } = doc;
   const items = m.editor.slash.items;
-  const insert = async (title: string) => {
-    await newLine(page, editor);
+  const insert = async (title: string, { onNewLine = true } = {}) => {
+    if (onNewLine) await newLine(page, editor);
     await page.keyboard.type("/");
     await expect(page.getByRole("listbox", { name: m.editor.slash.label })).toBeVisible();
     await page
@@ -71,7 +71,9 @@ test("insert every kind of block from the slash menu", async ({ page, doc }) => 
   await page.keyboard.type("const a = 1;");
   await expect(editor.locator("pre code")).toHaveText("const a = 1;");
 
-  await insert(items.divider.title);
+  // Enter inside a code block adds a code line, not a paragraph: Mod+Enter leaves the block.
+  await page.keyboard.press("ControlOrMeta+Enter");
+  await insert(items.divider.title, { onNewLine: false });
   await expect(editor.locator("hr")).toHaveCount(1);
 });
 
