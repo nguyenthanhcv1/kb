@@ -7,3 +7,8 @@ onlyBuiltDependencies:
   - lefthook
   - sharp
   - unrs-resolver
+
+# Advisory chưa có bản vá, chỉ nằm trong dependency dev — lý do và cách gỡ: docs/runbooks/security.md.
+auditConfig:
+  ignoreGhsas:
+    - GHSA-vfj7-8cjw-p6xm # braces ≤3.0.3 (eslint-config-next → fast-glob → micromatch), chỉ chạy khi lint
