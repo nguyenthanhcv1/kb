@@ -25,13 +25,14 @@ Không đặt `E2E_SUPABASE_*` thì không có người dùng đăng nhập và 
 
 ## 3. Công cụ cho spec
 
-| File                      | Dùng để                                                                                                                                               |
-| ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `e2e/support/test.ts`     | `test`/`expect` có guard i18n (MISSING_MESSAGE, pageerror). **Spec mới import từ đây.**                                                               |
-| `e2e/support/env.ts`      | `e2eLocale()`, `baseUrl()`, `supabaseEnv()`                                                                                                           |
-| `e2e/support/auth.ts`     | `allowEmail`, `createUser`, `signInCookies` (cookie đúng định dạng `@supabase/ssr`), `adminFetch` — tạo thêm người dùng (viewer, khách) cho từng test |
-| `e2e/support/messages.ts` | `message(locale, namespace)` — lấy nhãn từ file message, không viết chuỗi cứng trong test                                                             |
-| `e2e/global-setup.ts`     | tạo người dùng nội bộ `e2e-internal@kb.test`, ghi `.auth/internal.json`, đặt `E2E_STORAGE_STATE`                                                      |
+| File                      | Dùng để                                                                                                                                                                                                            |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `e2e/support/test.ts`     | `test`/`expect` có guard i18n (MISSING_MESSAGE, pageerror). **Spec mới import từ đây.**                                                                                                                            |
+| `e2e/support/env.ts`      | `e2eLocale()`, `baseUrl()`, `supabaseEnv()`                                                                                                                                                                        |
+| `e2e/support/auth.ts`     | `allowEmail`, `createUser`, `signInCookies` (cookie đúng định dạng `@supabase/ssr`), `adminFetch` — tạo thêm người dùng (viewer, khách) cho từng test                                                              |
+| `e2e/support/editor.ts`   | (T7.1c) fixture `doc`: mỗi test tự tạo Space + trang rỗng qua UI và mở editor (không cần `E2E_EDITOR_PATH`); `contextAs(browser, slug, "viewer")` tạo người dùng có vai trò trong Space; `newLine`, `waitForSaved` |
+| `e2e/support/messages.ts` | `message(locale, namespace)` — lấy nhãn từ file message, không viết chuỗi cứng trong test                                                                                                                          |
+| `e2e/global-setup.ts`     | tạo người dùng nội bộ `e2e-internal@kb.test`, ghi `.auth/internal.json`, đặt `E2E_STORAGE_STATE`                                                                                                                   |
 
 Spec cũ (T1–T6) vẫn dùng `@playwright/test` và tự lặp vi/en bên trong; khi chạy trong CI cả hai job đều chạy chúng — chấp nhận được, T7.1c/d sẽ gom về `e2e/support/test.ts` + `E2E_LOCALE`.
 
