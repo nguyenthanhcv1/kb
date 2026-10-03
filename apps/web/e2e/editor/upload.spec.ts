@@ -82,6 +82,7 @@ test("a type that is not allowed is refused with a message", async ({ page, doc 
     mimeType: "application/x-msdownload",
     buffer: Buffer.from("MZ"),
   });
-  await expect(page.getByRole("status")).toContainText("run.exe");
+  // Other live regions (autosave, drag-and-drop) share the role: pick the upload message.
+  await expect(page.getByRole("status").filter({ hasText: "run.exe" })).toBeVisible();
   await expect(editor.getByRole("link", { name: "run.exe" })).toHaveCount(0);
 });

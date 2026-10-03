@@ -50,7 +50,8 @@ test("insert every kind of block from the slash menu", async ({ page, doc }) => 
   await insert(items.taskList.title);
   await page.keyboard.type("Viec can lam");
   const task = editor.locator("ul[data-type='taskList'] > li");
-  await expect(task).toHaveText("Viec can lam");
+  // The item also holds the checkbox label, so match the text, not the whole content.
+  await expect(task).toContainText("Viec can lam");
   await task.getByRole("checkbox").check();
   await expect(task).toHaveAttribute("data-checked", "true");
   await page.keyboard.press("Enter");

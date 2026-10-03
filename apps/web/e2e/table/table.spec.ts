@@ -121,6 +121,8 @@ test("paste spreadsheet data: new table, then overwrite and extend it (T4.4b)", 
 
   // Plain TSV from the last cell: overwrites it and appends the rows / columns it lacks.
   await table.locator("tr").last().locator("td").last().click();
+  // History groups edits made within 500 ms: wait so the second paste is its own undo step.
+  await page.waitForTimeout(600);
   await paste("x\ty\nz\tw");
   expect((await cellTexts(table)).slice(1)).toEqual([
     ["A", "x", "y"],
@@ -248,9 +250,11 @@ test("drag a row and a column by their handles, undo in one step (T4.3)", async 
   expect(await cellTexts(table)).toEqual([before[1], before[0], before[2]]);
 
   // Column 3 to the front (keyboard: Ctrl/Cmd+Alt+Shift+Left from a cell of that column).
-  await table.locator("tr").nth(1).locator("th, td").nth(2).click();
+  await table.locator("tr").nth(1).locator("th, td").nth(2).locator("p").click();
   await page.keyboard.press("ControlOrMeta+Alt+Shift+ArrowLeft");
-  expect((await cellTexts(table))[1]).toEqual([before[0]![0], before[0]![2], before[0]![1]]);
+  await expect
+    .poll(async () => (await cellTexts(table))[1])
+    .toEqual([before[0]![0], before[0]![2], before[0]![1]]);
 
   // Undo reverts the column move alone, then the row move.
   await page.keyboard.press("ControlOrMeta+z");
@@ -311,7 +315,8 @@ test("resize a column by dragging its border", async ({ page, doc }) => {
   const x = before.x + before.width - 2;
   const y = before.y + before.height / 2;
   await page.mouse.move(x, y);
-  await expect(table).toHaveClass(/resize-cursor/);
+  // prosemirror-tables puts the class on the editor element (view.dom), not on the table.
+  await expect(editor).toHaveClass(/resize-cursor/);
   await page.mouse.down();
   await page.mouse.move(x + 80, y, { steps: 8 });
   await page.mouse.up();
