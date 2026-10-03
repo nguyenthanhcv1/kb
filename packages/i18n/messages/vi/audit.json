@@ -49,6 +49,12 @@
     "user": "Người dùng",
     "version": "Phiên bản"
   },
+  "export": {
+    "busy": "Đang xuất…",
+    "button": "Xuất CSV",
+    "done": "Đã tải tệp CSV.",
+    "truncated": "Đã tải tệp CSV nhưng chỉ gồm 10.000 mục mới nhất khớp bộ lọc. Hãy thu hẹp bộ lọc để xuất đầy đủ."
+  },
   "fields": {
     "ai_enabled": "Hỏi đáp AI",
     "description": "Mô tả",
@@ -58,18 +64,26 @@
     "visibility": "Ai được xem"
   },
   "page": {
+    "actorLabel": "Người thực hiện",
     "allActions": "Tất cả thao tác",
-    "clearFilter": "Xem mọi thao tác",
+    "allActors": "Tất cả mọi người",
+    "allTypes": "Tất cả loại",
     "description": "Các thay đổi của không gian, thành viên và lời mời, mới nhất trước. Không thể sửa hay xoá mục nhật ký.",
     "empty": "Chưa có hoạt động nào được ghi lại.",
     "emptyFiltered": "Không có hoạt động nào khớp bộ lọc.",
     "errorTitle": "Không tải được nhật ký hoạt động",
     "filterLabel": "Thao tác",
+    "filtersLabel": "Bộ lọc nhật ký",
+    "fromLabel": "Từ ngày",
     "listLabel": "Các mục nhật ký",
     "newest": "Về mục mới nhất",
     "older": "Mục cũ hơn",
     "paginationLabel": "Các trang nhật ký",
-    "title": "Nhật ký hoạt động"
+    "rangeInvalid": "Ngày bắt đầu phải trước hoặc trùng ngày kết thúc.",
+    "resetFilters": "Xoá bộ lọc",
+    "title": "Nhật ký hoạt động",
+    "toLabel": "Đến ngày",
+    "typeLabel": "Loại"
   },
   "values": {
     "empty": "(trống)",

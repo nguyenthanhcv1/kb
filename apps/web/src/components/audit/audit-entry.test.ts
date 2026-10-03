@@ -9,10 +9,15 @@ import {
   SPACE_AUDIT_ACTION_GROUPS,
   auditActionLabel,
   auditEntityTypeKey,
+  auditExportHref,
+  auditFiltersToQuery,
   auditPageHref,
+  auditToIso,
   describeAuditEntry,
   nameInitials,
   parseAuditCursor,
+  parseAuditDate,
+  parseAuditFilters,
   parseSpaceAuditAction,
 } from "./audit-entry";
 
@@ -84,6 +89,67 @@ describe("Space filter", () => {
     expect(auditPageHref(base, { action: "member.add", cursor: "a=b" })).toBe(
       `${base}?action=member.add&cursor=a%3Db`,
     );
+  });
+});
+
+describe("audit filters", () => {
+  const actor = "7c1e0000-0000-4000-8000-000000000003";
+
+  it("parses every filter and drops invalid values", () => {
+    expect(
+      parseAuditFilters({
+        type: "page",
+        action: "page.move",
+        actor: actor.toUpperCase(),
+        from: "2026-09-01",
+        to: ["2026-09-30"],
+      }),
+    ).toEqual({ type: "page", action: "page.move", actor, from: "2026-09-01", to: "2026-09-30" });
+    expect(
+      parseAuditFilters({ type: "access_entry", actor: "x", from: "2026-02-30", to: "nope" }),
+    ).toEqual({ type: null, action: null, actor: null, from: null, to: null });
+  });
+
+  it("drops an action that does not belong to the type", () => {
+    expect(parseAuditFilters({ type: "member", action: "page.move" }).action).toBeNull();
+    expect(parseAuditFilters({ type: "member", action: "member.add" }).action).toBe("member.add");
+  });
+
+  it("validates dates", () => {
+    expect(parseAuditDate("2026-02-28")).toBe("2026-02-28");
+    expect(parseAuditDate("2026-02-30")).toBeNull();
+    expect(parseAuditDate("26-1-1")).toBeNull();
+  });
+
+  it("converts whole days in Asia/Ho_Chi_Minh to an inclusive-from, exclusive-to range", () => {
+    expect(auditToIso("2026-09-30")).toBe("2026-10-01T00:00:00+07:00");
+    expect(auditToIso("2026-12-31")).toBe("2027-01-01T00:00:00+07:00");
+    expect(
+      auditFiltersToQuery({ type: "page", actor, from: "2026-09-01", to: "2026-09-30" }),
+    ).toEqual({
+      actions: undefined,
+      entityTypes: ["page"],
+      actorId: actor,
+      from: "2026-09-01T00:00:00+07:00",
+      to: "2026-10-01T00:00:00+07:00",
+    });
+  });
+
+  it("keeps filters in page and export URLs", () => {
+    const base = "/s/design/settings/audit";
+    expect(auditPageHref(base, { type: "page", actor, from: "2026-09-01", cursor: "c" })).toBe(
+      `${base}?type=page&actor=${actor}&from=2026-09-01&cursor=c`,
+    );
+    const url = new URL(
+      auditExportHref("sp", { type: "page", action: "page.move", to: "2026-09-30" }),
+      "http://x",
+    );
+    expect(url.pathname).toBe("/api/audit/export");
+    expect(url.searchParams.get("space")).toBe("sp");
+    expect(url.searchParams.get("type")).toBe("page");
+    expect(url.searchParams.get("action")).toBe("page.move");
+    expect(url.searchParams.get("to")).toBe("2026-10-01T00:00:00+07:00");
+    expect(url.searchParams.has("from")).toBe(false);
   });
 });
 
