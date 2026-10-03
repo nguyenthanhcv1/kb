@@ -40,6 +40,8 @@ Bộ đếm nằm trong Postgres (`app.rate_limit_hits`, cửa sổ cố định
 
 - Workflow **Security** (`.github/workflows/security.yml`): `pnpm audit --audit-level high` khi PR đổi dependency, khi merge `main` và mỗi thứ Hai. Không nằm trong check bắt buộc `ci` (một advisory mới không chặn PR không liên quan).
 - Workflow tuần đỏ → người điều phối tạo task sửa (thêm vào `docs/ai/tasks.yaml`): nâng version (`pnpm up --filter <pkg> <dep>`), hoặc `pnpm.overrides` trong `package.json` gốc khi dependency bắc cầu chưa có bản vá; ghi lý do trong PR. Mức low/moderate: xem xét khi nâng cấp định kỳ.
+- Chỉ khi advisory **chưa có bản vá nào** (cả nâng version lẫn override đều không gỡ được) **và** chỉ nằm trong dependency dev: thêm GHSA vào `auditConfig.ignoreGhsas` trong `pnpm-workspace.yaml`, kèm comment ghi đường dẫn dependency. Mỗi lần nâng cấp định kỳ thì gỡ thử từng mục. Đang bỏ qua:
+  - `GHSA-vfj7-8cjw-p6xm` — `braces` ≤3.0.3 (DoS khi gặp pattern lồng sâu). Phiên bản 3.0.3 mới nhất vẫn bị ảnh hưởng. Đường dẫn: `eslint-config-next` → `@next/eslint-plugin-next` → `fast-glob@3.3.1` → `micromatch` → `braces`. Gói chỉ chạy lúc lint, pattern lấy từ config trong repo, không có trong image runtime. Gỡ mục này khi `braces` có bản vá hoặc `@next/eslint-plugin-next` bỏ `fast-glob`.
 - License vẫn do job `licenses` trong `ci` kiểm tra (AGENTS.md §5).
 
 ## 4. Supabase Studio sau Cloudflare Access (`kb-studio`)
