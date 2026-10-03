@@ -238,6 +238,8 @@ test("drag a row and a column by their handles, undo in one step (T4.3)", async 
   await expect(rowHandles).toHaveCount(3);
   await expect(columnHandles).toHaveCount(3);
 
+  await page.waitForTimeout(600);
+
   // Row 2 above the header row.
   await table.hover();
   const handle = (await rowHandles.nth(1).boundingBox())!;
@@ -249,12 +251,17 @@ test("drag a row and a column by their handles, undo in one step (T4.3)", async 
   await page.mouse.up();
   expect(await cellTexts(table)).toEqual([before[1], before[0], before[2]]);
 
+  // History groups edits made within 500 ms: pause so every step below is its own undo step.
+  await page.waitForTimeout(600);
+
   // Column 3 to the front (keyboard: Ctrl/Cmd+Alt+Shift+Left from a cell of that column).
   await table.locator("tr").nth(1).locator("th, td").nth(2).locator("p").click();
   await page.keyboard.press("ControlOrMeta+Alt+Shift+ArrowLeft");
   await expect
     .poll(async () => (await cellTexts(table))[1])
     .toEqual([before[0]![0], before[0]![2], before[0]![1]]);
+
+  await page.waitForTimeout(600);
 
   // Undo reverts the column move alone, then the row move.
   await page.keyboard.press("ControlOrMeta+z");
