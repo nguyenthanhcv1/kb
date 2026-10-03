@@ -46,9 +46,14 @@ for (const locale of ["vi", "en"] as const) {
     await dialog.getByRole("button", { name: m.space.createDialog.submit }).click();
     await expect(page).toHaveURL(`/s/${slug}`);
     await page.goto(`/s/${slug}/settings`);
-    await page.getByLabel(m.space.form.description).fill("E2E");
-    await page.getByRole("button", { name: m.space.settingsPage.save }).click();
-    await expect(page.getByRole("status")).toHaveText(m.space.settingsPage.saved);
+    // Retried as a whole: a click landing before the form hydrates submits nothing.
+    await expect(async () => {
+      await page.getByLabel(m.space.form.description).fill("E2E");
+      await page.getByRole("button", { name: m.space.settingsPage.save }).click();
+      await expect(page.getByRole("status")).toHaveText(m.space.settingsPage.saved, {
+        timeout: 2_000,
+      });
+    }).toPass();
 
     // Settings tab → activity log.
     await page
@@ -80,7 +85,10 @@ for (const locale of ["vi", "en"] as const) {
     await page.getByRole("button", { name: m.audit.page.resetFilters }).click();
     await expect(page).toHaveURL(`/s/${slug}/settings/audit`);
 
-    const today = new Date().toISOString().slice(0, 10);
+    // "Today" in the user's time zone (the filter's), not UTC: they differ from 00:00 to 07:00.
+    const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Ho_Chi_Minh" }).format(
+      new Date(),
+    );
     await page.getByLabel(m.audit.page.fromLabel).fill(today);
     await expect(page).toHaveURL(new RegExp(`from=${today}`));
     await expect(list.getByText(m.audit.actions.space_create)).toBeVisible();

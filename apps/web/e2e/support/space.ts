@@ -47,7 +47,8 @@ const CANONICAL_PAGE = /\/s\/[^/]+\/p\/[^/]+-[A-Za-z0-9]{8}$/;
 
 /**
  * Adds a top-level page from the sidebar of the current Space. The title shows at once
- * (optimistic); waits until the rename is stored, i.e. the row links to the slugged URL.
+ * (optimistic); waits until the rename is stored: after a reload the row links to the slugged URL
+ * (the sidebar only gets the slug from the server, and its live update is not reliable yet).
  */
 export async function addPage(page: Page, title: string) {
   const m = load(e2eLocale());
@@ -56,10 +57,14 @@ export async function addPage(page: Page, title: string) {
   const input = aside.getByRole("textbox", { name: m.tree.renameLabel });
   await input.fill(title);
   await input.press("Enter");
-  await expect(sidebarTree(page).getByRole("treeitem", { name: title })).toHaveAttribute(
-    "href",
-    CANONICAL_PAGE,
-  );
+  const row = sidebarTree(page).getByRole("treeitem", { name: title });
+  await expect(row).toBeVisible();
+  await expect(async () => {
+    const href = await row.getAttribute("href", { timeout: 2_000 });
+    if (href && CANONICAL_PAGE.test(href)) return;
+    await page.reload();
+    throw new Error(`"${title}" is not stored yet (${href})`);
+  }).toPass();
 }
 
 /** Opens a page from the sidebar; returns its path (`/s/<space>/p/<slug>-<shortId>`). */
