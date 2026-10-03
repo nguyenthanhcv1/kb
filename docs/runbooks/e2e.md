@@ -15,6 +15,7 @@
 ```bash
 supabase start && eval "$(supabase status -o env | sed 's/^/export /')"
 export E2E_SUPABASE_URL=$API_URL E2E_SUPABASE_ANON_KEY=$ANON_KEY E2E_SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY
+export SUPABASE_JWKS_URL=$API_URL/auth/v1/.well-known/jwks.json   # token local là ES256: kb-collab cần JWKS (docs/adr/0003), không dùng JWT_SECRET
 pnpm dev                                   # hoặc bản build: pnpm build && pnpm --filter @kb/web start
 cd apps/web
 E2E_LOCALE=en pnpm exec playwright test    # E2E_LOCALE mặc định vi; E2E_BASE_URL mặc định http://localhost:3000
