@@ -31,21 +31,23 @@ test("versions are saved, compared and restored", async ({ page, context }, test
   await addPage(page, "Changelog");
   const pagePath = await openPage(page, "Changelog");
 
-  // First save → version 1 ("Autosave"). Text goes in as one edit (`insertText`) so the first
-  // store, which makes the version, always holds all of it.
+  // First saves → at least one "Autosave" version. Text goes in as one edit (`insertText`).
+  // Version numbers are not asserted: the editor may store its initial empty document first, which
+  // shifts them.
+  const first = "Phiên bản đầu tiên";
+  const edited = `${first} — đã sửa`;
   let editor = await editableEditor(page);
   await editor.click();
-  await page.keyboard.insertText("Phiên bản đầu tiên");
+  await page.keyboard.insertText(first);
   await waitForSaved(page);
   const versions = page.getByRole("navigation", { name: m.listLabel }).getByRole("link");
-  const v = (no: number) => versions.filter({ hasText: m.versionNo.replace("{no}", String(no)) });
   await expect(async () => {
     await page.goto(`${pagePath}/history`);
-    await expect(v(1)).toBeVisible({ timeout: 1_000 });
+    await expect(versions.first()).toBeVisible({ timeout: 1_000 });
   }).toPass({ timeout: 20_000 });
 
   // More text, then leave the page through the history link in its header: the last client
-  // leaving makes version 2. (Opening the page again would add one more version on the next leave.)
+  // leaving makes a version of the edited content.
   await page.goto(pagePath);
   editor = await editableEditor(page);
   await editor.click();
@@ -55,27 +57,27 @@ test("versions are saved, compared and restored", async ({ page, context }, test
   await page.getByRole("link", { name: m.title }).click();
   await expect(page).toHaveURL(`${pagePath}/history`);
   await expect(page.getByRole("heading", { level: 1, name: m.title })).toBeVisible();
+
+  // The newest version is listed first, selected and previewed.
+  const main = page.getByRole("main");
   await expect(async () => {
     await page.reload();
-    await expect(v(2)).toBeVisible({ timeout: 1_000 });
+    await expect(main.getByText(edited, { exact: true })).toBeVisible({ timeout: 1_000 });
   }).toPass({ timeout: 30_000 });
-
-  // The newest version is listed first and selected.
   await expect(versions.first()).toHaveAttribute("aria-current", "true");
-  await expect(versions.first()).toContainText(m.versionNo.replace("{no}", "2"));
 
-  // Preview version 1, then compare it with the current content.
-  await v(1).click();
-  await expect(v(1)).toHaveAttribute("aria-current", "true");
-  const main = page.getByRole("main");
-  await expect(main.getByText("Phiên bản đầu tiên", { exact: true })).toBeVisible();
+  // The one below it holds the first text: preview it, then compare it with the current content.
+  const older = versions.nth(1);
+  await older.click();
+  await expect(older).toHaveAttribute("aria-current", "true");
+  await expect(main.getByText(first, { exact: true })).toBeVisible();
   await page.getByRole("link", { name: m.modes.diff }).click();
   await expect(page).toHaveURL(/mode=diff/);
   await page.getByRole("link", { name: m.diff.against.current }).click();
   await expect(page).toHaveURL(/against=current/);
   await expect(main.getByText(m.diff.changed).first()).toBeVisible();
 
-  // Restore version 1 → its content is back; the previous content was kept as a version.
+  // Restore it → the first text is back; the replaced content was kept as a version.
   await page.getByRole("button", { name: m.restore, exact: true }).click();
   const dialog = page.getByRole("alertdialog");
   await dialog.getByRole("button", { name: m.restoreDialog.confirm }).click();
@@ -87,5 +89,5 @@ test("versions are saved, compared and restored", async ({ page, context }, test
   await done.getByRole("link", { name: m.restoreDone.openPage }).click();
   await expect(page).toHaveURL(pagePath);
   editor = await editableEditor(page);
-  await expect(editor).toHaveText("Phiên bản đầu tiên");
+  await expect(editor).toHaveText(first);
 });
