@@ -49,7 +49,7 @@ for (const locale of ["vi", "en"] as const) {
   test(`restore a version (${locale})`, async ({ page, context }) => {
     test.skip(process.env.E2E_RESTORE !== "1", "E2E_RESTORE=1 is not set");
     const m = messages[locale];
-    await context.addCookies([{ name: "NEXT_LOCALE", value: locale, url: BASE_URL }]);
+    await useLocale(context, locale);
 
     await page.goto(`${PAGE_PATH!}/history`);
     await page.getByRole("button", { name: m.restore, exact: true }).click();
