@@ -67,6 +67,8 @@ jobs:
             echo "SUPABASE_ANON_KEY=$ANON_KEY"
             echo "SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY"
             echo "SUPABASE_JWT_SECRET=$JWT_SECRET"
+            # CLI local ký token người dùng bằng ES256 (docs/adr/0003) — collab phải xác thực qua JWKS.
+            echo "SUPABASE_JWKS_URL=$API_URL/auth/v1/.well-known/jwks.json"
             echo "E2E_SUPABASE_URL=$API_URL"
             echo "E2E_SUPABASE_ANON_KEY=$ANON_KEY"
             echo "E2E_SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY"
