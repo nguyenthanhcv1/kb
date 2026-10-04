@@ -1,9 +1,11 @@
 // @vitest-environment happy-dom
 import enAudit from "@kb/i18n/messages/en/audit.json";
+import enErrors from "@kb/i18n/messages/en/errors.json";
 import enSpace from "@kb/i18n/messages/en/space.json";
+import viErrors from "@kb/i18n/messages/vi/errors.json";
 import viAudit from "@kb/i18n/messages/vi/audit.json";
 import viSpace from "@kb/i18n/messages/vi/space.json";
-import { cleanup, render, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { NextIntlClientProvider } from "next-intl";
 import type { ReactNode } from "react";
@@ -16,12 +18,13 @@ import type { AuditLogEntry } from "@/server/audit";
 const router = { push: vi.fn(), replace: vi.fn(), refresh: vi.fn() };
 vi.mock("next/navigation", () => ({ useRouter: () => router, usePathname: () => "/" }));
 
-const { AuditActionFilter } = await import("./audit-action-filter");
+const { AuditFilters } = await import("./audit-filters");
+const { AuditExportButton } = await import("./audit-export-button");
 const { AuditLogList } = await import("./audit-log-list");
 
 const messages = {
-  vi: { audit: viAudit, space: viSpace },
-  en: { audit: enAudit, space: enSpace },
+  vi: { audit: viAudit, errors: viErrors, space: viSpace },
+  en: { audit: enAudit, errors: enErrors, space: enSpace },
 };
 
 function renderWith(ui: ReactNode, locale: "vi" | "en" = "vi") {
@@ -135,11 +138,15 @@ describe("AuditLogList", () => {
   });
 });
 
-describe("AuditActionFilter", () => {
+describe("AuditFilters", () => {
   const base = "/s/design/settings/audit";
+  const actors = [
+    { id: actor.id, name: "An Nguyễn" },
+    { id: BINH, name: "Bình Trần" },
+  ];
 
-  it("lists translated Space actions and navigates to the filtered first page", async () => {
-    renderWith(<AuditActionFilter base={base} action={null} />);
+  it("lists translated actions and navigates to the filtered first page", async () => {
+    renderWith(<AuditFilters base={base} filters={{}} actors={actors} />);
     const select = screen.getByLabelText(viAudit.page.filterLabel);
     expect((select as HTMLSelectElement).value).toBe("");
     expect(
@@ -151,11 +158,88 @@ describe("AuditActionFilter", () => {
     expect(router.push).toHaveBeenCalledWith(`${base}?action=member.role_change`);
   });
 
-  it("clears the filter (en)", async () => {
-    renderWith(<AuditActionFilter base={base} action="member.add" />, "en");
-    const select = screen.getByLabelText(enAudit.page.filterLabel);
-    expect((select as HTMLSelectElement).value).toBe("member.add");
-    await userEvent.selectOptions(select, "");
-    expect(router.push).toHaveBeenCalledWith(base);
+  it("filters by person and keeps other filters (en)", async () => {
+    renderWith(<AuditFilters base={base} filters={{ type: "page" }} actors={actors} />, "en");
+    await userEvent.selectOptions(screen.getByLabelText(enAudit.page.actorLabel), BINH);
+    expect(router.push).toHaveBeenCalledWith(`${base}?type=page&actor=${BINH}`);
+  });
+
+  it("narrows actions to the type and clears a mismatching action", async () => {
+    renderWith(<AuditFilters base={base} filters={{ action: "member.add" }} actors={actors} />);
+    await userEvent.selectOptions(screen.getByLabelText(viAudit.page.typeLabel), "page");
+    expect(router.push).toHaveBeenCalledWith(`${base}?type=page`);
+
+    cleanup();
+    renderWith(<AuditFilters base={base} filters={{ type: "page" }} actors={actors} />);
+    const action = screen.getByLabelText(viAudit.page.filterLabel);
+    expect(within(action).getByRole("option", { name: viAudit.actions.page_move })).toBeTruthy();
+    expect(within(action).queryByRole("option", { name: viAudit.actions.member_add })).toBeNull();
+  });
+
+  it("sets the date range and resets everything", async () => {
+    renderWith(<AuditFilters base={base} filters={{ from: "2026-09-01" }} actors={actors} />);
+    const to = screen.getByLabelText(viAudit.page.toLabel);
+    expect(to.getAttribute("min")).toBe("2026-09-01");
+    fireEvent.change(to, { target: { value: "2026-09-30" } });
+    expect(router.push).toHaveBeenCalledWith(`${base}?from=2026-09-01&to=2026-09-30`);
+
+    await userEvent.click(screen.getByRole("button", { name: viAudit.page.resetFilters }));
+    expect(router.push).toHaveBeenLastCalledWith(base);
+  });
+
+  it("disables reset without filters and flags an inverted range", () => {
+    const { unmount } = renderWith(<AuditFilters base={base} filters={{}} actors={actors} />);
+    expect(
+      (screen.getByRole("button", { name: viAudit.page.resetFilters }) as HTMLButtonElement)
+        .disabled,
+    ).toBe(true);
+    unmount();
+    renderWith(
+      <AuditFilters
+        base={base}
+        filters={{ from: "2026-10-01", to: "2026-09-01" }}
+        actors={actors}
+      />,
+    );
+    expect(screen.getByRole("alert").textContent).toBe(viAudit.page.rangeInvalid);
+  });
+});
+
+describe("AuditExportButton", () => {
+  const href = "/api/audit/export?space=sp&type=page";
+  const fetchMock = vi.fn();
+  beforeEach(() => {
+    vi.stubGlobal("fetch", fetchMock);
+    URL.createObjectURL = vi.fn(() => "blob:x");
+    URL.revokeObjectURL = vi.fn();
+  });
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("downloads the CSV and reports truncation", async () => {
+    const click = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
+    fetchMock.mockResolvedValue(
+      new Response("a,b", {
+        status: 200,
+        headers: {
+          "content-disposition": 'attachment; filename="audit-2026-09-25.csv"',
+          "x-audit-truncated": "1",
+        },
+      }),
+    );
+    renderWith(<AuditExportButton href={href} />, "en");
+    await userEvent.click(screen.getByRole("button", { name: enAudit.export.button }));
+    expect(fetchMock).toHaveBeenCalledWith(href, { credentials: "same-origin" });
+    expect(await screen.findByText(enAudit.export.truncated)).toBeTruthy();
+    expect(click).toHaveBeenCalledOnce();
+    click.mockRestore();
+  });
+
+  it("shows a translated error", async () => {
+    fetchMock.mockResolvedValue(
+      new Response(JSON.stringify({ error: "FORBIDDEN" }), { status: 403 }),
+    );
+    renderWith(<AuditExportButton href={href} />);
+    await userEvent.click(screen.getByRole("button", { name: viAudit.export.button }));
+    expect((await screen.findByRole("alert")).textContent).toBe(viErrors.FORBIDDEN);
   });
 });

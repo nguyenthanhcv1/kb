@@ -1,5 +1,6 @@
 import { supabaseEnv } from "../support/env";
-import { contextAs, expect, newLine, test, waitForEditor, waitForSaved } from "../support/editor";
+import { contextAs, expect, newLine, test, waitForSaved } from "../support/editor";
+import { editableEditor } from "../support/space";
 
 /**
  * T7.1c — editor flows (docs/PLAN.md §8): blocks from the "/" menu, formatting from the bubble
@@ -152,7 +153,7 @@ test("typed content is saved and still there after a reload", async ({ page, doc
   await waitForSaved(page);
 
   await page.reload();
-  const reloaded = await waitForEditor(page, doc.locale);
+  const reloaded = await editableEditor(page);
   await expect(reloaded.locator("h1")).toHaveText(text);
 });
 
@@ -160,7 +161,9 @@ test("a viewer sees the content but cannot edit", async ({ page, doc, browser })
   test.skip(!supabaseEnv(), "E2E_SUPABASE_* is not set (needed to create the viewer)");
   const text = `Chi doc ${Date.now().toString(36)}`;
   await newLine(page, doc.editor);
-  await page.keyboard.type(text);
+  // One edit, stored before the viewer opens the page.
+  await page.keyboard.insertText(text);
+  await expect(doc.editor).toContainText(text);
   await waitForSaved(page);
 
   const context = await contextAs(browser, doc.spaceSlug, "viewer", doc.locale);

@@ -4,12 +4,20 @@ import type viTable from "@kb/i18n/messages/vi/table.json";
 import type viTree from "@kb/i18n/messages/vi/tree.json";
 import type { Browser, BrowserContext, Locator, Page } from "@playwright/test";
 
-import { adminFetch, allowEmail, createUser, signInCookies } from "./auth";
-import { type E2ELocale, e2eLocale, supabaseEnv } from "./env";
+import { type E2ELocale, e2eLocale } from "./env";
 import { useLocale as setLocale } from "./locale";
 import { message } from "./messages";
+import {
+  addPage,
+  contextFor,
+  createSpace,
+  createTestUser,
+  editableEditor,
+  openPage,
+  uniqueSuffix,
+  waitForSaved,
+} from "./space";
 import { expect, test as base } from "./test";
-import { setProfileLocale } from "./users";
 
 /**
  * Fixtures for the editor and table specs (T7.1c). Every test gets its own Space with one empty
@@ -44,18 +52,33 @@ export type EditorFixture = {
   spaceSlug: string;
 };
 
-/** Waits until the collaboration session is connected and everything typed is saved. */
-export async function waitForSaved(page: Page) {
-  await expect(page.locator('[data-status="saved"]')).toBeVisible();
-}
+export { waitForSaved };
 
-/** The editable content area, once the collaboration session is connected and saved. */
-export async function waitForEditor(page: Page, locale: E2ELocale = e2eLocale()) {
-  const m = loadMessages(locale);
-  const editor = page.getByRole("textbox", { name: m.editor.content.label });
-  await expect(editor).toHaveAttribute("contenteditable", "true");
-  await waitForSaved(page);
-  return editor;
+/**
+ * Waits until the editor's selection follows a click. ProseMirror reads the DOM selection a moment
+ * after the click (it applies typing either way); a shortcut pressed before that acts on the
+ * previous caret. A person is never that fast, a test is.
+ */
+export async function waitForCaret(page: Page) {
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        type View = {
+          state: { selection: { head: number } };
+          posAtDOM(node: Node, offset: number): number;
+        };
+        const dom = document.querySelector<HTMLElement & { editor?: { view: View } }>(
+          ".ProseMirror-focused",
+        );
+        const selection = window.getSelection();
+        const view = dom?.editor?.view;
+        if (!view || !selection?.focusNode) return false;
+        return (
+          view.posAtDOM(selection.focusNode, selection.focusOffset) === view.state.selection.head
+        );
+      }),
+    )
+    .toBe(true);
 }
 
 /** Moves the caret to a new empty line after the last block. */
@@ -70,27 +93,12 @@ export const test = base.extend<{ doc: EditorFixture }>({
     const locale = e2eLocale();
     const m = loadMessages(locale);
     await setLocale(context, locale);
-    const unique = `${Date.now().toString(36)}${testInfo.parallelIndex}${testInfo.retry}`;
-    const spaceSlug = `ed-${locale}-${unique}`;
+    const spaceSlug = await createSpace(page, `Ed ${uniqueSuffix(testInfo)}`);
+    const spacePath = `/s/${spaceSlug}`;
+    await addPage(page, "Editor E2E");
+    const pagePath = await openPage(page, "Editor E2E");
 
-    await page.goto("/");
-    await page.getByRole("main").getByRole("button", { name: m.space.create }).first().click();
-    const dialog = page.getByRole("dialog", { name: m.space.create });
-    await dialog.getByLabel(m.space.form.name).fill(`Ed ${locale}-${unique}`);
-    await dialog.getByRole("button", { name: m.space.createDialog.submit }).click();
-    await expect(page).toHaveURL(new RegExp(`/s/${spaceSlug}$`));
-    const spacePath = new URL(page.url()).pathname;
-
-    const aside = page.locator("aside");
-    await aside.getByRole("button", { name: m.tree.newPage }).click();
-    const input = aside.getByRole("textbox", { name: m.tree.renameLabel });
-    await input.fill("Editor E2E");
-    await input.press("Enter");
-    await aside.getByRole("tree").getByRole("treeitem", { name: "Editor E2E" }).click();
-    await expect(page).toHaveURL(new RegExp(`${spacePath}/p/`));
-    const pagePath = new URL(page.url()).pathname;
-
-    const editor = await waitForEditor(page, locale);
+    const editor = await editableEditor(page);
     await provide({ locale, m, editor, spacePath, pagePath, spaceSlug });
   },
 });
@@ -98,8 +106,8 @@ export const test = base.extend<{ doc: EditorFixture }>({
 export { expect };
 
 /**
- * Signs a fresh internal user in a new browser context and gives them `role` in the Space, to check
- * what a viewer/editor can do. Needs the local Supabase of the run (`E2E_SUPABASE_*`).
+ * Signs a fresh internal user in a new browser context (with the run's base URL) and gives them
+ * `role` in the Space, to check what a viewer/editor can do. Needs `E2E_SUPABASE_*`.
  */
 export async function contextAs(
   browser: Browser,
@@ -107,33 +115,6 @@ export async function contextAs(
   role: "viewer" | "editor",
   locale: E2ELocale = e2eLocale(),
 ): Promise<BrowserContext> {
-  const env = supabaseEnv();
-  if (!env) throw new Error("E2E_SUPABASE_* is not set");
-  const random = Math.random().toString(36).slice(2, 8);
-  const email = `e2e-${role}-${Date.now().toString(36)}-${random}@kb.test`;
-  const user = { email, password: `e2e-${random}-${role}`, name: `E2E ${role}` };
-  await allowEmail(env, email);
-  await createUser(env, user);
-  const cookies = await signInCookies(env, user, locale);
-  await setProfileLocale(locale, email);
-
-  const [space] = (await (
-    await adminFetch(env, `/rest/v1/spaces?slug=eq.${encodeURIComponent(spaceSlug)}&select=id`)
-  ).json()) as { id: string }[];
-  const [profile] = (await (
-    await adminFetch(env, `/rest/v1/profiles?email=eq.${encodeURIComponent(email)}&select=id`)
-  ).json()) as { id: string }[];
-  if (!space || !profile) throw new Error("Space or profile of the test user not found");
-  await adminFetch(env, "/rest/v1/space_members", {
-    method: "POST",
-    headers: { Prefer: "return=minimal" },
-    body: JSON.stringify({ space_id: space.id, user_id: profile.id, role }),
-  });
-
-  const context = await browser.newContext({
-    locale: locale === "en" ? "en-US" : "vi-VN",
-    timezoneId: "Asia/Ho_Chi_Minh",
-  });
-  await context.addCookies(cookies);
-  return context;
+  const user = await createTestUser(role, { locale, space: spaceSlug, role });
+  return contextFor(browser, user);
 }

@@ -1,4 +1,5 @@
 import {
+  AUDIT_ACTION_ENTITY_TYPE,
   AUDIT_ACTIONS,
   AUDIT_ENTITY_TYPES,
   auditActionMessageKey,
@@ -42,16 +43,121 @@ export function parseAuditCursor(value: string | string[] | undefined): string |
   return raw ? raw : null;
 }
 
-/** URL of the audit page with the given filter and page. */
+/** Filters of the Space audit page (all optional; dates are `YYYY-MM-DD` in the display zone). */
+export type AuditFilters = {
+  action?: AuditAction | null;
+  type?: SpaceAuditActionGroup | null;
+  actor?: string | null;
+  from?: string | null;
+  to?: string | null;
+};
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const DATE_RE = /^(\d{4})-(\d{2})-(\d{2})$/;
+/** Fixed offset of `Asia/Ho_Chi_Minh` (no DST) — the default display zone (AGENTS.md §1). */
+const DISPLAY_OFFSET = "+07:00";
+
+type QueryValue = string | string[] | undefined;
+const first = (value: QueryValue) => (Array.isArray(value) ? value[0] : value);
+
+/** `?type=` → a Space entity type (`space`, `member`, `invitation`, `page`, `version`) or `null`. */
+export function parseSpaceAuditType(value: QueryValue): SpaceAuditActionGroup | null {
+  const raw = first(value);
+  return (SPACE_ACTION_GROUPS as readonly string[]).includes(raw ?? "")
+    ? (raw as SpaceAuditActionGroup)
+    : null;
+}
+
+/** `YYYY-MM-DD` that is a real calendar date, else `null`. */
+export function parseAuditDate(value: QueryValue): string | null {
+  const raw = first(value);
+  const m = raw ? DATE_RE.exec(raw) : null;
+  if (!m) return null;
+  const [y, mo, d] = [Number(m[1]), Number(m[2]), Number(m[3])];
+  const date = new Date(Date.UTC(y, mo - 1, d));
+  return date.getUTCFullYear() === y && date.getUTCMonth() === mo - 1 && date.getUTCDate() === d
+    ? raw!
+    : null;
+}
+
+/**
+ * Reads every filter from `searchParams`; invalid values are dropped. An action that does not
+ * belong to the selected type is dropped too (the type wins).
+ */
+export function parseAuditFilters(query: Record<string, QueryValue>): AuditFilters {
+  const type = parseSpaceAuditType(query.type);
+  let action = parseSpaceAuditAction(query.action);
+  if (action && type && AUDIT_ACTION_ENTITY_TYPE[action] !== type) action = null;
+  const actorRaw = first(query.actor);
+  return {
+    action,
+    type,
+    actor: actorRaw && UUID_RE.test(actorRaw) ? actorRaw.toLowerCase() : null,
+    from: parseAuditDate(query.from),
+    to: parseAuditDate(query.to),
+  };
+}
+
+/** Actions offered for a type filter (all Space actions when no type is chosen). */
+export function auditActionGroupsFor(type: SpaceAuditActionGroup | null | undefined) {
+  return type
+    ? SPACE_AUDIT_ACTION_GROUPS.filter((g) => g.group === type)
+    : SPACE_AUDIT_ACTION_GROUPS;
+}
+
+/** Inclusive start of the `from` day, as an ISO instant with offset. */
+export function auditFromIso(date: string): string {
+  return `${date}T00:00:00${DISPLAY_OFFSET}`;
+}
+
+/** Exclusive end for an inclusive `to` day: the start of the next day. */
+export function auditToIso(date: string): string {
+  const m = DATE_RE.exec(date)!;
+  const next = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]) + 1));
+  return `${next.toISOString().slice(0, 10)}T00:00:00${DISPLAY_OFFSET}`;
+}
+
+/** Filters → input of `listAuditLogs` (`actions`, `entityTypes`, `actorId`, `from`, `to`). */
+export function auditFiltersToQuery(filters: AuditFilters) {
+  return {
+    actions: filters.action ? [filters.action] : undefined,
+    entityTypes: filters.type ? [filters.type] : undefined,
+    actorId: filters.actor ?? undefined,
+    from: filters.from ? auditFromIso(filters.from) : undefined,
+    to: filters.to ? auditToIso(filters.to) : undefined,
+  };
+}
+
+export function hasAuditFilters(filters: AuditFilters): boolean {
+  return Boolean(filters.action || filters.type || filters.actor || filters.from || filters.to);
+}
+
+/** URL of the audit page with the given filters and page. */
 export function auditPageHref(
   base: string,
-  { action, cursor }: { action?: string | null; cursor?: string | null },
+  { cursor, ...filters }: AuditFilters & { cursor?: string | null },
 ): string {
   const params = new URLSearchParams();
-  if (action) params.set("action", action);
+  if (filters.type) params.set("type", filters.type);
+  if (filters.action) params.set("action", filters.action);
+  if (filters.actor) params.set("actor", filters.actor);
+  if (filters.from) params.set("from", filters.from);
+  if (filters.to) params.set("to", filters.to);
   if (cursor) params.set("cursor", cursor);
   const query = params.toString();
   return query ? `${base}?${query}` : base;
+}
+
+/** `GET /api/audit/export` URL for a Space with the same filters as the list (T6.4a). */
+export function auditExportHref(spaceId: string, filters: AuditFilters): string {
+  const q = auditFiltersToQuery(filters);
+  const params = new URLSearchParams({ space: spaceId });
+  if (filters.type) params.set("type", filters.type);
+  if (filters.action) params.set("action", filters.action);
+  if (q.actorId) params.set("actor", q.actorId);
+  if (q.from) params.set("from", q.from);
+  if (q.to) params.set("to", q.to);
+  return `/api/audit/export?${params.toString()}`;
 }
 
 type DotToUnderscore<S extends string> = S extends `${infer A}.${infer B}` ? `${A}_${B}` : S;

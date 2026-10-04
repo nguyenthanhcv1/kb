@@ -2,16 +2,21 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 
-import { AuditActionFilter } from "@/components/audit/audit-action-filter";
 import {
+  auditExportHref,
+  auditFiltersToQuery,
   auditPageHref,
+  hasAuditFilters,
   parseAuditCursor,
-  parseSpaceAuditAction,
+  parseAuditFilters,
 } from "@/components/audit/audit-entry";
+import { AuditExportButton } from "@/components/audit/audit-export-button";
+import { AuditFilters } from "@/components/audit/audit-filters";
 import { AuditLogList } from "@/components/audit/audit-log-list";
 import { canManageSpace } from "@/components/space/permissions";
 import { Button } from "@/components/ui/button";
 import { listAuditLogPage } from "@/server/audit/queries";
+import { listMembers } from "@/server/members/actions";
 
 import { loadSpace } from "../../../../_lib/data";
 
@@ -28,8 +33,9 @@ export async function generateMetadata() {
 }
 
 /**
- * Activity log of a Space (T1.6b): newest first, filter by action (`?action=`), keyset pages
- * (`?cursor=`). The layout renders the forbidden state for non-admins; RLS is the real check.
+ * Activity log of a Space (T1.6b, T6.4b): newest first, filter by person, type, action and date
+ * range (`?actor=&type=&action=&from=&to=`), keyset pages (`?cursor=`), CSV export of the filtered
+ * set. The layout renders the forbidden state for non-admins; RLS is the real check.
  */
 export default async function SpaceAuditPage({ params, searchParams }: Props) {
   const [{ spaceSlug }, query] = await Promise.all([params, searchParams]);
@@ -39,14 +45,24 @@ export default async function SpaceAuditPage({ params, searchParams }: Props) {
 
   const t = await getTranslations();
   const base = `/s/${space.slug}/settings/audit`;
-  const action = parseSpaceAuditAction(query.action);
+  const filters = parseAuditFilters(query);
+  const filtered = hasAuditFilters(filters);
   const cursor = parseAuditCursor(query.cursor);
-  const result = await listAuditLogPage({
-    spaceId: space.id,
-    actions: action ? [action] : undefined,
-    cursor: cursor ?? undefined,
-    limit: PAGE_SIZE,
-  });
+  const [result, members] = await Promise.all([
+    listAuditLogPage({
+      spaceId: space.id,
+      ...auditFiltersToQuery(filters),
+      cursor: cursor ?? undefined,
+      limit: PAGE_SIZE,
+    }),
+    listMembers({ spaceId: space.id }),
+  ]);
+  const actors = members.ok
+    ? members.data.members.map((m) => ({
+        id: m.userId,
+        name: m.fullName || m.email || t("audit.actor.unknown"),
+      }))
+    : [];
 
   return (
     <section aria-labelledby="audit-title" className="flex flex-col gap-6">
@@ -56,7 +72,17 @@ export default async function SpaceAuditPage({ params, searchParams }: Props) {
         </h2>
         <p className="text-sm text-muted-foreground">{t("audit.page.description")}</p>
       </div>
-      <AuditActionFilter key={action ?? ""} base={base} action={action} />
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0 flex-1">
+          <AuditFilters
+            key={auditPageHref("", filters)}
+            base={base}
+            filters={filters}
+            actors={actors}
+          />
+        </div>
+        <AuditExportButton href={auditExportHref(space.id, filters)} />
+      </div>
 
       {!result.ok ? (
         <div
@@ -66,22 +92,22 @@ export default async function SpaceAuditPage({ params, searchParams }: Props) {
           <p className="font-medium text-destructive">{t("audit.page.errorTitle")}</p>
           <p className="text-destructive">{t(`errors.${result.error}`)}</p>
           <Button asChild variant="outline" size="sm">
-            <Link href={auditPageHref(base, { action })}>{t("audit.page.newest")}</Link>
+            <Link href={auditPageHref(base, filters)}>{t("audit.page.newest")}</Link>
           </Button>
         </div>
       ) : result.data.entries.length === 0 ? (
         <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed px-4 py-10 text-center">
           <p className="text-muted-foreground">
-            {action ? t("audit.page.emptyFiltered") : t("audit.page.empty")}
+            {filtered ? t("audit.page.emptyFiltered") : t("audit.page.empty")}
           </p>
           {cursor ? (
             <Button asChild variant="outline" size="sm">
-              <Link href={auditPageHref(base, { action })}>{t("audit.page.newest")}</Link>
+              <Link href={auditPageHref(base, filters)}>{t("audit.page.newest")}</Link>
             </Button>
           ) : (
-            action && (
+            filtered && (
               <Button asChild variant="outline" size="sm">
-                <Link href={base}>{t("audit.page.clearFilter")}</Link>
+                <Link href={base}>{t("audit.page.resetFilters")}</Link>
               </Button>
             )
           )}
@@ -96,14 +122,14 @@ export default async function SpaceAuditPage({ params, searchParams }: Props) {
             >
               {cursor ? (
                 <Button asChild variant="ghost" size="sm">
-                  <Link href={auditPageHref(base, { action })}>{t("audit.page.newest")}</Link>
+                  <Link href={auditPageHref(base, filters)}>{t("audit.page.newest")}</Link>
                 </Button>
               ) : (
                 <span />
               )}
               {result.data.nextCursor && (
                 <Button asChild variant="outline" size="sm">
-                  <Link href={auditPageHref(base, { action, cursor: result.data.nextCursor })}>
+                  <Link href={auditPageHref(base, { ...filters, cursor: result.data.nextCursor })}>
                     {t("audit.page.older")}
                   </Link>
                 </Button>

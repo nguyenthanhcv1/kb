@@ -1,66 +1,84 @@
-import { createRequire } from "node:module";
-
+import type viAuth from "@kb/i18n/messages/vi/auth.json";
 import type viCommon from "@kb/i18n/messages/vi/common.json";
 import type viSettings from "@kb/i18n/messages/vi/settings.json";
-import { expect, type Page, test } from "@playwright/test";
+import type { Page } from "@playwright/test";
+
+import { baseUrl, type E2ELocale, e2eLocale, supabaseEnv } from "../support/env";
+import { message } from "../support/messages";
+import { contextFor, createTestUser, signIn } from "../support/space";
+import { expect, test } from "../support/test";
 
 /**
- * T1.3 — personal settings: switching the language to English re-renders the whole UI in
- * English and survives on "another device" (the `NEXT_LOCALE` cookie removed: the locale comes
- * from `profiles.locale`); the time zone is saved alongside. Restores Vietnamese at the end.
- *
- * Needs a signed-in user: set `E2E_STORAGE_STATE` to a Playwright storage state file holding the
- * Supabase session cookies (the signed-in fixtures arrive with T7.1b). Skipped without it.
+ * T1.3, T7.1d — personal settings: switching the language re-renders the whole UI in it and the
+ * choice follows the user to a new session on "another device" (no `NEXT_LOCALE` cookie, a browser
+ * asking for the other language): it comes from `profiles.locale`. The time zone is saved
+ * alongside. Uses its own users, so signing out leaves the worker's session alone.
  */
-const STORAGE_STATE = process.env.E2E_STORAGE_STATE;
+const from = e2eLocale();
+const to: E2ELocale = from === "vi" ? "en" : "vi";
+type Messages = { auth: typeof viAuth; common: typeof viCommon; settings: typeof viSettings };
+const load = (locale: E2ELocale): Messages => ({
+  auth: message(locale, "auth"),
+  common: message(locale, "common"),
+  settings: message(locale, "settings"),
+});
+const m = { [from]: load(from), [to]: load(to) } as Record<E2ELocale, Messages>;
+const acceptLanguage = { vi: "vi-VN,vi;q=0.9", en: "en-US,en;q=0.9" };
 
-const require = createRequire(import.meta.url);
-type Messages = { common: typeof viCommon; settings: typeof viSettings };
-const messages: Record<"vi" | "en", Messages> = {
-  vi: {
-    common: require("@kb/i18n/messages/vi/common.json"),
-    settings: require("@kb/i18n/messages/vi/settings.json"),
-  },
-  en: {
-    common: require("@kb/i18n/messages/en/common.json"),
-    settings: require("@kb/i18n/messages/en/settings.json"),
-  },
-};
+test.skip(!supabaseEnv(), "E2E_SUPABASE_* is not set (creates the user)");
 
-test.skip(!STORAGE_STATE, "E2E_STORAGE_STATE is not set (signed-in user, see T7.1b)");
-test.use({ storageState: STORAGE_STATE });
-
-async function savePreferences(page: Page, from: Messages, locale: "vi" | "en", zone: string) {
-  const section = page.getByRole("region", { name: from.settings.preferences.title });
-  await section.getByRole("radio", { name: messages[locale].common.locale.names[locale] }).click();
-  await section.getByLabel(from.settings.timeZone.label).selectOption(zone);
-  await section.getByRole("button", { name: from.common.actions.save }).click();
+async function savePreferences(page: Page, current: E2ELocale, locale: E2ELocale, zone: string) {
+  const t = m[current];
+  const section = page.getByRole("region", { name: t.settings.preferences.title });
+  await section.getByRole("radio", { name: m[locale].common.locale.names[locale] }).click();
+  await section.getByLabel(t.settings.timeZone.label).selectOption(zone);
+  await section.getByRole("button", { name: t.common.actions.save }).click();
 }
 
-test("language and time zone follow the profile to another device", async ({ page, context }) => {
-  const { vi, en } = messages;
+test("language and time zone follow the profile to another device", async ({ browser }) => {
+  const user = await createTestUser("locale", { locale: from });
+  const first = await contextFor(browser, user);
+  const page = await first.newPage();
   await page.goto("/settings");
-  // Start from Vietnamese whatever the account had.
   const title = page.getByRole("heading", { level: 1 });
-  if ((await title.textContent()) === en.settings.title) {
-    await savePreferences(page, en, "vi", "Asia/Ho_Chi_Minh");
-  }
-  await expect(title).toHaveText(vi.settings.title);
+  await expect(title).toHaveText(m[from].settings.title);
 
-  await savePreferences(page, vi, "en", "Europe/Berlin");
-  await expect(title).toHaveText(en.settings.title);
-  await expect(page.getByRole("button", { name: en.common.locale.toggle })).toBeVisible();
-  await expect(page.locator("html")).toHaveAttribute("lang", "en");
+  await savePreferences(page, from, to, "Europe/Berlin");
+  await expect(title).toHaveText(m[to].settings.title);
+  await expect(page.locator("html")).toHaveAttribute("lang", to);
+  await expect(page.getByRole("button", { name: m[to].common.locale.toggle })).toBeVisible();
+  await first.close();
 
-  // "Another device": no language cookie, a Vietnamese browser — the profile still wins.
-  await context.clearCookies({ name: "NEXT_LOCALE" });
-  await page.setExtraHTTPHeaders({ "Accept-Language": "vi-VN,vi;q=0.9" });
-  await page.reload();
-  await expect(title).toHaveText(en.settings.title);
-  await expect(page.getByLabel(en.settings.timeZone.label, { exact: true })).toHaveValue(
+  // "Another device": a new session in a browser asking for the previous language, without the
+  // language cookie — the profile wins.
+  const second = await browser.newContext({
+    baseURL: baseUrl(),
+    locale: from === "en" ? "en-US" : "vi-VN",
+    extraHTTPHeaders: { "Accept-Language": acceptLanguage[from] },
+  });
+  await signIn(second, user, from);
+  await second.clearCookies({ name: "NEXT_LOCALE" });
+  const again = await second.newPage();
+  await again.goto("/settings");
+  await expect(again.getByRole("heading", { level: 1 })).toHaveText(m[to].settings.title);
+  await expect(again.locator("html")).toHaveAttribute("lang", to);
+  await expect(again.getByLabel(m[to].settings.timeZone.label, { exact: true })).toHaveValue(
     "Europe/Berlin",
   );
+  await second.close();
+});
 
-  await savePreferences(page, en, "vi", "Asia/Ho_Chi_Minh");
-  await expect(title).toHaveText(vi.settings.title);
+// T7.7 — the account menu signs out of Supabase: the session is gone, not only hidden.
+test("signing out ends the session", async ({ browser }) => {
+  const user = await createTestUser("signout");
+  const context = await contextFor(browser, user);
+  const page = await context.newPage();
+  await page.goto("/settings");
+  await page.getByRole("button", { name: m[from].auth.userMenu.open }).click();
+  await page.getByRole("menuitem", { name: m[from].auth.userMenu.signOut }).click();
+  await expect(page).toHaveURL(/\/login/);
+  await expect(page.getByText(m[from].auth.login.signedOut)).toBeVisible();
+  await page.goto("/settings");
+  await expect(page).toHaveURL(/\/login/);
+  await context.close();
 });

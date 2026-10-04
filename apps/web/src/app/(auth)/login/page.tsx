@@ -3,8 +3,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 
-import { getCurrentUser } from "@/server/auth/mock";
-import { signInWithGoogle } from "@/server/auth/mock-actions";
+import { getCurrentUser, signInWithGoogle } from "@/server/auth";
 
 import { safeNextPath } from "../_lib/safe-next";
 import { GoogleSignInButton } from "./google-sign-in-button";

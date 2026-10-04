@@ -49,6 +49,12 @@
     "user": "User",
     "version": "Version"
   },
+  "export": {
+    "busy": "Exporting…",
+    "button": "Export CSV",
+    "done": "CSV file downloaded.",
+    "truncated": "CSV downloaded, but only the newest 10,000 matching entries are included. Narrow the filters to export everything."
+  },
   "fields": {
     "ai_enabled": "AI Q&A",
     "description": "Description",
@@ -58,18 +64,26 @@
     "visibility": "Who can view"
   },
   "page": {
+    "actorLabel": "Person",
     "allActions": "All actions",
-    "clearFilter": "Show all actions",
+    "allActors": "Everyone",
+    "allTypes": "All types",
     "description": "Changes to this space, its members and invitations, newest first. Entries cannot be edited or deleted.",
     "empty": "No activity has been recorded yet.",
     "emptyFiltered": "No activity matches this filter.",
     "errorTitle": "Could not load the activity log",
     "filterLabel": "Action",
+    "filtersLabel": "Activity log filters",
+    "fromLabel": "From date",
     "listLabel": "Activity entries",
     "newest": "Back to newest",
     "older": "Older entries",
     "paginationLabel": "Activity log pages",
-    "title": "Activity log"
+    "rangeInvalid": "The start date must be on or before the end date.",
+    "resetFilters": "Clear filters",
+    "title": "Activity log",
+    "toLabel": "To date",
+    "typeLabel": "Type"
   },
   "values": {
     "empty": "(empty)",

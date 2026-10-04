@@ -38,7 +38,7 @@ const actions = vi.hoisted(() => ({
   setUserSuperAdmin: vi.fn(),
 }));
 vi.mock("@/server/admin/actions", () => actions);
-vi.mock("@/server/auth/mock-actions", () => ({ signOut: vi.fn() }));
+vi.mock("@/server/auth", () => ({ signOut: vi.fn() }));
 
 const { AccessEntryList } = await import("./access-entry-list");
 const { AddAccessForm } = await import("./add-access-form");

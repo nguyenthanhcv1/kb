@@ -6,10 +6,11 @@ import {
   expect,
   newLine,
   test,
-  waitForEditor,
+  waitForCaret,
   waitForSaved,
 } from "../support/editor";
 import { supabaseEnv } from "../support/env";
+import { editableEditor } from "../support/space";
 
 /**
  * T4.1 / T7.1c — tables in the editor: insert from "/", type with Tab, add / delete rows and
@@ -86,6 +87,7 @@ test("insert a table, type across cells, add rows and columns", async ({ page, d
 
   // Tab in the last cell appends a row.
   await table.locator("tr").last().locator("td").last().click();
+  await waitForCaret(page);
   await page.keyboard.press("Tab");
   await expect(table.locator("tr")).toHaveCount(6);
 });
@@ -256,6 +258,7 @@ test("drag a row and a column by their handles, undo in one step (T4.3)", async 
 
   // Column 3 to the front (keyboard: Ctrl/Cmd+Alt+Shift+Left from a cell of that column).
   await table.locator("tr").nth(1).locator("th, td").nth(2).locator("p").click();
+  await waitForCaret(page);
   await page.keyboard.press("ControlOrMeta+Alt+Shift+ArrowLeft");
   await expect
     .poll(async () => (await cellTexts(table))[1])
@@ -354,7 +357,7 @@ test("the table and its content are saved and still there after a reload", async
   await waitForSaved(page);
 
   await page.reload();
-  const reloaded = await waitForEditor(page, doc.locale);
+  const reloaded = await editableEditor(page);
   const again = reloaded.locator("table").last();
   await expect(again.locator("tr")).toHaveCount(4);
   expect(await cellTexts(again)).toEqual(before);
@@ -368,9 +371,10 @@ test("a viewer sees the table but gets no table tools", async ({ page, doc, brow
     m: { table: t },
   } = doc;
   const table = await insertTable(page, editor, doc.m);
-  await page.keyboard.type("Chi doc");
-  await waitForSaved(page);
+  // One edit, stored before the viewer opens the page.
+  await page.keyboard.insertText("Chi doc");
   await expect(table.locator("th").first()).toHaveText("Chi doc");
+  await waitForSaved(page);
 
   const context = await contextAs(browser, doc.spaceSlug, "viewer", doc.locale);
   try {
