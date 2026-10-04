@@ -115,6 +115,17 @@ export async function openDocAs(viewer: Page, doc: EditorFixture) {
   await expect(row).toBeVisible();
   await row.click();
   await expect(viewer).toHaveURL(doc.pagePath);
+  // DIAGNOSTIC (temporary)
+  for (const wait of [0, 3000, 8000]) {
+    if (wait) await viewer.waitForTimeout(wait);
+    const info = await viewer.evaluate(() => ({
+      lang: document.documentElement.lang,
+      boxes: [...document.querySelectorAll('[role="textbox"]')].map((e) => e.getAttribute("aria-label")),
+      status: document.querySelector("[data-status]")?.getAttribute("data-status"),
+      h1: document.querySelector("h1")?.textContent,
+    }));
+    console.log(`DIAG viewer +${wait}ms ${JSON.stringify(info)}`);
+  }
 }
 
 /**
