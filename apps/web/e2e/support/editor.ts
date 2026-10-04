@@ -106,6 +106,18 @@ export const test = base.extend<{ doc: EditorFixture }>({
 export { expect };
 
 /**
+ * Opens the test page in another user's page the way a person does: the Space first (proves
+ * access), then the page from the sidebar.
+ */
+export async function openDocAs(viewer: Page, doc: EditorFixture) {
+  await viewer.goto(doc.spacePath);
+  const row = viewer.locator("aside").getByRole("treeitem", { name: "Editor E2E" });
+  await expect(row).toBeVisible();
+  await row.click();
+  await expect(viewer).toHaveURL(doc.pagePath);
+}
+
+/**
  * Signs a fresh internal user in a new browser context (with the run's base URL) and gives them
  * `role` in the Space, to check what a viewer/editor can do. Needs `E2E_SUPABASE_*`.
  */

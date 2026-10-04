@@ -5,6 +5,7 @@ import {
   type EditorFixture,
   expect,
   newLine,
+  openDocAs,
   test,
   waitForCaret,
   waitForSaved,
@@ -379,7 +380,7 @@ test("a viewer sees the table but gets no table tools", async ({ page, doc, brow
   const context = await contextAs(browser, doc.spaceSlug, "viewer", doc.locale);
   try {
     const viewer = await context.newPage();
-    await viewer.goto(doc.pagePath);
+    await openDocAs(viewer, doc);
     const readOnly = viewer.getByRole("textbox", { name: doc.m.editor.content.label });
     await expect(readOnly.locator("table th").first()).toHaveText("Chi doc");
     await expect(readOnly).toHaveAttribute("contenteditable", "false");
