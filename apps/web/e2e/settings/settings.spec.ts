@@ -68,10 +68,8 @@ test("language and time zone follow the profile to another device", async ({ bro
   await second.close();
 });
 
-// FIXME(app bug, found by T7.1d): the account menu and the login page still import the T1.2a
-// mocks (`@/server/auth/mock-actions`): "Sign out" only deletes the mock cookie, so the Supabase
-// session stays and the user is still signed in. Switch them to `@/server/auth` and drop `fixme`.
-test.fixme("signing out ends the session", async ({ browser }) => {
+// T7.7 — the account menu signs out of Supabase: the session is gone, not only hidden.
+test("signing out ends the session", async ({ browser }) => {
   const user = await createTestUser("signout");
   const context = await contextFor(browser, user);
   const page = await context.newPage();
