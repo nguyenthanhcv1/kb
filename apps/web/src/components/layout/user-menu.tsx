@@ -15,8 +15,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import type { CurrentUser } from "@/server/auth/mock";
-import { signOut } from "@/server/auth/mock-actions";
+import { type CurrentUser, signOut } from "@/server/auth";
 
 /** Up to two initials from the display name, else the first letter of the email. */
 export function initials(user: Pick<CurrentUser, "displayName" | "email">): string {

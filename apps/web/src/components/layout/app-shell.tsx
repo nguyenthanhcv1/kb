@@ -7,7 +7,7 @@ import { useState, type ReactNode } from "react";
 import { QuickSwitcher } from "@/components/search/quick-switcher";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import type { CurrentUser } from "@/server/auth/mock";
+import type { CurrentUser } from "@/server/auth";
 
 import { Brand } from "./brand";
 import { LocaleSwitcher } from "./locale-switcher";
