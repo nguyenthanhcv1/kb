@@ -969,6 +969,11 @@ Mục tiêu coverage: `packages/editor` ≥ 80 %, logic khác ≥ 60 %; mọi po
 | T7.4 | Tài liệu người dùng vi/en (bắt đầu, Space & quyền, editor & bảng, tìm kiếm, lịch sử), Space "Hướng dẫn" seed sẵn, nội dung What's new đầy đủ | `docs/user-guide/{vi,en}` | Script kiểm tra mỗi trang vi có bản en | M1–M6 | 1 | 0.8.0 |
 | T7.5 | Pilot `0.8.x` trên production với 1–2 phòng ban, thu phản hồi, sửa lỗi (buffer) | – | Không còn bug mức nghiêm trọng; phản hồi ghi thành issue | T7.3 | 3 | 0.8.x |
 | T7.6 | Phát hành **1.0.0**: checklist go-live (backup/restore thử trong 7 ngày qua, alert hoạt động, không bug P0/P1 mở, E2E xanh, tài liệu vi/en đủ, ghi chú phát hành vi/en), commit `Release-As: 1.0.0`, thông báo toàn công ty (song ngữ) | `changelog/vi/1.0.0.md`, `docs/runbooks/go-live.md` | Tag `v1.0.0`, app hiển thị `v1.0.0`, trang What's new có bài giới thiệu MVP | T7.5 | 0 (trong buffer) | **1.0.0** |
+| T7.7 | Nối trang `/login`, menu người dùng và app shell vào auth thật (`@/server/auth`) thay cho mock của T1.2b; bỏ `fixme` test đăng xuất | `apps/web/src/app/(auth)/login`, `apps/web/src/components/layout`, `apps/web/src/server/auth` | Đăng nhập Google tạo phiên Supabase thật; đăng xuất xoá phiên; không còn import `@/server/auth/mock*` ngoài test; E2E đăng xuất xanh | T1.2a, T1.2b | 0,25 | 0.8.0 |
+| T7.8 | Khách chỉ có lời mời đang chờ không bị middleware đăng xuất (`has_active_access`) | `supabase/migrations`, middleware | `members.spec.ts` bỏ `fixme` và xanh; pgTAP cho trường hợp lời mời đang chờ | T1.5a | 0,5 | 0.8.0 |
+| T7.9 | Realtime cây trang join kênh bằng token của người dùng (không phải anon key) | `apps/web/src/components/tree` | Sidebar tự cập nhật khi người khác sửa cây; E2E cây không cần reload | T2.5 | 0,5 | 0.8.0 |
+| T7.10 | kb-collab chỉ đánh dấu cần tạo phiên bản khi nội dung thật sự đổi (không phiên bản rỗng/trùng) | `apps/collab/src` | Test: mở rồi đóng trang không sinh phiên bản; không có phiên bản trùng nội dung liền nhau | T6.1b | 0,25 | 0.8.0 |
+| T7.11 | `.gitignore` bỏ qua phiên E2E ở `apps/web/e2e/.auth/` | `.gitignore` | `git status` sạch sau khi chạy E2E | T7.1b | 0,05 | 0.8.0 |
 
 **Tổng: ~64 ngày công** (≈ 3 tháng lịch, đã gồm buffer ở T7.5). Đường găng: T0.1 → T0.4 → T1.1 → T2.1 → T3.3 → T3.4 → T4.x → T5.x → T6.x → T7.x.
 

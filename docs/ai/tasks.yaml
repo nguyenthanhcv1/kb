@@ -103,7 +103,12 @@ tasks:
   - { id: T7.1b, title: "Hạ tầng E2E: e2e.yml bắt buộc, chạy vi/en, chống flaky", deps: [T6.3a], est: 1, ver: 0.8.0 }
   - { id: T7.1c, title: "E2E editor + bảng hoàn chỉnh", deps: [T4.6, T7.1b], est: 0.5, ver: 0.8.0, ui: true }
   - { id: T7.1d, title: "E2E luồng tính năng hoàn chỉnh (Space, cây, tìm kiếm, lịch sử, ngôn ngữ)", deps: [T6.4b, T7.1b], est: 0.5, ver: 0.8.0, ui: true }
+  - { id: T7.7,  title: "Nối UI đăng nhập/đăng xuất/menu người dùng vào auth thật (bỏ mock T1.2b), bỏ fixme test đăng xuất", deps: [T1.2a, T1.2b], est: 0.25, ver: 0.8.0, ui: true }
+  - { id: T7.8,  title: "Khách chỉ có lời mời đang chờ không bị middleware đăng xuất (has_active_access), bỏ fixme members.spec", deps: [T1.5a], est: 0.5, ver: 0.8.0 }
+  - { id: T7.9,  title: "Realtime cây trang join kênh bằng token người dùng (sidebar tự cập nhật), E2E không cần reload", deps: [T2.5], est: 0.5, ver: 0.8.0 }
+  - { id: T7.10, title: "kb-collab: không tạo phiên bản rỗng/trùng nội dung (chỉ pending khi nội dung đổi)", deps: [T6.1b], est: 0.25, ver: 0.8.0 }
+  - { id: T7.11, title: "Sửa .gitignore cho apps/web/e2e/.auth (phiên E2E)", deps: [T7.1b], est: 0.05, ver: 0.8.0 }
   - { id: T7.4,  title: "Tài liệu người dùng vi/en + Space Hướng dẫn seed + nội dung What's new", deps: [T6.4b], est: 1, ver: 0.8.0, ui: true }
   - { id: T7.3,  title: "Production kb-prod-1: Coolify remote server, OAuth prod, backup + restore thử, monitoring", deps: [T7.2, T0.9], est: 1.5, ver: 0.8.0, human: true }
-  - { id: T7.5,  title: "Pilot 0.8.x, thu phản hồi → tạo task sửa lỗi (thêm vào tasks.yaml theo thứ tự)", deps: [T7.3, T7.1c, T7.1d, T7.4], est: 3, ver: 0.8.x, manual: true }
+  - { id: T7.5,  title: "Pilot 0.8.x, thu phản hồi → tạo task sửa lỗi (thêm vào tasks.yaml theo thứ tự)", deps: [T7.3, T7.1c, T7.1d, T7.4, T7.7, T7.8], est: 3, ver: 0.8.x, manual: true }
   - { id: T7.6,  title: "Go-live checklist, Release-As 1.0.0", deps: [T7.5], est: 0, ver: 1.0.0, manual: true }
