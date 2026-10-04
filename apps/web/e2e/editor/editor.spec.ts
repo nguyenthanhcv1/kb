@@ -1,5 +1,5 @@
 import { supabaseEnv } from "../support/env";
-import { contextAs, diagnoseViewer, expect, openDocAs, newLine, test, waitForSaved } from "../support/editor";
+import { contextAs, expect, openDocAs, newLine, test, waitForSaved } from "../support/editor";
 import { editableEditor } from "../support/space";
 
 /**
@@ -171,7 +171,7 @@ test("a viewer sees the content but cannot edit", async ({ page, doc, browser })
     const viewer = await context.newPage();
     await openDocAs(viewer, doc);
     const readOnly = viewer.getByRole("textbox", { name: doc.m.editor.content.label });
-    await diagnoseViewer(viewer, () => expect(readOnly).toContainText(text));
+    await expect(readOnly).toContainText(text);
     await expect(readOnly).toHaveAttribute("contenteditable", "false");
 
     // Typing does nothing: the text is unchanged and no slash menu opens.

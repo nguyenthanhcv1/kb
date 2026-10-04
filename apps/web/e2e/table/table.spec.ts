@@ -2,7 +2,6 @@ import { type Locator, type Page } from "@playwright/test";
 
 import {
   contextAs,
-  diagnoseViewer,
   type EditorFixture,
   expect,
   newLine,
@@ -383,7 +382,7 @@ test("a viewer sees the table but gets no table tools", async ({ page, doc, brow
     const viewer = await context.newPage();
     await openDocAs(viewer, doc);
     const readOnly = viewer.getByRole("textbox", { name: doc.m.editor.content.label });
-    await diagnoseViewer(viewer, () => expect(readOnly.locator("table th").first()).toHaveText("Chi doc"));
+    await expect(readOnly.locator("table th").first()).toHaveText("Chi doc");
     await expect(readOnly).toHaveAttribute("contenteditable", "false");
     await readOnly.locator("table th").first().click();
     await expect(viewer.getByRole("toolbar", { name: t.menu.label })).toHaveCount(0);

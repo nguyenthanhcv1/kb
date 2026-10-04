@@ -105,23 +105,6 @@ export const test = base.extend<{ doc: EditorFixture }>({
 
 export { expect };
 
-/** DIAGNOSTIC (temporary): runs `check`; on failure reports what the viewer page shows. */
-export async function diagnoseViewer(viewer: Page, check: () => Promise<void>) {
-  try {
-    await check();
-  } catch (error) {
-    const info = await viewer.evaluate(() => ({
-      url: location.pathname,
-      lang: document.documentElement.lang,
-      boxes: [...document.querySelectorAll('[role="textbox"]')].map((e) => e.getAttribute("aria-label")),
-      editors: document.querySelectorAll(".ProseMirror").length,
-      status: document.querySelector("[data-status]")?.getAttribute("data-status"),
-      text: document.querySelector("main")?.textContent?.slice(0, 200),
-    }));
-    throw new Error(`DIAG viewer page ${JSON.stringify(info)}`, { cause: error });
-  }
-}
-
 /**
  * Opens the test page in another user's page the way a person does: the Space first (proves
  * access), then the page from the sidebar.
