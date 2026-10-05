@@ -10,7 +10,7 @@ import {
   waitForSaved,
 } from "../support/editor";
 import { supabaseEnv } from "../support/env";
-import { editableEditor } from "../support/space";
+import { editableEditor, untilStored } from "../support/space";
 
 /**
  * T4.1 / T7.1c — tables in the editor: insert from "/", type with Tab, add / delete rows and
@@ -371,7 +371,7 @@ test("a viewer sees the table but gets no table tools", async ({ page, doc, brow
     m: { table: t },
   } = doc;
   const table = await insertTable(page, editor, doc.m);
-  // One edit, stored before the viewer opens the page.
+  // One edit; the viewer reads it once kb-collab has stored it.
   await page.keyboard.insertText("Chi doc");
   await expect(table.locator("th").first()).toHaveText("Chi doc");
   await waitForSaved(page);
@@ -381,7 +381,9 @@ test("a viewer sees the table but gets no table tools", async ({ page, doc, brow
     const viewer = await context.newPage();
     await viewer.goto(doc.pagePath);
     const readOnly = viewer.getByRole("textbox", { name: doc.m.editor.content.label });
-    await expect(readOnly.locator("table th").first()).toHaveText("Chi doc");
+    await untilStored(viewer, () =>
+      expect(readOnly.locator("table th").first()).toHaveText("Chi doc", { timeout: 2_000 }),
+    );
     await expect(readOnly).toHaveAttribute("contenteditable", "false");
     await readOnly.locator("table th").first().click();
     await expect(viewer.getByRole("toolbar", { name: t.menu.label })).toHaveCount(0);

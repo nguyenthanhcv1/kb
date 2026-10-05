@@ -83,6 +83,18 @@ export async function editableEditor(page: Page) {
   return editor;
 }
 
+/**
+ * Reloads `page` until `check` passes. Readers (viewers) get the server-rendered `content_json`,
+ * not the live document: kb-collab writes it about 2 s (debounce) after the editor shows "Saved",
+ * so a reader opening the page right after an edit can see the previous content.
+ */
+export async function untilStored(page: Page, check: () => Promise<void>) {
+  await expect(async () => {
+    await page.reload();
+    await check();
+  }).toPass({ timeout: 30_000 });
+}
+
 /** Waits until everything typed is stored by kb-collab. */
 export async function waitForSaved(page: Page) {
   await expect(page.locator('[data-status="saved"]')).toBeVisible();
