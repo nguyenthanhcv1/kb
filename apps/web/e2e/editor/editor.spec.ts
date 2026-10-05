@@ -1,6 +1,6 @@
 import { supabaseEnv } from "../support/env";
 import { contextAs, expect, newLine, test, waitForSaved } from "../support/editor";
-import { editableEditor } from "../support/space";
+import { editableEditor, untilStored } from "../support/space";
 
 /**
  * T7.1c — editor flows (docs/PLAN.md §8): blocks from the "/" menu, formatting from the bubble
@@ -161,7 +161,7 @@ test("a viewer sees the content but cannot edit", async ({ page, doc, browser })
   test.skip(!supabaseEnv(), "E2E_SUPABASE_* is not set (needed to create the viewer)");
   const text = `Chi doc ${Date.now().toString(36)}`;
   await newLine(page, doc.editor);
-  // One edit, stored before the viewer opens the page.
+  // One edit; the viewer reads it once kb-collab has stored it.
   await page.keyboard.insertText(text);
   await expect(doc.editor).toContainText(text);
   await waitForSaved(page);
@@ -171,7 +171,7 @@ test("a viewer sees the content but cannot edit", async ({ page, doc, browser })
     const viewer = await context.newPage();
     await viewer.goto(doc.pagePath);
     const readOnly = viewer.getByRole("textbox", { name: doc.m.editor.content.label });
-    await expect(readOnly).toContainText(text);
+    await untilStored(viewer, () => expect(readOnly).toContainText(text, { timeout: 2_000 }));
     await expect(readOnly).toHaveAttribute("contenteditable", "false");
 
     // Typing does nothing: the text is unchanged and no slash menu opens.

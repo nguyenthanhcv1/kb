@@ -15,6 +15,7 @@ import {
   editableEditor,
   openPage,
   uniqueSuffix,
+  untilStored,
   waitForSaved,
 } from "../support/space";
 import { expect, test } from "../support/test";
@@ -106,7 +107,7 @@ test("a viewer reads the space but cannot edit it", async ({ page, browser }, te
   await openPage(page, "Handbook");
   const editor = await editableEditor(page);
   await editor.click();
-  // One edit, stored before the viewer opens the page.
+  // One edit; the viewer reads it once kb-collab has stored it.
   await page.keyboard.insertText(`Readable ${suffix}`);
   await expect(editor).toContainText(`Readable ${suffix}`);
   await waitForSaved(page);
@@ -125,7 +126,9 @@ test("a viewer reads the space but cannot edit it", async ({ page, browser }, te
   await aside.getByRole("treeitem", { name: "Handbook" }).click();
   await expect(view).toHaveURL(/\/p\//);
   const content = view.getByRole("textbox", { name: m.editor.content.label });
-  await expect(content).toContainText(`Readable ${suffix}`);
+  await untilStored(view, () =>
+    expect(content).toContainText(`Readable ${suffix}`, { timeout: 2_000 }),
+  );
   await expect(content).toHaveAttribute("contenteditable", "false");
   await expect(view.getByRole("textbox", { name: m.tree.page.title.label })).toHaveCount(0);
   await expect(view.getByRole("button", { name: m.tree.page.menu })).toHaveCount(0);
