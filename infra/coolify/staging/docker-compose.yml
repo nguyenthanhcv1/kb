@@ -10,8 +10,12 @@
 # - Order on every deploy: kb-migrate (one shot, must exit 0) → kb-collab (healthy) → kb-web.
 # - Routing is defined by the Traefik labels below. Leave the "Domains" fields of these services
 #   EMPTY in Coolify, otherwise Coolify adds its own routers (without the /internal restriction).
-# - TLS: Cloudflare Origin CA wildcard installed as Traefik's default certificate
+# - TLS: by default Cloudflare Origin CA wildcard installed as Traefik's default certificate
 #   (infra/coolify/proxy/dynamic/origin-ca.yml), Cloudflare SSL mode "Full (strict)". No ACME.
+#   Without Cloudflare proxy (DNS only), set KB_TLS_RESOLVER=letsencrypt (Coolify's Traefik
+#   resolver name) and Traefik issues the certificates itself.
+# - Hostnames: KB_WEB_HOST / KB_COLLAB_HOST (defaults: the staging names below). They must match
+#   APP_URL and COLLAB_PUBLIC_URL / COLLAB_ALLOWED_ORIGINS.
 # - Every `${VAR:?}` must be set in Coolify (Environment Variables, mark secrets "locked").
 #   The list with where each value comes from: infra/coolify/staging/env.example.
 
@@ -67,11 +71,12 @@ services:
       # Public router: ONLY the WebSocket endpoint (/) and /health. /internal/* (T3.7) and every
       # other path get Traefik's 404 — the internal API is reachable only on the Docker network.
       # No compress/buffering middleware on this router (WebSocket).
-      - traefik.http.routers.kb-staging-collab.rule=Host(`kb-staging-collab.thanhgo.com`) && (Path(`/`) || Path(`/health`))
+      - traefik.http.routers.kb-staging-collab.rule=Host(`${KB_COLLAB_HOST:-kb-staging-collab.thanhgo.com}`) && (Path(`/`) || Path(`/health`))
       - traefik.http.routers.kb-staging-collab.entrypoints=https
       - traefik.http.routers.kb-staging-collab.tls=true
+      - traefik.http.routers.kb-staging-collab.tls.certresolver=${KB_TLS_RESOLVER:-}
       - traefik.http.routers.kb-staging-collab.service=kb-staging-collab
-      - traefik.http.routers.kb-staging-collab-http.rule=Host(`kb-staging-collab.thanhgo.com`)
+      - traefik.http.routers.kb-staging-collab-http.rule=Host(`${KB_COLLAB_HOST:-kb-staging-collab.thanhgo.com}`)
       - traefik.http.routers.kb-staging-collab-http.entrypoints=http
       - traefik.http.routers.kb-staging-collab-http.middlewares=kb-staging-https-redirect
       - traefik.http.routers.kb-staging-collab-http.service=kb-staging-collab
@@ -119,11 +124,12 @@ services:
     labels:
       - traefik.enable=true
       - traefik.docker.network=coolify
-      - traefik.http.routers.kb-staging-web.rule=Host(`kb-staging.thanhgo.com`)
+      - traefik.http.routers.kb-staging-web.rule=Host(`${KB_WEB_HOST:-kb-staging.thanhgo.com}`)
       - traefik.http.routers.kb-staging-web.entrypoints=https
       - traefik.http.routers.kb-staging-web.tls=true
+      - traefik.http.routers.kb-staging-web.tls.certresolver=${KB_TLS_RESOLVER:-}
       - traefik.http.routers.kb-staging-web.service=kb-staging-web
-      - traefik.http.routers.kb-staging-web-http.rule=Host(`kb-staging.thanhgo.com`)
+      - traefik.http.routers.kb-staging-web-http.rule=Host(`${KB_WEB_HOST:-kb-staging.thanhgo.com}`)
       - traefik.http.routers.kb-staging-web-http.entrypoints=http
       - traefik.http.routers.kb-staging-web-http.middlewares=kb-staging-https-redirect
       - traefik.http.routers.kb-staging-web-http.service=kb-staging-web
