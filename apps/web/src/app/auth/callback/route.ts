@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 import { safeNextPath } from "@/app/(auth)/_lib/safe-next";
+import { publicOrigin } from "@/lib/public-origin";
 import { createClient } from "@/lib/supabase/server";
 import { mapAuthCallbackError } from "@/server/auth/utils";
 
@@ -12,7 +13,8 @@ import { mapAuthCallbackError } from "@/server/auth/utils";
  * `hookserrors` package, which forwards the hook's `message` field verbatim as `msg`.
  */
 export async function GET(request: NextRequest): Promise<NextResponse> {
-  const { searchParams, origin } = new URL(request.url);
+  const { searchParams } = new URL(request.url);
+  const origin = publicOrigin(request.url);
   const code = searchParams.get("code");
   const next = safeNextPath(searchParams.get("next"));
 

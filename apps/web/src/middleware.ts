@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 
+import { publicOrigin } from "@/lib/public-origin";
 import { contentSecurityPolicy } from "@/lib/security-headers";
 import { supabaseUrl } from "@/lib/supabase/env";
 import { ensureBootstrapAccess } from "@/server/auth/bootstrap";
@@ -59,7 +60,7 @@ async function gate(request: NextRequest): Promise<NextResponse> {
   });
 
   if (!user && !isPublicPath(pathname, PUBLIC_PATHS)) {
-    const loginUrl = new URL("/login", request.url);
+    const loginUrl = new URL("/login", publicOrigin(request.url));
     if (accessRevoked) {
       loginUrl.searchParams.set("error", "AUTH_ACCESS_REVOKED");
     } else {
