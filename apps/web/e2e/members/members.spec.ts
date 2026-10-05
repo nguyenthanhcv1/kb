@@ -158,7 +158,7 @@ for (const locale of ["vi", "en"] as const) {
     await page.reload();
     const guestRow = members.getByRole("listitem").filter({ hasText: `Partner ${suffix}` });
     await expect(guestRow.getByText(m.members.list.guest, { exact: true })).toBeVisible();
-    await expect(page.getByText(guestEmail, { exact: true })).toHaveCount(1);
+    await expect(page.getByText(guestEmail)).toHaveCount(1);
 
     // Expired link → translated error.
     const lateEmail = `late-${suffix}@partner.test`;
