@@ -79,6 +79,7 @@
     "access": {
       "allowlist": "Trong danh sách cho phép",
       "deactivated": "Đã khoá",
+      "invitation": "Đang có lời mời vào Space",
       "membership": "Chỉ qua thành viên Space",
       "none": "Không còn quyền truy cập",
       "super_admin": "Quản trị viên hệ thống"

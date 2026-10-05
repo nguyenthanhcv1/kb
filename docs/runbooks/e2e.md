@@ -15,6 +15,7 @@
 ```bash
 supabase start && eval "$(supabase status -o env | sed 's/^/export /')"
 export E2E_SUPABASE_URL=$API_URL E2E_SUPABASE_ANON_KEY=$ANON_KEY E2E_SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY
+export SUPABASE_JWKS_URL=$API_URL/auth/v1/.well-known/jwks.json   # token local là ES256: kb-collab cần JWKS (docs/adr/0003), không dùng JWT_SECRET
 pnpm dev                                   # hoặc bản build: pnpm build && pnpm --filter @kb/web start
 cd apps/web
 E2E_LOCALE=en pnpm exec playwright test    # E2E_LOCALE mặc định vi; E2E_BASE_URL mặc định http://localhost:3000
@@ -25,14 +26,15 @@ Không đặt `E2E_SUPABASE_*` thì không có người dùng đăng nhập và 
 
 ## 3. Công cụ cho spec
 
-| File                      | Dùng để                                                                                                                                                                                    |
-| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `e2e/support/test.ts`     | `test`/`expect` có guard i18n (MISSING_MESSAGE, pageerror). **Spec mới import từ đây.**                                                                                                    |
-| `e2e/support/env.ts`      | `e2eLocale()`, `baseUrl()`, `supabaseEnv()`                                                                                                                                                |
-| `e2e/support/auth.ts`     | `allowEmail`, `createUser`, `signInCookies` (cookie đúng định dạng `@supabase/ssr`), `adminFetch` — tạo thêm người dùng (viewer, khách) cho từng test                                      |
-| `e2e/support/messages.ts` | `message(locale, namespace)` — lấy nhãn từ file message, không viết chuỗi cứng trong test                                                                                                  |
-| `e2e/support/space.ts`    | `createSpace`, `addPage`, `openPage`, `editableEditor`, `waitForSaved`, `createTestUser` (viewer… trong Space), `contextFor` — mỗi test tự tạo Space/trang, không cần dữ liệu chuẩn bị sẵn |
-| `e2e/global-setup.ts`     | tạo người dùng nội bộ `e2e-internal@kb.test`, ghi `.auth/internal.json`, đặt `E2E_STORAGE_STATE`                                                                                           |
+| File                      | Dùng để                                                                                                                                                                                                            |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `e2e/support/test.ts`     | `test`/`expect` có guard i18n (MISSING_MESSAGE, pageerror). **Spec mới import từ đây.**                                                                                                                            |
+| `e2e/support/env.ts`      | `e2eLocale()`, `baseUrl()`, `supabaseEnv()`                                                                                                                                                                        |
+| `e2e/support/auth.ts`     | `allowEmail`, `createUser`, `signInCookies` (cookie đúng định dạng `@supabase/ssr`), `adminFetch` — tạo thêm người dùng (viewer, khách) cho từng test                                                              |
+| `e2e/support/messages.ts` | `message(locale, namespace)` — lấy nhãn từ file message, không viết chuỗi cứng trong test                                                                                                                          |
+| `e2e/support/space.ts`    | `createSpace`, `addPage`, `openPage`, `editableEditor`, `waitForSaved`, `createTestUser` (viewer… trong Space), `contextFor` — mỗi test tự tạo Space/trang, không cần dữ liệu chuẩn bị sẵn                         |
+| `e2e/support/editor.ts`   | (T7.1c) fixture `doc`: mỗi test tự tạo Space + trang rỗng qua UI và mở editor (không cần `E2E_EDITOR_PATH`); `contextAs(browser, slug, "viewer")` tạo người dùng có vai trò trong Space; `newLine`, `waitForSaved` |
+| `e2e/global-setup.ts`     | tạo người dùng nội bộ `e2e-internal@kb.test`, ghi `.auth/internal.json`, đặt `E2E_STORAGE_STATE`                                                                                                                   |
 
 Spec Space, cây, trang, tìm kiếm, lịch sử, cài đặt (ngôn ngữ) và What's new chạy theo `E2E_LOCALE` qua `e2e/support/test.ts` (T7.1d) và tự tạo dữ liệu — không còn cần `E2E_PAGE_PATH`/`E2E_RESTORE`. Spec còn dùng `@playwright/test` và tự lặp vi/en: `admin`, `members`, `space/audit` (và editor/bảng của T7.1c).
 
@@ -56,4 +58,3 @@ Spec Space, cây, trang, tìm kiếm, lịch sử, cài đặt (ngôn ngữ) và
 
 - `global-setup` tạo `e2e-w0..3@kb.test`; mỗi worker Playwright đăng nhập bằng người dùng của riêng nó (`E2E_STORAGE_STATE` được `playwright.config.ts` trỏ theo `TEST_PARALLEL_INDEX`). Ngôn ngữ và múi giờ nằm trong profile nên không được dùng chung một người dùng giữa các spec chạy song song.
 - **Profile thắng cookie `NEXT_LOCALE`**: spec khẳng định theo ngôn ngữ phải gọi `useLocale(context, locale)` (`e2e/support/locale.ts`: đặt cookie + `profiles.locale`), không tự `addCookies`.
-- `members.spec.ts` đang `test.fixme`: khách chỉ có lời mời đang chờ bị `has_active_access` coi là không còn quyền nên middleware đăng xuất khi prefetch link ngoài `/invite`. Cần sửa ở DB/middleware (task riêng), rồi bỏ `fixme`.

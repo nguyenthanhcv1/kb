@@ -1,6 +1,6 @@
 begin;
 
-select plan(19);
+select plan(21);
 
 -- Fixture: one internal admin (to own the invitation + the space) and the allow/deny data
 -- the hook and the profile trigger both read. The allowlist rows go in *before* the owner's
@@ -149,7 +149,20 @@ select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000106
 select is(app.has_active_access(), true, 'active Space membership keeps access after losing the allowlist');
 
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000103', true);
-select is(app.has_active_access(), false, 'a pending, not-yet-accepted invitation is not active access');
+select is(app.has_active_access(), true, 'a valid pending invitation keeps the session until it is accepted (T7.8)');
+
+-- Once that invitation can no longer be accepted, the session goes on the next request.
+reset role;
+update public.invitations set expires_at = now() - interval '1 minute'
+where email = 'invited-guest@outside.example';
+set local role authenticated;
+select is(app.has_active_access(), false, 'an expired invitation is not active access');
+
+reset role;
+update public.invitations set expires_at = now() + interval '14 days', revoked_at = now()
+where email = 'invited-guest@outside.example';
+set local role authenticated;
+select is(app.has_active_access(), false, 'a revoked invitation is not active access');
 
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000107', true);
 select is(app.has_active_access(), false, 'a stranger with no allowlist entry and no membership has no active access');
