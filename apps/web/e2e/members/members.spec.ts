@@ -134,7 +134,7 @@ for (const locale of ["vi", "en"] as const) {
     // Invite a guest; the pending invitation is listed.
     const guestEmail = `guest-${suffix}@partner.test`;
     const inviteUrl = await invite(page, m, guestEmail);
-    await expect(page.getByText(guestEmail)).toBeVisible();
+    await expect(page.getByText(guestEmail, { exact: true })).toBeVisible();
 
     // The guest signs in and accepts → lands in the Space.
     const guestContext = await browser.newContext({ storageState: { cookies: [], origins: [] } });
@@ -158,7 +158,7 @@ for (const locale of ["vi", "en"] as const) {
     await page.reload();
     const guestRow = members.getByRole("listitem").filter({ hasText: `Partner ${suffix}` });
     await expect(guestRow.getByText(m.members.list.guest, { exact: true })).toBeVisible();
-    await expect(page.getByText(guestEmail)).toHaveCount(1);
+    await expect(page.getByText(guestEmail, { exact: true })).toHaveCount(1);
 
     // Expired link → translated error.
     const lateEmail = `late-${suffix}@partner.test`;
