@@ -140,7 +140,7 @@ jobs:
           fi
 
       - name: Upload báo cáo, trace, video khi lỗi
-        if: failure() || cancelled()
+        if: always() # TEMP T7.12: keep traces of flaky retries
         uses: actions/upload-artifact@v4
         with:
           name: e2e-${{ matrix.locale }}-report
@@ -151,7 +151,7 @@ jobs:
           if-no-files-found: ignore
 
       - name: Upload log server khi lỗi
-        if: failure()
+        if: always() # TEMP T7.12
         uses: actions/upload-artifact@v4
         with:
           name: e2e-${{ matrix.locale }}-server-logs
