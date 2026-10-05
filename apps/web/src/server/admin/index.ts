@@ -342,10 +342,14 @@ export const removeAccessEntriesOutputSchema = z.object({
 });
 export type RemoveAccessEntriesOutput = z.infer<typeof removeAccessEntriesOutputSchema>;
 
-/** Why a user can sign in (`admin.users.access.<access>`). `none` = signed out on next request. */
+/**
+ * Why a user can sign in (`admin.users.access.<access>`). `invitation` = a guest kept signed in by
+ * an invitation they have not accepted yet (T7.8); `none` = signed out on next request.
+ */
 export const USER_ACCESS_REASONS = [
   "allowlist",
   "deactivated",
+  "invitation",
   "membership",
   "none",
   "super_admin",

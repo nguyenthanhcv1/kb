@@ -102,22 +102,15 @@ async function invite(page: Page, m: Messages, email: string): Promise<string> {
 }
 
 for (const locale of ["vi", "en"] as const) {
-  // FIXME(app bug, found by T7.1b): a guest with only a pending invitation has no active access
-  // (app.has_active_access), so the middleware signs them out on the first prefetch of any link
-  // outside /invite (login?error=AUTH_ACCESS_REVOKED) and "accept" then runs signed out. Fix the
-  // access check (migration) and drop this `fixme`.
-  test.fixme(
-    true,
-    "guest with a pending invitation is signed out by prefetch (has_active_access) - see comment",
-  );
   test(`invite a guest, accept once, expire and revoke (${locale})`, async ({
     page,
     context,
     browser,
-  }) => {
+  }, testInfo) => {
     const m = messages[locale];
     await useLocale(context, locale);
-    const suffix = `${locale}-${Date.now().toString(36)}`;
+    // Unique per worker, repeat and retry: parallel runs must not share a Space or a guest email.
+    const suffix = `${locale}-${Date.now().toString(36)}${testInfo.parallelIndex}${testInfo.repeatEachIndex}${testInfo.retry}`;
     const spaceName = `Team ${suffix}`;
     const slug = await createSpace(page, m, spaceName);
 
@@ -141,7 +134,7 @@ for (const locale of ["vi", "en"] as const) {
     // Invite a guest; the pending invitation is listed.
     const guestEmail = `guest-${suffix}@partner.test`;
     const inviteUrl = await invite(page, m, guestEmail);
-    await expect(page.getByText(guestEmail)).toBeVisible();
+    await expect(page.getByText(guestEmail, { exact: true })).toBeVisible();
 
     // The guest signs in and accepts → lands in the Space.
     const guestContext = await browser.newContext({ storageState: { cookies: [], origins: [] } });

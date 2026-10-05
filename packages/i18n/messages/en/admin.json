@@ -79,6 +79,7 @@
     "access": {
       "allowlist": "On the allowlist",
       "deactivated": "Deactivated",
+      "invitation": "Pending Space invitation",
       "membership": "Space membership only",
       "none": "No access left",
       "super_admin": "Super admin"

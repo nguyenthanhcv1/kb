@@ -2,7 +2,7 @@
 -- member list and "add internal member" search, across admin / editor / viewer / guest / outsider.
 begin;
 
-select plan(50);
+select plan(55);
 
 insert into auth.users (id, email) values
   ('00000000-0000-0000-0000-000000000001', 'super@example.com'),
@@ -116,7 +116,7 @@ select throws_ok($$ select * from public.accept_invitation('tok-deactivated') $$
 
 -- ---------------------------------------------------------------- accept_invitation: success
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000006', true);
-select is(app.has_active_access(), false, 'guest with only a pending invitation has no active access yet');
+select is(app.has_active_access(), true, 'guest with a valid pending invitation keeps the session (T7.8)');
 select is(app.space_role('10000000-0000-0000-0000-000000000001'), null::public.space_role, 'guest cannot view the space before accepting');
 select results_eq(
   $$ select space_id, space_slug, role::text from public.accept_invitation('tok-valid') $$,
@@ -259,6 +259,24 @@ select is((select count(*)::int from public.search_member_candidates('10000000-0
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000006', true);
 select is((select count(*)::int from public.search_member_candidates('10000000-0000-0000-0000-000000000001', 'nguyen')), 0,
   'guest gets no candidates');
+
+-- ---------------------------------------------------------------- pending invitations (T7.8)
+reset role;
+select is(app.has_pending_invitation('pending@outside.test'), true, 'a valid invitation is pending');
+select is(app.has_pending_invitation('PENDING@Outside.Test'), true, 'pending invitations match the email case-insensitively');
+select is(app.has_pending_invitation('nobody@outside.test'), false, 'no invitation, nothing pending');
+-- guest@outside.test: tok-valid accepted above; tok-expired, tok-revoked and tok-archived (Space archived) left.
+select is(app.has_pending_invitation('guest@outside.test'), false,
+  'accepted, expired, revoked and archived-Space invitations are not pending');
+insert into auth.users (id, email) values ('00000000-0000-0000-0000-000000000009', 'pending@outside.test');
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', true);
+set local role authenticated;
+select is(
+  (select access from public.admin_list_users(p_query => 'pending@outside.test') where email = 'pending@outside.test'),
+  'invitation',
+  'the admin user list reports a guest kept by a pending invitation as invitation'
+);
+reset role;
 
 -- ---------------------------------------------------------------- anon
 reset role;

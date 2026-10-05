@@ -58,4 +58,3 @@ Spec Space, cây, trang, tìm kiếm, lịch sử, cài đặt (ngôn ngữ) và
 
 - `global-setup` tạo `e2e-w0..3@kb.test`; mỗi worker Playwright đăng nhập bằng người dùng của riêng nó (`E2E_STORAGE_STATE` được `playwright.config.ts` trỏ theo `TEST_PARALLEL_INDEX`). Ngôn ngữ và múi giờ nằm trong profile nên không được dùng chung một người dùng giữa các spec chạy song song.
 - **Profile thắng cookie `NEXT_LOCALE`**: spec khẳng định theo ngôn ngữ phải gọi `useLocale(context, locale)` (`e2e/support/locale.ts`: đặt cookie + `profiles.locale`), không tự `addCookies`.
-- `members.spec.ts` đang `test.fixme`: khách chỉ có lời mời đang chờ bị `has_active_access` coi là không còn quyền nên middleware đăng xuất khi prefetch link ngoài `/invite`. Cần sửa ở DB/middleware (task riêng), rồi bỏ `fixme`.
