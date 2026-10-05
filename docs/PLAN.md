@@ -974,6 +974,7 @@ Mục tiêu coverage: `packages/editor` ≥ 80 %, logic khác ≥ 60 %; mọi po
 | T7.9 | Realtime cây trang join kênh bằng token của người dùng (không phải anon key) | `apps/web/src/components/tree` | Sidebar tự cập nhật khi người khác sửa cây; E2E cây không cần reload | T2.5 | 0,5 | 0.8.0 |
 | T7.10 | kb-collab chỉ đánh dấu cần tạo phiên bản khi nội dung thật sự đổi (không phiên bản rỗng/trùng) | `apps/collab/src` | Test: mở rồi đóng trang không sinh phiên bản; không có phiên bản trùng nội dung liền nhau | T6.1b | 0,25 | 0.8.0 |
 | T7.11 | `.gitignore` bỏ qua phiên E2E ở `apps/web/e2e/.auth/` | `.gitignore` | `git status` sạch sau khi chạy E2E | T7.1b | 0,05 | 0.8.0 |
+| T7.12 | Người xem (viewer) đôi khi mất editor sau khi trang đã hiện: CI job `e2e (en)` báo "a viewer sees the content but cannot edit" và "a viewer sees the table but gets no table tools" flaky (qua ở lần retry thứ 3), `vi` và local luôn qua. Nghi: ngôn ngữ giao diện viewer đổi sau lần render đầu, hoặc kết nối collab chỉ-đọc làm editor bị thay liên tục | `apps/web/src/components/editor`, `apps/web/e2e` | Tìm được nguyên nhân (ghi trong PR); 2 test viewer xanh, không flaky trên CI `en` 10 lần liên tiếp | T7.1c | 0,5 | 0.8.0 |
 
 **Tổng: ~64 ngày công** (≈ 3 tháng lịch, đã gồm buffer ở T7.5). Đường găng: T0.1 → T0.4 → T1.1 → T2.1 → T3.3 → T3.4 → T4.x → T5.x → T6.x → T7.x.
 
