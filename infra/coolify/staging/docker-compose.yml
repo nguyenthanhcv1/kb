@@ -97,6 +97,10 @@ services:
       SUPABASE_URL: ${SUPABASE_URL:-https://kb-staging-api.thanhgo.com}
       SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY:?}
       SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:?}
+      # Same values under the names apps/web/src/lib/supabase/env.ts reads at runtime (middleware,
+      # server and admin clients); without them every page render fails with a 500.
+      NEXT_PUBLIC_SUPABASE_URL: ${SUPABASE_URL:-https://kb-staging-api.thanhgo.com}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY:?}
       COLLAB_PUBLIC_URL: ${COLLAB_PUBLIC_URL:-wss://kb-staging-collab.thanhgo.com}
       COLLAB_INTERNAL_URL: http://kb-collab:3001
       COLLAB_INTERNAL_SECRET: ${COLLAB_INTERNAL_SECRET:?}
