@@ -206,3 +206,25 @@ $$;
 create trigger mcp_connections_audit
 after insert or update on public.mcp_connections
 for each row execute function app.audit_mcp_connections();
+
+-- ---------------------------------------------------------------------------
+-- Page role for server code
+-- ---------------------------------------------------------------------------
+
+-- kb-collab's replace API trusts kb-web, so the connector checks edit rights first. PostgREST
+-- only exposes `public`: this wrapper answers app.page_role() for the caller (auth.uid()) only.
+create or replace function public.my_page_role(p_page_id uuid)
+returns public.space_role
+language sql
+stable
+security invoker
+set search_path = ''
+as $$
+  select app.page_role(p_page_id)
+$$;
+
+comment on function public.my_page_role(uuid) is
+  'Role of the current user on a page (null = no access); PostgREST entry point of app.page_role().';
+
+revoke all on function public.my_page_role(uuid) from public, anon;
+grant execute on function public.my_page_role(uuid) to authenticated, service_role;

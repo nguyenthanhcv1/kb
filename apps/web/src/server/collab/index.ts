@@ -48,7 +48,7 @@ export class CollabError extends Error {
 }
 
 /** Why the content is replaced; open editors receive it (stateless `document.replaced`). */
-export const REPLACE_REASONS = ["restore", "template", "import"] as const;
+export const REPLACE_REASONS = ["restore", "template", "import", "assistant"] as const;
 export type ReplaceReason = (typeof REPLACE_REASONS)[number];
 
 export const replaceDocumentInputSchema = z.object({

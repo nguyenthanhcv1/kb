@@ -104,7 +104,7 @@ const REPLACE_ROUTE = /^\/internal\/documents\/([^/]+)\/replace$/;
 const VERSIONS_ROUTE = /^\/internal\/documents\/([^/]+)\/versions$/;
 const RESTORE_ROUTE = /^\/internal\/documents\/([^/]+)\/versions\/([^/]+)\/restore$/;
 
-export const REPLACE_REASONS = ["restore", "template", "import"] as const;
+export const REPLACE_REASONS = ["restore", "template", "import", "assistant"] as const;
 
 /** Type of the stateless message sent to open editors after a replace (web toast, T6.3b). */
 export const DOCUMENT_REPLACED_MESSAGE = "document.replaced";

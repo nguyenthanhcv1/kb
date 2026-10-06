@@ -159,6 +159,12 @@ jobs:
           ATTACHMENTS_TEST_JWT_SECRET: super-secret-jwt-token-with-at-least-32-characters-long
           ATTACHMENTS_TEST_ADMIN_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
         run: pnpm --filter @kb/web exec vitest run src/server/attachments/attachments.integration.test.ts
+      - name: Integration test kết nối MCP (OAuth, token, công cụ qua PostgREST → RLS)
+        env:
+          MCP_TEST_SUPABASE_URL: http://127.0.0.1:54321
+          MCP_TEST_JWT_SECRET: super-secret-jwt-token-with-at-least-32-characters-long
+          MCP_TEST_ADMIN_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+        run: pnpm --filter @kb/web exec vitest run src/server/mcp/mcp.integration.test.ts
       - name: Integration test gửi email (SMTP → Mailpit)
         env:
           MAIL_TEST_SMTP_PORT: 54325

@@ -3,8 +3,13 @@ import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 
 import { AboutSection } from "@/components/settings/about-section";
+import { AiConnectionsSection } from "@/components/settings/ai-connections-section";
 import { PreferencesSection } from "@/components/settings/preferences-section";
 import { ProfileSection } from "@/components/settings/profile-section";
+import { mcpRequestOrigin } from "@/server/mcp/origin";
+import { listMyConnectionsAction } from "@/server/mcp/actions";
+import { mcpUrls } from "@/server/mcp/http";
+import { isUserClientConfigured } from "@/server/mcp/user-client";
 import { getMyProfile } from "@/server/profile/actions";
 import { listTimeZones } from "@/server/profile/time-zones";
 import { getAboutInfo } from "@/server/release";
@@ -18,13 +23,15 @@ export async function generateMetadata(): Promise<Metadata> {
 
 /**
  * Personal settings (frame and sign-in check: `(app)/layout.tsx`): profile (name, avatar),
- * language and time zone (T1.3), About (T0.6b).
+ * language and time zone (T1.3), AI assistants (MCP connector), About (T0.6b).
  */
 export default async function SettingsPage() {
-  const [t, about, profileResult] = await Promise.all([
+  const [t, about, profileResult, connectionsResult, origin] = await Promise.all([
     getTranslations("settings"),
     getAboutInfo(),
     getMyProfile(),
+    listMyConnectionsAction(),
+    mcpRequestOrigin(),
   ]);
   if (!profileResult.ok) {
     if (profileResult.error === "UNAUTHORIZED") redirect("/login?next=/settings");
@@ -38,6 +45,11 @@ export default async function SettingsPage() {
       <h1 className="text-2xl font-semibold">{t("title")}</h1>
       <ProfileSection profile={profile} />
       <PreferencesSection profile={profile} timeZones={timeZones} />
+      <AiConnectionsSection
+        mcpUrl={mcpUrls(origin).mcp}
+        configured={isUserClientConfigured()}
+        connections={connectionsResult.ok ? connectionsResult.data : []}
+      />
       <AboutSection about={about} />
     </div>
   );

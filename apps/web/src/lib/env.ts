@@ -35,6 +35,14 @@ export const webEnvSchema = z
       SUPABASE_URL: requiredUrl(),
       SUPABASE_ANON_KEY: requiredString(),
       SUPABASE_SERVICE_ROLE_KEY: requiredString(),
+      /**
+       * HS256 JWT secret of Supabase (the one kb-collab may also use). Lets the MCP connector run
+       * each AI tool call as the user under RLS; unset = the connector answers 503.
+       */
+      SUPABASE_JWT_SECRET: z.preprocess(
+        (value) => (value === "" ? undefined : value),
+        z.string().min(32, { error: "must be at least 32 characters" }).optional(),
+      ),
       COLLAB_PUBLIC_URL: optionalUrl(),
       COLLAB_INTERNAL_URL: optionalUrl(),
       COLLAB_INTERNAL_SECRET: z.preprocess(

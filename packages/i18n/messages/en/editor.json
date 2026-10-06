@@ -28,6 +28,10 @@
       "reload": "Reload"
     },
     "replaced": {
+      "assistant": {
+        "description": "Someone edited the page through an AI assistant (MCP). The text you see is now the new content.",
+        "title": "An AI assistant just updated this page"
+      },
       "dismiss": "Dismiss notification",
       "import": {
         "description": "The page content was replaced by an import. The text you see is now the imported content.",

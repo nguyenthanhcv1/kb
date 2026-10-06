@@ -97,6 +97,8 @@ services:
       SUPABASE_URL: ${SUPABASE_URL:-https://kb-staging-api.thanhgo.com}
       SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY:?}
       SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:?}
+      # MCP connector: AI tool calls run as the user under RLS (short-lived JWT signed with it).
+      SUPABASE_JWT_SECRET: ${SUPABASE_JWT_SECRET:?}
       # Same values under the names apps/web/src/lib/supabase/env.ts reads at runtime (middleware,
       # server and admin clients); without them every page render fails with a 500.
       NEXT_PUBLIC_SUPABASE_URL: ${SUPABASE_URL:-https://kb-staging-api.thanhgo.com}

@@ -27,7 +27,7 @@ const ALERT_VARIANTS: Record<string, CalloutVariant> = {
 };
 
 const ALERT_PATTERN = /^\[!([A-Za-z]+)\][ \t]*(?:\n|$)/;
-const MAX_HEADING = HEADING_LEVELS[HEADING_LEVELS.length - 1];
+const MAX_HEADING = Math.max(...HEADING_LEVELS);
 
 const ENTITIES: Record<string, string> = {
   amp: "&",

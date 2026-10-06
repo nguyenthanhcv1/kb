@@ -1,6 +1,6 @@
 begin;
 
-select plan(17);
+select plan(21);
 
 -- u1 owns the connections, u2 is another internal user, admin a super admin.
 insert into auth.users (id, email) values
@@ -129,6 +129,30 @@ select throws_ok(
      values ('00000000-0000-0000-0000-0000000000a2', 'token 51', 'read') $$,
   'P0001', 'MCP_CONNECTION_LIMIT', 'at most 50 active connections per user'
 );
+
+-- ---------------------------------------------------------------- my_page_role
+insert into public.spaces (id, slug, name, visibility, created_by) values
+  ('10000000-0000-0000-0000-0000000000b1', 'mcp-space', 'MCP', 'restricted', '00000000-0000-0000-0000-0000000000a1');
+insert into public.space_members (space_id, user_id, role, added_by) values
+  ('10000000-0000-0000-0000-0000000000b1', '00000000-0000-0000-0000-0000000000a2', 'viewer',
+   '00000000-0000-0000-0000-0000000000a1');
+insert into public.pages (id, space_id, title, position) values
+  ('40000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-0000000000b1', 'P', 'a');
+
+reset role;
+set local role authenticated;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000000a1', true);
+select is(public.my_page_role('40000000-0000-0000-0000-000000000001')::text, 'admin',
+  'my_page_role: the Space creator is admin');
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000000a2', true);
+select is(public.my_page_role('40000000-0000-0000-0000-000000000001')::text, 'viewer',
+  'my_page_role: a viewer member');
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000000a3', true);
+select is(public.my_page_role('40000000-0000-0000-0000-000000000001')::text, 'admin',
+  'my_page_role: a super admin');
+set local role anon;
+select throws_ok($$ select public.my_page_role('40000000-0000-0000-0000-000000000001') $$,
+  '42501', null, 'my_page_role: not for anon');
 
 select * from finish();
 

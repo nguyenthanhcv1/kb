@@ -1,0 +1,73 @@
+{
+  "connections": {
+    "created": "Created {date}",
+    "empty": "No connections yet.",
+    "expires": "Expires {date}",
+    "kinds": {
+      "assistant": "AI assistant",
+      "personal": "Personal token"
+    },
+    "lastUsed": "Last used {date}",
+    "neverUsed": "Never used",
+    "revoke": "Revoke",
+    "revokeConfirm": "Revoke",
+    "revokeDescription": "“{name}” loses access to KB immediately. To use it again, connect again or create a new token.",
+    "revokeLabel": "Revoke {name}",
+    "revokeTitle": "Revoke connection?",
+    "revoked": "Connection revoked.",
+    "title": "Active connections"
+  },
+  "consent": {
+    "account": "Signed in as {email}",
+    "allow": "Allow",
+    "allowing": "Allowing…",
+    "deny": "Deny",
+    "description": "{client} wants to access KB with your account.",
+    "errorDescription": "The connection link is invalid or the app is not registered. Start connecting again from the AI assistant.",
+    "errorTitle": "Cannot connect the AI assistant",
+    "metaTitle": "Allow AI assistant",
+    "redirect": "After you choose, you will be sent back to {host}.",
+    "scopeLabel": "Access for the assistant",
+    "title": "Connect an AI assistant",
+    "warning": "The assistant can do anything you can do in your Spaces. Only allow apps you trust; you can revoke access at any time in Settings."
+  },
+  "guide": {
+    "chatgpt": "ChatGPT: Settings › Apps & Connectors › Advanced › turn on Developer mode, then Create a connector with the address above and OAuth authentication.",
+    "claude": "Claude (claude.ai, Claude Desktop, mobile apps): Settings › Connectors › Add custom connector, paste the address above and sign in to KB when asked.",
+    "claudeCode": "Claude Code and other apps that send a header: create a personal token below, then run:",
+    "title": "How to connect"
+  },
+  "scopes": {
+    "read": "Read only",
+    "readHint": "Search and read pages.",
+    "write": "Read and edit",
+    "writeHint": "Search, read, create, edit, move and delete (to the trash) pages."
+  },
+  "section": {
+    "description": "Connect Claude, ChatGPT or another AI assistant over MCP to search, read and edit pages with your own permissions.",
+    "notConfigured": "MCP connections are not enabled on this server. Contact your administrator.",
+    "title": "AI assistants (MCP)"
+  },
+  "serverUrl": {
+    "copied": "Copied",
+    "copy": "Copy",
+    "copyLabel": "Copy the MCP server address",
+    "label": "MCP server address"
+  },
+  "token": {
+    "copyLabel": "Copy token",
+    "create": "Create token",
+    "createdTitle": "New token",
+    "createdWarning": "Copy the token now: this is the only time it is shown.",
+    "creating": "Creating…",
+    "done": "Done",
+    "expiry": "Expires after",
+    "expiryDays": "{days} days",
+    "name": "Token name",
+    "nameHint": "To recognise where it is used, e.g. Laptop – Claude Code.",
+    "namePlaceholder": "Laptop – Claude Code",
+    "nameRequired": "Enter a token name.",
+    "title": "Create a personal token",
+    "value": "Token"
+  }
+}

@@ -1,5 +1,5 @@
 /** Why kb-collab replaced the whole content of an open page (mirrors apps/collab internal API). */
-export const DOCUMENT_REPLACED_REASONS = ["restore", "template", "import"] as const;
+export const DOCUMENT_REPLACED_REASONS = ["restore", "template", "import", "assistant"] as const;
 export type DocumentReplacedReason = (typeof DOCUMENT_REPLACED_REASONS)[number];
 
 export type DocumentReplaced = { reason: DocumentReplacedReason; actorId: string | null };
