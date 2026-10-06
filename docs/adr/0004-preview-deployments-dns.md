@@ -2,6 +2,7 @@
 
 - Trạng thái: **Đề xuất — chờ xác minh trên staging** (không có quyền Coolify/Cloudflare từ môi trường agent; kết luận dựa trên tài liệu, cấu hình trong repo và ADR 0001)
 - Ngày: 2026-09-27
+- Cập nhật 2026-10-06: **không áp dụng** — bỏ preview theo PR cùng với staging (ADR 0007). Giữ làm tài liệu nếu sau này dựng lại.
 - Liên quan: `docs/PLAN.md` §7.3, §7.4 (`kb-web-preview`), §7.12, §7.13 (`preview-dns.yml`), rủi ro R12 · T0.10 điểm (d) · ADR 0001 · `infra/coolify/staging/docker-compose.yml` · `docs/runbooks/spike-t0.10.md` §d
 
 ## Bối cảnh
