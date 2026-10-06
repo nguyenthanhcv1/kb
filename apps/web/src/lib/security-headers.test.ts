@@ -28,6 +28,15 @@ describe("contentSecurityPolicy", () => {
     expect(csp.get("img-src")).toContain("https://kb-staging-api.thanhgo.com");
   });
 
+  it("loads profile pictures from any HTTPS host (Google account pictures, pasted links)", () => {
+    const prod = directives(contentSecurityPolicy(base));
+    expect(prod.get("img-src")).toContain("https:");
+    expect(prod.get("img-src")).not.toContain("http:");
+
+    const dev = directives(contentSecurityPolicy({ ...base, dev: true }));
+    expect(dev.get("img-src")).toContain("http:");
+  });
+
   it("forbids framing, plugins and foreign base URLs", () => {
     const csp = directives(contentSecurityPolicy(base));
     expect(csp.get("frame-ancestors")).toEqual(["'none'"]);

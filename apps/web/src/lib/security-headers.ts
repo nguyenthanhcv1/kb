@@ -9,7 +9,8 @@
  *
  * CSP keeps `'unsafe-inline'` for scripts and styles: the App Router streams its RSC payload in
  * inline `<script>` tags, next-themes injects its no-flash script, and TipTap/Radix set inline
- * styles. Everything else is locked to the app's own origin plus the two backends it talks to.
+ * styles. Images may come from any HTTPS host (profile pictures are external URLs). Everything else
+ * is locked to the app's own origin plus the two backends it talks to.
  */
 
 export interface SecurityHeader {
@@ -81,7 +82,17 @@ export function contentSecurityPolicy({
   if (collab) connect.add(collab);
   if (dev) connect.add("ws:");
 
-  const images = ["'self'", "data:", "blob:", ...(supabase ? [supabase] : [])];
+  // Profile pictures are external URLs: the Google account picture (lh3.googleusercontent.com) or
+  // any http(s) link a user pastes in Settings. Images cannot run code, so any HTTPS host is allowed
+  // (http:// links are upgraded behind HTTPS); plain http only in local dev.
+  const images = [
+    "'self'",
+    "data:",
+    "blob:",
+    "https:",
+    ...(dev ? ["http:"] : []),
+    ...(supabase ? [supabase] : []),
+  ];
   const scripts = ["'self'", "'unsafe-inline'", ...(dev ? ["'unsafe-eval'"] : [])];
 
   const directives: [string, ...string[]][] = [
