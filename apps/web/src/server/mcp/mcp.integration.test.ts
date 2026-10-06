@@ -171,7 +171,11 @@ describe.skipIf(!URL_ || !SECRET || !ADMIN_URL)("MCP connector through PostgREST
 
     // Replaying the code revokes the whole connection.
     await expect(
-      exchangeAuthorizationCode(admin, { code, codeVerifier: verifier }),
+      exchangeAuthorizationCode(admin, {
+        code,
+        clientId: client.client_id,
+        codeVerifier: verifier,
+      }),
     ).rejects.toMatchObject({ error: "invalid_grant" });
     expect(await authenticateAccessToken(admin, rotated.access_token)).toBeNull();
   });

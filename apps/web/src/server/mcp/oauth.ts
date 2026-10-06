@@ -429,12 +429,12 @@ export async function exchangeAuthorizationCode(
   db: AdminDb,
   input: { code?: string; clientId?: string; redirectUri?: string; codeVerifier?: string },
 ): Promise<TokenResponse> {
-  if (!input.code || !input.codeVerifier)
-    throw new OAuthError("invalid_request", "code and code_verifier are required");
+  // Public clients identify themselves with client_id (RFC 6749 §4.1.3).
+  if (!input.code || !input.codeVerifier || !input.clientId)
+    throw new OAuthError("invalid_request", "code, code_verifier and client_id are required");
   const row = await findToken(db, input.code);
   if (!row || row.kind !== "code") throw new OAuthError("invalid_grant");
-  if (input.clientId && row.connection.client_id !== input.clientId)
-    throw new OAuthError("invalid_grant");
+  if (row.connection.client_id !== input.clientId) throw new OAuthError("invalid_grant");
   if (input.redirectUri && row.redirect_uri !== input.redirectUri)
     throw new OAuthError("invalid_grant");
   if (row.used_at) {
@@ -497,6 +497,7 @@ export async function authenticateAccessToken(
 
   const now = Date.now();
   if ((lastUsedWrites.get(row.connection.id) ?? 0) < now - LAST_USED_THROTTLE_MS) {
+    if (lastUsedWrites.size > 10_000) lastUsedWrites.clear();
     lastUsedWrites.set(row.connection.id, now);
     await db
       .from("mcp_connections")
