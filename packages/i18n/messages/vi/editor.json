@@ -28,6 +28,10 @@
       "reload": "Tải lại"
     },
     "replaced": {
+      "assistant": {
+        "description": "Có người đã sửa trang qua trợ lý AI (MCP). Nội dung bạn đang thấy là nội dung mới.",
+        "title": "Trang vừa được trợ lý AI cập nhật"
+      },
       "dismiss": "Đóng thông báo",
       "import": {
         "description": "Nội dung trang đã được thay bằng nội dung nhập. Nội dung bạn đang thấy là nội dung mới.",

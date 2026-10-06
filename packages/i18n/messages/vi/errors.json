@@ -20,6 +20,8 @@
   "LAST_SUPER_ADMIN": "Phải còn ít nhất một quản trị viên hệ thống đang hoạt động.",
   "MAIL_NOT_CONFIGURED": "Chưa cấu hình gửi email (SMTP).",
   "MAIL_SEND_FAILED": "Không gửi được email. Kiểm tra cấu hình SMTP và thử lại.",
+  "MCP_CONNECTION_LIMIT": "Bạn đã có quá nhiều kết nối. Hãy thu hồi bớt kết nối cũ.",
+  "MCP_NOT_CONFIGURED": "Máy chủ chưa bật kết nối MCP. Hãy báo quản trị viên.",
   "MEMBER_ACTION_FAILED": "Không thực hiện được thao tác với thành viên. Vui lòng thử lại.",
   "MEMBER_ALREADY_EXISTS": "Người này đã là thành viên của Space.",
   "MEMBER_NOT_FOUND": "Không tìm thấy thành viên này trong Space.",

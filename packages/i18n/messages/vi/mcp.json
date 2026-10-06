@@ -1,0 +1,73 @@
+{
+  "connections": {
+    "created": "Tạo {date}",
+    "empty": "Chưa có kết nối nào.",
+    "expires": "Hết hạn {date}",
+    "kinds": {
+      "assistant": "Trợ lý AI",
+      "personal": "Token cá nhân"
+    },
+    "lastUsed": "Dùng lần cuối {date}",
+    "neverUsed": "Chưa dùng",
+    "revoke": "Thu hồi",
+    "revokeConfirm": "Thu hồi",
+    "revokeDescription": "“{name}” sẽ mất quyền truy cập KB ngay lập tức. Muốn dùng lại phải kết nối hoặc tạo token mới.",
+    "revokeLabel": "Thu hồi {name}",
+    "revokeTitle": "Thu hồi kết nối?",
+    "revoked": "Đã thu hồi kết nối.",
+    "title": "Kết nối đang hoạt động"
+  },
+  "consent": {
+    "account": "Đăng nhập với {email}",
+    "allow": "Cho phép",
+    "allowing": "Đang cho phép…",
+    "deny": "Từ chối",
+    "description": "{client} muốn truy cập KB bằng tài khoản của bạn.",
+    "errorDescription": "Liên kết kết nối không hợp lệ hoặc ứng dụng chưa đăng ký. Hãy bắt đầu kết nối lại từ trợ lý AI.",
+    "errorTitle": "Không thể kết nối trợ lý AI",
+    "metaTitle": "Cho phép trợ lý AI",
+    "redirect": "Sau khi chọn, bạn sẽ được chuyển về {host}.",
+    "scopeLabel": "Quyền cấp cho trợ lý",
+    "title": "Kết nối trợ lý AI",
+    "warning": "Trợ lý làm được mọi việc bạn làm được trong các Space của bạn. Chỉ cho phép ứng dụng bạn tin tưởng; bạn có thể thu hồi bất cứ lúc nào trong Cài đặt."
+  },
+  "guide": {
+    "chatgpt": "ChatGPT: Cài đặt › Ứng dụng và trình kết nối › Nâng cao › bật Chế độ nhà phát triển, rồi Tạo trình kết nối với địa chỉ trên, xác thực OAuth.",
+    "claude": "Claude (claude.ai, Claude Desktop, ứng dụng di động): Cài đặt › Trình kết nối › Thêm trình kết nối tùy chỉnh, dán địa chỉ trên rồi đăng nhập KB khi được hỏi.",
+    "claudeCode": "Claude Code và ứng dụng khác dùng header: tạo token cá nhân bên dưới, rồi chạy:",
+    "title": "Cách kết nối"
+  },
+  "scopes": {
+    "read": "Chỉ đọc",
+    "readHint": "Tìm và đọc trang.",
+    "write": "Đọc và sửa",
+    "writeHint": "Tìm, đọc, tạo, sửa, di chuyển và xoá (vào thùng rác) trang."
+  },
+  "section": {
+    "description": "Kết nối Claude, ChatGPT hoặc trợ lý AI khác qua MCP để tìm, đọc và sửa trang bằng quyền của chính bạn.",
+    "notConfigured": "Máy chủ chưa bật kết nối MCP. Hãy báo quản trị viên.",
+    "title": "Trợ lý AI (MCP)"
+  },
+  "serverUrl": {
+    "copied": "Đã sao chép",
+    "copy": "Sao chép",
+    "copyLabel": "Sao chép địa chỉ máy chủ MCP",
+    "label": "Địa chỉ máy chủ MCP"
+  },
+  "token": {
+    "copyLabel": "Sao chép token",
+    "create": "Tạo token",
+    "createdTitle": "Token mới",
+    "createdWarning": "Sao chép token ngay: đây là lần duy nhất token được hiển thị.",
+    "creating": "Đang tạo…",
+    "done": "Xong",
+    "expiry": "Thời hạn",
+    "expiryDays": "{days} ngày",
+    "name": "Tên token",
+    "nameHint": "Để nhận ra nơi dùng, ví dụ: Laptop – Claude Code.",
+    "namePlaceholder": "Laptop – Claude Code",
+    "nameRequired": "Nhập tên token.",
+    "title": "Tạo token cá nhân",
+    "value": "Token"
+  }
+}

@@ -6,6 +6,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./extract": "./src/extract/index.ts",
+    "./markdown": "./src/markdown/index.ts",
     "./schema-version": "./src/schema-version.ts",
     "./table/csv": "./src/table/csv.ts",
     "./ui": "./src/ui/index.ts"
@@ -29,7 +30,8 @@
     "@tiptap/starter-kit": "^3.31.3",
     "@tiptap/suggestion": "^3.31.3",
     "highlight.js": "^11.11.2",
-    "lowlight": "^3.3.0"
+    "lowlight": "^3.3.0",
+    "marked": "^17.0.6"
   },
   "devDependencies": {
     "@kb/config": "workspace:*",

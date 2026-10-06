@@ -62,6 +62,7 @@ Hiện Studio không có domain (chỉ qua SSH tunnel, `staging.md` bước 5). 
 - [ ] GitHub: secret deploy nằm trong Environment (`staging`, `production` có reviewer), không phải repo secret.
 - [ ] Postgres: `kb_collab` `NOBYPASSRLS`, chỉ nối từ mạng Docker nội bộ; cổng 5432 không public (`ss -tlnp` trên server).
 - [ ] Log (Coolify, collab `LOG_LEVEL=info`) không in token/JWT/cookie.
+- [ ] Kết nối MCP (`/api/mcp`): `SUPABASE_JWT_SECRET` chỉ đọc ở server (`apps/web/src/server/mcp/user-client.ts`); DB chỉ lưu sha256 của token (`mcp_tokens`). Lộ token của một người → người đó (hoặc super admin bằng SQL `update mcp_connections set revoked_at = now() where user_id = …`) thu hồi; mọi kết nối/thu hồi có trong audit log (`mcp.connect`, `mcp.revoke`).
 
 ## 6. Xoay secret
 

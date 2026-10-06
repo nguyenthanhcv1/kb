@@ -20,6 +20,8 @@
   "LAST_SUPER_ADMIN": "At least one active super admin must remain.",
   "MAIL_NOT_CONFIGURED": "Email sending (SMTP) is not configured.",
   "MAIL_SEND_FAILED": "The email could not be sent. Check the SMTP settings and try again.",
+  "MCP_CONNECTION_LIMIT": "You have too many connections. Revoke some old ones first.",
+  "MCP_NOT_CONFIGURED": "MCP connections are not enabled on this server. Contact your administrator.",
   "MEMBER_ACTION_FAILED": "Could not update the member. Please try again.",
   "MEMBER_ALREADY_EXISTS": "This person is already a member of the Space.",
   "MEMBER_NOT_FOUND": "This member was not found in the Space.",
