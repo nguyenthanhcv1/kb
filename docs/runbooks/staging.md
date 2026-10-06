@@ -2,6 +2,7 @@
 
 > Task **T0.8** (`human: true`). Agent đã chuẩn bị file cấu hình, script, workflow; **người** làm các bước trên Hostinger, Coolify, Cloudflare, Google Cloud, GitHub theo đúng thứ tự dưới đây.
 > Quyết định kiến trúc: [`docs/adr/0001-staging-deploy-coolify-compose.md`](../adr/0001-staging-deploy-coolify-compose.md). Kế hoạch gốc: `docs/PLAN.md` §7.0–§7.7, §7.15.
+> **Cập nhật 2026-10-06 (ADR 0007):** môi trường dựng theo runbook này đang chạy ở `kb.thanhgo.com` và là **production duy nhất** (không có staging, không có preview). Đặt `KB_WEB_HOST`, `KB_COLLAB_HOST`, `APP_URL`, `ALLOWED_ORIGINS` theo tên miền production; các tên `kb-staging*` bên dưới là mặc định cũ. T7.3 đổi tên runbook/cấu hình thành _production_.
 > Không bao giờ dán secret vào issue, PR, chat hay commit. Mọi secret lưu trong **password manager của team** + Coolify (locked) + GitHub Environment.
 
 ## 0. Tổng quan

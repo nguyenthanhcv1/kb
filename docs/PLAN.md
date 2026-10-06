@@ -15,10 +15,10 @@
 | Khách mời | Tối đa Xem/Sửa trong Space được mời; không bao giờ là Quản trị; không thấy Space "nội bộ"; không tạo Space |
 | Release | **release-please**. Các milestone phát hành `0.x`; **MVP ra mắt production là `1.0.0`** |
 | Changelog | `CHANGELOG.md` do release-please sinh (en) + ghi chú tiếng Việt viết tay `changelog/vi/<version>.md`, CI chèn vào `CHANGELOG.md` |
-| Môi trường | local · staging · production · preview theo PR (chỉ `kb-web`, dùng chung Supabase staging) |
+| Môi trường | local · CI · **production** (`kb.thanhgo.com`). Không có staging, không có preview theo PR — §7.1, ADR 0007 |
 | Mạng | Cloudflare proxy (SSL Full strict) |
 | Domain gốc | `thanhgo.com` (xem §7.3 — **chỉ dùng subdomain 1 cấp**) |
-| Server | **Hostinger VPS, 2 máy tách biệt**: production `KVM 2` (2 vCPU / 8 GB / 100 GB NVMe) và staging + preview + Coolify `KVM 2`; nâng `KVM 4` khi cần. Không bắt buộc lưu dữ liệu trong nước → đặt ở data center gần VN nhất — §7.0 |
+| Server | **Hostinger VPS, 1 máy** `kb-ops-1` (`KVM 2`: 2 vCPU / 8 GB / 100 GB NVMe) chạy Coolify + Supabase + `kb-web` + `kb-collab` + `kb-backup`; nâng `KVM 4` khi cần. Không bắt buộc lưu dữ liệu trong nước → đặt ở data center gần VN nhất — §7.0 |
 | Lưu trữ backup (S3) | **Cloudflare R2** (S3-compatible, không phí egress, cùng tài khoản Cloudflare). Supabase Storage *không* dùng làm đích backup vì nằm cùng server — §7.8 |
 | Email (SMTP) | Supabase không cung cấp SMTP. **Gmail SMTP bằng App Password của một tài khoản Workspace** (không cần admin công ty); nâng lên **Resend** với domain `thanhgo.com` khi cần — §7.14 |
 | TipTap | **Chỉ dùng phần mã nguồn mở (MIT)**; tính năng thiếu thì tự viết. CI chặn package trả phí — §2.1 |
@@ -168,7 +168,7 @@ kb/
 │   └── user-guide/{vi,en}/
 ├── scripts/                          # build-changelog.ts, inject-vi-changelog.ts, seed-perf.ts
 ├── .github/
-│   ├── workflows/                    # ci, e2e, release-please, release-vi-notes, build-images, deploy, preview-dns
+│   ├── workflows/                    # ci, e2e, release-please, release-vi-notes, build-images, deploy
 │   ├── pull_request_template.md
 │   └── CODEOWNERS
 ├── CHANGELOG.md                      # release-please (en) + khối tiếng Việt được chèn
@@ -409,10 +409,10 @@ create function app.authorize_document(p_page_id uuid, p_user_id uuid) returns p
 ### 3.7 Migration strategy
 - Công cụ: **Supabase CLI** (`supabase migration new`, `supabase db reset`, `supabase db push`). Mỗi migration là SQL thuần, **forward-only**, không sửa migration đã merge.
 - Mỗi migration tạo bảng phải có: RLS + policy + grant + trigger audit (nếu áp dụng) + test pgTAP trong cùng PR.
-- Thay đổi phá vỡ: **expand → migrate data → contract**, contract ở release sau (app cũ vẫn chạy được trong lúc rolling deploy/preview dùng chung staging DB).
+- Thay đổi phá vỡ: **expand → migrate data → contract**, contract ở release sau (app cũ vẫn chạy được trong lúc deploy và khi cần rollback image).
 - `supabase db diff` chỉ để tham khảo/review, không dùng sinh migration tự động.
 - `pnpm db:types` sinh `packages/db/src/types.gen.ts`; CI chạy lại và fail nếu có diff.
-- Áp dụng: CI local (DB tạm) → staging (khi merge `main`) → production (khi release, sau khi backup trước migration). Chạy bằng image `kb-migrate` trong mạng Docker nội bộ (§7.5).
+- Áp dụng: CI (DB tạm, `supabase db reset` + pgTAP + E2E) → production (khi merge `main`, sau backup trước migration). Chạy bằng image `kb-migrate` trong mạng Docker nội bộ (§7.5). Không có staging để thử trước: migration phải qua CI và chạy được với `supabase db reset` local.
 - Dữ liệu nội dung (Yjs) thay đổi schema editor → migration ở tầng ứng dụng: `kb-collab` nâng cấp tài liệu khi load nếu `schema_version` cũ (hàm migrate trong `packages/editor/src/migrations`), + script batch chạy nền.
 
 ---
@@ -583,41 +583,41 @@ Mục `Deprecated` của Keep a Changelog: dùng footer `DEPRECATED:` → script
 
 ### 6.5 Luồng từ commit đến deploy
 ```
-feature branch ──PR──▶ CI (lint, typecheck, unit, i18n, db test, build, e2e) + preview kb-pr-<n>
+feature branch ──PR──▶ CI (lint, typecheck, unit, i18n, db test, build, e2e) + kiểm thử local
       │ squash merge (tiêu đề PR = Conventional Commit)
       ▼
-main ──▶ build images ghcr.io/…/kb-{web,collab,migrate}:sha-<7> ──▶ migrate staging ──▶ deploy staging (Coolify API) ──▶ smoke test
+main ──▶ build images ghcr.io/…/kb-{web,collab,migrate}:sha-<7>
+      ──▶ backup trước migration ──▶ migrate ──▶ deploy production kb.thanhgo.com (Coolify API) ──▶ smoke test
       │
       └─▶ release-please cập nhật Release PR "chore(main): release 0.x.y"
                  │ dev thêm changelog/vi/0.x.y.md, CI chèn vào CHANGELOG.md
                  ▼ merge
-          tag vX.Y.Z + GitHub Release ──▶ retag images :0.x.y (không build lại — cùng artifact đã test ở staging)
-                 ──▶ GitHub Environment "production" (cần duyệt thủ công)
-                 ──▶ backup trước migration ──▶ migrate prod ──▶ deploy prod (Coolify API) ──▶ smoke test ──▶ thông báo
+          tag vX.Y.Z + GitHub Release + retag images :0.x.y (đánh dấu phiên bản; code đã chạy trên production từ lúc merge)
 ```
-Hotfix: nhánh từ `main`, `fix:` → merge → Release PR patch → release như trên. Rollback: redeploy image tag trước qua Coolify (migration forward-only + expand/contract bảo đảm app cũ chạy được với schema mới).
+Chỉ có **một môi trường chạy thật** (production, ADR 0007): mỗi merge vào `main` deploy thẳng lên `kb.thanhgo.com`. Lưới an toàn thay cho staging: CI + E2E bắt buộc, backup trước mỗi migration, migration expand/contract, rollback bằng image trước. PR lớn/rủi ro: người review tự chạy local (`supabase start` + `pnpm dev`) trước khi merge.
+
+Hotfix: nhánh từ `main`, `fix:` → merge (tự deploy) → Release PR patch. Rollback: Actions › Deploy › chạy với commit tốt trước đó (migration forward-only + expand/contract bảo đảm app cũ chạy được với schema mới).
 
 ---
 
 ## 7. Môi trường, hạ tầng và CI/CD
 
-### 7.0 Đề xuất server (Hostinger VPS)
+### 7.0 Server (Hostinger VPS)
 
-**Tách staging khỏi production: CÓ.** Preview theo PR và staging chạy thử liên tục (Supabase staging ~10 container, nhiều preview cùng lúc); nếu chung máy, một PR lỗi có thể làm chậm/sập production. Thêm một VPS nhỏ rẻ hơn nhiều so với rủi ro.
+**Một máy, một môi trường** (ADR 0007): team nhỏ, chi phí và việc vận hành thấp hơn rủi ro không có staging. Lưới an toàn: CI + E2E, backup trước migration, rollback image (§6.5).
 
 | Server | Gói Hostinger | Vai trò | Ước tính RAM |
 |---|---|---|---|
-| `kb-prod-1` | **KVM 2** (2 vCPU, 8 GB RAM, 100 GB NVMe) | Production: Supabase prod, `kb-web`, `kb-collab`, `kb-backup` | Supabase ~3 GB (Postgres 2 GB), web ~0,5 GB, collab ~0,3 GB, Traefik ~0,3 GB → dư ~3,5 GB |
-| `kb-ops-1` | **KVM 2** (2 vCPU, 8 GB RAM, 100 GB NVMe) | Coolify + staging (Supabase staging, web, collab) + preview (tối đa 2 cùng lúc) + Uptime Kuma | Coolify ~1 GB, Supabase staging ~2,5 GB, staging apps ~0,8 GB, preview 2 × 0,5 GB |
+| `kb-ops-1` | **KVM 2** (2 vCPU, 8 GB RAM, 100 GB NVMe) | Coolify + production: Supabase, `kb-web`, `kb-collab`, `kb-backup` (+ Uptime Kuma tuỳ chọn) | Coolify ~1 GB, Supabase ~3 GB (Postgres 2 GB), web ~0,5 GB, collab ~0,3 GB, Traefik ~0,3 GB → dư ~2,5 GB |
 
 (Thông số gói lấy theo bảng giá Hostinger hiện tại — kiểm tra lại lúc đặt mua.)
 
-- **Đủ cho team nhỏ đến ~200 người.** Nâng lên **KVM 4** (4 vCPU, 16 GB, 200 GB) ngay trong hPanel khi: CPU > 70 % kéo dài, RAM Postgres thiếu (cache hit < 99 %), hoặc cần > 2 preview cùng lúc. Nâng gói không phải cài lại.
-- **Vị trí**: không bắt buộc lưu trong nước → chọn data center Hostinger **gần Việt Nam nhất** đang có (thường là Singapore hoặc Malaysia; kiểm tra danh sách lúc đặt). Độ trễ ~30–50 ms, ổn cho real-time. Hai máy nên cùng vị trí.
-- **Hệ điều hành**: Hostinger có template VPS cài sẵn **Coolify** (Ubuntu) — dùng cho `kb-ops-1`. `kb-prod-1` cài Ubuntu 24.04 LTS thường, Coolify tự cài Docker khi thêm làm remote server.
-- Coolify trên `kb-ops-1` quản lý `kb-prod-1` như **remote server** qua SSH. Nếu `kb-ops-1` gặp sự cố, production **vẫn chạy** (chỉ tạm không deploy được). Image build ở GitHub Actions (GHCR), không build trên server.
-- **Firewall Hostinger** (hPanel › VPS › Firewall) + `ufw`: 80/443 chỉ mở cho dải IP Cloudflare; 22 chỉ cho IP quản trị (hoặc chỉ qua Cloudflare Tunnel); từ `kb-ops-1` sang `kb-prod-1` mở 22 cho Coolify. Không mở cổng Postgres.
-- **Backup của Hostinger** (backup tự động hằng tuần + snapshot thủ công) dùng **bổ sung** — backup chính là `pg_dump` lên Cloudflare R2 (§7.8), vì backup của Hostinger nằm cùng nhà cung cấp và khôi phục theo cả máy.
+- **Đủ cho team nhỏ đến ~200 người.** Nâng lên **KVM 4** (4 vCPU, 16 GB, 200 GB) ngay trong hPanel khi: CPU > 70 % kéo dài, RAM Postgres thiếu (cache hit < 99 %). Nâng gói không phải cài lại.
+- **Khi nào thêm máy thứ hai**: cần staging để thử nâng cấp lớn (Supabase, Postgres major), hoặc muốn Coolify không chung máy với dữ liệu. Khi đó thêm máy làm *remote server* của Coolify, cấu hình hiện tại dùng lại được (ADR 0001).
+- **Vị trí**: không bắt buộc lưu trong nước → chọn data center Hostinger **gần Việt Nam nhất** đang có (thường là Singapore hoặc Malaysia). Độ trễ ~30–50 ms, ổn cho real-time.
+- **Hệ điều hành**: template VPS Hostinger cài sẵn **Coolify** (Ubuntu). Image build ở GitHub Actions (GHCR), không build trên server.
+- **Firewall Hostinger** (hPanel › VPS › Firewall) + `infra/scripts/firewall-cloudflare.sh`: 80/443 chỉ mở cho dải IP Cloudflare; 22 chỉ cho IP quản trị; không mở cổng Postgres.
+- **Backup của Hostinger** (backup tự động hằng tuần + snapshot thủ công) dùng **bổ sung** — backup chính là `pg_dump` lên Cloudflare R2 (§7.8). Snapshot VPS thủ công trước khi nâng cấp Coolify/Supabase.
 - Ổ đĩa: 100 GB đủ cho DB (< 5 GB với 20k trang + phiên bản) và tệp đính kèm vài năm đầu; khi đầy → chuyển Supabase Storage sang backend R2 (không đổi code app).
 
 ### 7.1 Môi trường
@@ -626,11 +626,9 @@ Hotfix: nhánh từ `main`, `fix:` → merge → Release PR patch → release nh
 |---|---|---|---|---|
 | local | `pnpm dev` (hoặc `docker compose up`) | `pnpm dev` | **Supabase CLI** (`supabase start`) | `seed.sql` + `scripts/seed-perf.ts` (tuỳ chọn 20k trang) |
 | CI | build + chạy trong job | như trên | `supabase start` trong GitHub Actions | seed |
-| preview (mỗi PR) | `kb-pr-<n>.thanhgo.com` | dùng `kb-staging-collab` | **Supabase staging** (dùng chung) | dữ liệu staging |
-| staging | `kb-staging.thanhgo.com` | `kb-staging-collab.thanhgo.com` | `kb-staging-api.thanhgo.com` | seed + dữ liệu thử |
 | production | `kb.thanhgo.com` | `kb-collab.thanhgo.com` | `kb-api.thanhgo.com` | thật |
 
-Staging (và preview) chạy trên `kb-ops-1`, production trên `kb-prod-1` (§7.0).
+Không có staging và preview theo PR (ADR 0007). Thử một thay đổi trước khi merge = chạy local với Supabase CLI; thử với dữ liệu giống thật = restore một bản backup vào máy local (runbook `docs/runbooks/backup-restore.md`), không bao giờ thử trên production.
 
 Local Google OAuth: Supabase CLI `config.toml` `[auth.external.google]` với OAuth client riêng cho dev (redirect `http://127.0.0.1:54321/auth/v1/callback`). E2E/CI không dùng Google: bật email+password **chỉ trong local/CI** (`[auth.email] enable_signup = true` trong `config.toml`), tạo người dùng test bằng admin API; production tắt provider email (`GOTRUE_EXTERNAL_EMAIL_ENABLED=false`).
 
@@ -664,7 +662,7 @@ EXPOSE 3000
 HEALTHCHECK --interval=15s --timeout=3s --start-period=20s CMD wget -qO- http://127.0.0.1:3000/api/health || exit 1
 CMD ["node", "apps/web/server.js"]
 ```
-Lưu ý quan trọng: **không dùng `NEXT_PUBLIC_*` cho giá trị khác nhau giữa môi trường** (chúng bị "đóng băng" lúc build → không thể dùng cùng một image cho staging và prod). Cấu hình public (URL Supabase, anon key, URL collab) được server đọc từ env runtime và truyền xuống client qua `<PublicEnvProvider>` trong root layout.
+Lưu ý quan trọng: **không dùng `NEXT_PUBLIC_*` cho giá trị khác nhau giữa môi trường** (chúng bị "đóng băng" lúc build → không thể dùng cùng một image cho CI/E2E và production). Cấu hình public (URL Supabase, anon key, URL collab) được server đọc từ env runtime và truyền xuống client qua `<PublicEnvProvider>` trong root layout.
 
 **`apps/collab/Dockerfile`**: tương tự (turbo prune `@kb/collab`, build bằng `tsup` ra `dist/index.js`), `EXPOSE 3001`, `HEALTHCHECK … /health`, `CMD ["node","dist/index.js"]`, xử lý `SIGTERM`: ngừng nhận kết nối, flush `store` của mọi document, rồi thoát (Coolify cho `stop_grace_period` 30 s).
 
@@ -673,8 +671,8 @@ Lưu ý quan trọng: **không dùng `NEXT_PUBLIC_*` cho giá trị khác nhau g
 **`infra/backup/Dockerfile`**: `postgres:15-alpine` + `rclone` + `age`; script `backup.sh` (§7.8).
 
 ### 7.3 Domain, DNS, HTTPS, Cloudflare
-- **Chỉ dùng subdomain 1 cấp** dưới `thanhgo.com`: Universal SSL miễn phí của Cloudflare chỉ phủ `thanhgo.com` và `*.thanhgo.com`; tên 2 cấp như `collab.kb.thanhgo.com` cần Advanced Certificate Manager (trả phí). Vì vậy: `kb`, `kb-collab`, `kb-api`, `kb-staging`, `kb-staging-collab`, `kb-staging-api`, `kb-pr-<n>`, `kb-studio` (Studio, sau Cloudflare Access).
-- DNS: bản ghi A/CNAME **proxied** (mây cam) trỏ về IP server Coolify. Preview: workflow `preview-dns.yml` tạo `kb-pr-<n>` khi mở PR và xoá khi đóng (Cloudflare API token quyền `Zone.DNS:Edit` chỉ cho zone này) — tránh wildcard `*.thanhgo.com`.
+- **Chỉ dùng subdomain 1 cấp** dưới `thanhgo.com`: Universal SSL miễn phí của Cloudflare chỉ phủ `thanhgo.com` và `*.thanhgo.com`; tên 2 cấp như `collab.kb.thanhgo.com` cần Advanced Certificate Manager (trả phí). Vì vậy: `kb`, `kb-collab`, `kb-api`, `kb-coolify` (dashboard Coolify, sau Cloudflare Access), `kb-studio` (Studio, sau Cloudflare Access).
+- DNS: bản ghi A/CNAME **proxied** (mây cam) trỏ về IP server Coolify. Không dùng wildcard `*.thanhgo.com`.
 - TLS origin: **Cloudflare Origin CA certificate** wildcard `*.thanhgo.com` (hạn dài) cài làm default certificate của Traefik trong Coolify → SSL mode **Full (strict)**. Không cần Let's Encrypt (tránh vấn đề HTTP-01 sau proxy). Tuỳ chọn bật Authenticated Origin Pulls.
 - Firewall server: 80/443 chỉ cho dải IP Cloudflare; SSH chỉ qua Cloudflare Tunnel/IP quản trị; cổng Postgres **không public**.
 - Cloudflare: bật "Always Use HTTPS", HSTS (sau khi ổn định), WAF managed rules; tắt Rocket Loader/minify cho HTML (tránh làm hỏng hydration); cache: chỉ cache `/_next/static/*` (immutable), bypass cho còn lại.
@@ -683,7 +681,7 @@ Lưu ý quan trọng: **không dùng `NEXT_PUBLIC_*` cho giá trị khác nhau g
 ### 7.4 Cấu hình Coolify từng service
 
 **Supabase** (Coolify service template "Supabase"):
-- Project `kb-prod` / `kb-staging`. Domain Kong: `kb-api.thanhgo.com`; Studio `kb-studio.thanhgo.com`.
+- Một project Coolify cho production (tên tuỳ ý). Domain Kong: `kb-api.thanhgo.com`; Studio `kb-studio.thanhgo.com`.
 - Image Postgres `supabase/postgres` 15.x (có sẵn `pgvector`, `pg_trgm`, `unaccent`, `pgtap`); migration đầu `create extension if not exists … schema extensions`.
 - Volume persistent cho `db-data`, `storage-data`. Storage backend: file trên đĩa (MVP, đơn giản, nhanh); khi dữ liệu tệp lớn → cấu hình Supabase Storage dùng **S3 backend = Cloudflare R2** (bucket riêng `kb-attachments-prod`, không trùng bucket backup).
 - Cấu hình GoTrue: Google OAuth, `SITE_URL`, `ADDITIONAL_REDIRECT_URLS`, hook `before_user_created` (pg-function) — **spike T0.10 xác minh version GoTrue self-host hỗ trợ**; dự phòng: trigger `before insert on auth.users` raise exception.
@@ -691,7 +689,9 @@ Lưu ý quan trọng: **không dùng `NEXT_PUBLIC_*` cho giá trị khác nhau g
 - Bật "Connect to predefined network" để `kb-collab`, `kb-backup`, `kb-migrate` truy cập `supabase-db` qua tên host nội bộ.
 - Tài nguyên: giới hạn RAM Postgres (vd 2–4 GB), `shared_buffers` 25%.
 
-**kb-web** (Application, build pack "Docker Image"):
+**kb-web, kb-collab, kb-migrate**: thực tế triển khai là **một resource Docker Compose** (`infra/coolify/staging/docker-compose.yml`, ADR 0001; tên thư mục đổi thành `production` ở T7.3), domain do biến `KB_WEB_HOST` / `KB_COLLAB_HOST`. Hai mục dưới là yêu cầu cho từng service.
+
+**kb-web** (build pack "Docker Image"):
 - Image `ghcr.io/nguyenthanhcv1/kb-web:<tag>` (registry credentials GHCR read-only trong Coolify).
 - Domain `https://kb.thanhgo.com`, port 3000.
 - Health check: path `/api/health`, interval 15 s, timeout 3 s, retries 3, start period 20 s.
@@ -704,18 +704,12 @@ Lưu ý quan trọng: **không dùng `NEXT_PUBLIC_*` cho giá trị khác nhau g
 - Connect to predefined network (tới `supabase-db`, và `kb-web` gọi internal API qua `http://kb-collab:3001` — cổng internal API **chỉ** lắng nghe trên mạng nội bộ; Traefik label chặn path `/internal/*` từ public).
 - Graceful shutdown timeout 30 s. **1 replica** ở MVP.
 
-**kb-web-preview** (Application, build pack "Dockerfile" từ GitHub App, nhánh `main`):
-- Bật **Preview Deployments**, URL template `https://kb-pr-{{pr_id}}.thanhgo.com`, chỉ build khi PR có thay đổi ở `apps/web`, `packages/*`.
-- Env preview: trỏ Supabase staging + `kb-staging-collab`; `APP_ENV=preview` (banner "Preview #n").
-- Tự xoá khi PR đóng (Coolify), DNS xoá bằng workflow.
-- Giới hạn tài nguyên (512 MB RAM/preview), tối đa 2 preview chạy cùng lúc trên `kb-ops-1` (PR cũ hơn tự dừng).
-
 **kb-backup** (Scheduled task / service chạy cron) — §7.8.
 **Uptime Kuma** (tuỳ chọn, service template): theo dõi `/api/health`, `/health`, `kb-api/auth/v1/health`, alert Slack/Telegram/email.
 
 ### 7.5 Trigger deploy từ GitHub Actions
-- Coolify API v4: `PATCH /api/v1/applications/{uuid}` đặt `docker_registry_image_tag`, sau đó `GET /api/v1/deploy?uuid={uuid}&force=false` với `Authorization: Bearer $COOLIFY_API_TOKEN` (token riêng mỗi môi trường, quyền deploy). Workflow poll trạng thái deployment rồi chạy smoke test (`curl /api/health` so sánh version).
-- Migration: workflow SSH (qua Cloudflare Tunnel `cloudflared access ssh`, key chỉ dùng cho deploy) vào host → `docker run --rm --network <supabase-network> ghcr.io/…/kb-migrate:<tag>`; production chạy `kb-backup` một lần trước khi migrate.
+- `deploy.yml` (sau `Build images` trên `main`, hoặc chạy tay với một commit để rollback): Coolify API v4 đặt `KB_IMAGE_TAG` của resource rồi `GET /api/v1/deploy?uuid={uuid}` với `Authorization: Bearer $COOLIFY_API_TOKEN`; poll trạng thái deployment rồi smoke test (`/api/health`, `/health` trả đúng sha) — ADR 0001.
+- Migration: service `kb-migrate` chạy trong compose trước `kb-collab`/`kb-web` (không SSH từ CI). **Backup trước migration**: chạy `kb-backup` một lần trước khi deploy (T7.3 đưa vào `deploy.yml`).
 - Thứ tự: migrate → deploy `kb-collab` → deploy `kb-web` (schema mới tương thích ngược theo expand/contract).
 - Spike T0.8 xác nhận tên trường API của phiên bản Coolify đang dùng (API Coolify thay đổi giữa các bản beta).
 
@@ -723,11 +717,12 @@ Lưu ý quan trọng: **không dùng `NEXT_PUBLIC_*` cho giá trị khác nhau g
 
 | Biến | Service | Secret? | Ghi chú |
 |---|---|---|---|
-| `APP_ENV` | web, collab | – | `local`/`preview`/`staging`/`production` |
+| `APP_ENV` | web, collab | – | `local`/`test`/`production` (giá trị `preview`/`staging` còn trong code nhưng không dùng) |
 | `APP_URL` | web | – | `https://kb.thanhgo.com` |
 | `SUPABASE_URL` | web | – | `https://kb-api.thanhgo.com` (truyền xuống client runtime) |
 | `SUPABASE_ANON_KEY` | web | – (public nhưng quản lý như secret) | |
-| `SUPABASE_SERVICE_ROLE_KEY` | web | **có** | chỉ dùng ở server: gửi lời mời, job hệ thống |
+| `SUPABASE_SERVICE_ROLE_KEY` | web | **có** | chỉ dùng ở server: gửi lời mời, job hệ thống, xác thực token MCP |
+| `SUPABASE_JWT_SECRET` | web | **có** | kết nối MCP (T7.13): ký JWT ngắn hạn của người dùng; trống = tắt MCP |
 | `COLLAB_PUBLIC_URL` | web | – | `wss://kb-collab.thanhgo.com` |
 | `COLLAB_INTERNAL_URL` | web | – | `http://kb-collab:3001` |
 | `COLLAB_INTERNAL_SECRET` | web, collab | **có** | HMAC cho internal API |
@@ -740,15 +735,15 @@ Lưu ý quan trọng: **không dùng `NEXT_PUBLIC_*` cho giá trị khác nhau g
 | `SUPABASE_JWT_SECRET` | collab | **có** | verify access token (hoặc `SUPABASE_JWKS_URL` nếu dùng khoá bất đối xứng) |
 | `REDIS_URL` | collab | có | để trống = không bật extension Redis |
 | `PORT`, `INTERNAL_PORT` | collab | – | 3001 |
-| `POSTGRES_PASSWORD`, `JWT_SECRET`, `ANON_KEY`, `SERVICE_ROLE_KEY` | supabase | **có** | sinh bởi Coolify template, mỗi môi trường khác nhau |
-| `SITE_URL`, `API_EXTERNAL_URL`, `ADDITIONAL_REDIRECT_URLS` | supabase | – | staging thêm `https://kb-pr-*.thanhgo.com/**` |
-| `GOTRUE_EXTERNAL_GOOGLE_CLIENT_ID/SECRET/REDIRECT_URI` | supabase | **có** | OAuth client riêng cho staging và prod (§7.15) |
-| `GOTRUE_EXTERNAL_EMAIL_ENABLED` | supabase | – | `false` ở staging/prod |
+| `POSTGRES_PASSWORD`, `JWT_SECRET`, `ANON_KEY`, `SERVICE_ROLE_KEY` | supabase | **có** | sinh bởi Coolify template |
+| `SITE_URL`, `API_EXTERNAL_URL`, `ADDITIONAL_REDIRECT_URLS` | supabase | – | `https://kb.thanhgo.com/**` |
+| `GOTRUE_EXTERNAL_GOOGLE_CLIENT_ID/SECRET/REDIRECT_URI` | supabase | **có** | OAuth client production (§7.15) |
+| `GOTRUE_EXTERNAL_EMAIL_ENABLED` | supabase | – | `false` ở production |
 | `GOTRUE_HOOK_BEFORE_USER_CREATED_ENABLED/URI` | supabase | – | `pg-functions://postgres/public/hook_before_user_created` |
 | `DASHBOARD_USERNAME/PASSWORD` | supabase | **có** | Studio |
 | `S3_ENDPOINT/BUCKET/ACCESS_KEY/SECRET_KEY`, `BACKUP_AGE_RECIPIENT` | backup | **có** | R2: endpoint `https://<account_id>.r2.cloudflarestorage.com`, token R2 chỉ quyền Object Read & Write trên bucket backup |
 
-GitHub (Environments `staging`, `production` — production có required reviewer): `COOLIFY_API_URL`, `COOLIFY_API_TOKEN`, `COOLIFY_APP_UUID_WEB/COLLAB`, `DEPLOY_SSH_KEY`, `CF_TUNNEL_*`, `CLOUDFLARE_API_TOKEN` (DNS preview), `GHCR` dùng `GITHUB_TOKEN`.
+GitHub (một Environment cho production — hiện tên `staging`, T7.3 đổi thành `production`): `COOLIFY_API_URL`, `COOLIFY_API_TOKEN`, `COOLIFY_APP_UUID`, `CF_ACCESS_CLIENT_ID/SECRET` (Cloudflare Access cho dashboard Coolify), `GHCR` dùng `GITHUB_TOKEN`. Không đặt required reviewer: merge vào `main` là duyệt.
 
 Quy tắc: secret chỉ ở Coolify (đánh dấu locked/encrypted) và GitHub Environments; `.env.example` liệt kê đủ key (giá trị giả); mỗi app validate env bằng zod lúc khởi động (`packages/shared/src/env.ts`) — thiếu biến là crash sớm; runbook `docs/runbooks/rotate-secrets.md` (xoay JWT secret = đăng xuất toàn bộ).
 
@@ -757,15 +752,14 @@ Quy tắc: secret chỉ ở Coolify (đánh dấu locked/encrypted) và GitHub E
 - Timeout: Traefik mặc định không cắt kết nối idle đang mở; đảm bảo `respondingTimeouts` không đặt `readTimeout` thấp cho entrypoint (Traefik v3 mặc định `readTimeout=60s` → **đặt `0`** hoặc lớn cho entrypoint `https`, xác minh ở T0.10).
 - **Cloudflare**: WebSocket bật mặc định mọi plan; idle timeout ~100 s → Hocuspocus gửi ping định kỳ (`timeout` 30 s) nên kết nối không idle. Cloudflare có thể ngắt WS khi deploy lại edge → client `HocuspocusProvider` tự reconnect với backoff; UI hiển thị trạng thái "Đang kết nối lại…", edit offline vẫn được giữ trong Y.Doc và đồng bộ khi nối lại (tuỳ chọn `y-indexeddb` để giữ qua reload — V2).
 - Token hết hạn (1 giờ): client refresh session Supabase và gọi `provider.sendToken()`/reconnect với token mới; server kiểm tra hạn token lúc authenticate và định kỳ (onStateless / timer) ngắt kết nối có token hết hạn.
-- Origin check: collab chỉ chấp nhận `Origin` thuộc danh sách (`kb.thanhgo.com`, `kb-staging…`, `kb-pr-*.thanhgo.com` ở staging).
+- Origin check: collab chỉ chấp nhận `Origin` thuộc danh sách (`ALLOWED_ORIGINS` = `https://kb.thanhgo.com`).
 
 ### 7.8 Backup Postgres tự động
 - **Hằng đêm (02:00 ICT)** `kb-backup`: `pg_dump -Fc` (DB `postgres`, gồm schema `auth`, `storage`, `public`) → mã hoá `age` → `rclone copy` lên **Cloudflare R2** (`r2:kb-backups/prod/daily/YYYY-MM-DD.dump.age`). Đồng bộ volume storage (tệp đính kèm) bằng `rclone sync` (bản versioned ở bucket).
 - **Vì sao R2, không dùng Supabase Storage làm đích backup?** Supabase Storage có API tương thích S3, nhưng nó chạy **trên chính server production** — server hỏng thì mất cả DB lẫn backup. Backup phải nằm ở hạ tầng khác. R2: đã dùng Cloudflare, không phí egress (restore không tốn tiền), 10 GB miễn phí rồi ~0,015 USD/GB/tháng, hỗ trợ lifecycle rule và bucket lock (chống xoá/ghi đè — bảo vệ khi server bị chiếm quyền). Dự phòng: Backblaze B2 hoặc AWS S3.
 - Khoá: token R2 của server chỉ có quyền ghi vào bucket backup (không có quyền xoá); bật bucket lock 30 ngày; khoá riêng `age` giữ **ngoài server** (password manager của admin).
 - Retention bằng lifecycle rule R2: daily 14 ngày, weekly 8 tuần, monthly 12 tháng. Chi phí ước tính < 2 USD/tháng.
-- Staging không backup (có thể dựng lại từ seed), chỉ snapshot VPS.
-- Trước mỗi migration production: backup ad-hoc `pre-migrate-<version>`.
+- Trước mỗi deploy có migration: backup ad-hoc `pre-migrate-<sha>` (T7.3 đưa vào `deploy.yml`). Vì không có staging, đây là đường lùi chính khi migration làm hỏng dữ liệu.
 - Coolify có tính năng scheduled backup cho database — dùng **bổ sung** nếu hỗ trợ container `supabase-db` trong service; không phụ thuộc hoàn toàn.
 - **Kiểm thử khôi phục hằng tháng** (tự động): job tải bản mới nhất, restore vào Postgres tạm, chạy truy vấn kiểm tra (đếm `pages`, `page_documents`, decode ngẫu nhiên 20 `ydoc`), báo kết quả. Runbook `docs/runbooks/backup-restore.md`.
 - Mục tiêu (đề xuất): RPO 24 h (MVP) → V2 cân nhắc WAL-G PITR để RPO ~5 phút; RTO 2 h.
@@ -798,11 +792,8 @@ Quy tắc: secret chỉ ở Coolify (đánh dấu locked/encrypted) và GitHub E
 - Khi cần (V2+, hoặc HA): thêm Redis (Coolify service) + `@hocuspocus/extension-redis` (bật khi có `REDIS_URL`) → các instance đồng bộ update và awareness qua pub/sub; persistence an toàn nhờ `mergeUpdates` + `for update` (7.10). Load balancing: Traefik round-robin giữa các replica (Coolify: nhiều app cùng image + chung router, hoặc Docker Swarm mode của Coolify); **sticky session theo document** (cookie hoặc hash `documentName` trong query) giảm tải Redis nhưng không bắt buộc.
 - Graceful drain khi deploy: instance nhận SIGTERM đóng kết nối có mã "reconnect", client tự nối sang instance khác.
 
-### 7.12 Preview deploy theo PR
-- Coolify Preview Deployments cho `kb-web-preview` (§7.4) → `https://kb-pr-<n>.thanhgo.com`; Coolify comment URL lên PR (GitHub App).
-- Dùng Supabase staging + collab staging. Hạn chế: **PR có migration** → preview không có schema mới. Quy trình: migration phải expand-only; gắn label `db:staging` → workflow áp migration của PR vào staging (chỉ migration chưa có trên main, người review xác nhận); nếu không, preview hiển thị cảnh báo "Migration chưa áp dụng". Test migration thật diễn ra ở CI (DB tạm).
-- PR thay đổi `apps/collab`/`packages/editor` (schema): preview chỉ test giao diện; test tích hợp collab chạy ở CI. (Tuỳ chọn V2: preview cho collab với label `preview:collab`.)
-- Đăng nhập trên preview: redirect URL wildcard đã whitelist ở GoTrue staging.
+### 7.12 Preview deploy theo PR — không dùng
+Không có preview `kb-pr-<n>` (ADR 0007): preview cần một Supabase riêng (không dùng dữ liệu thật), tốn RAM và việc vận hành. Thay bằng: CI + E2E trên mọi PR (Supabase tạm trong GitHub Actions), ảnh chụp màn hình vi/en × sáng/tối trong PR giao diện, và người review chạy local khi cần. ADR 0004 (preview + DNS) giữ lại làm tài liệu nếu sau này cần.
 
 ### 7.13 GitHub Actions
 
@@ -813,8 +804,7 @@ Quy tắc: secret chỉ ở Coolify (đánh dấu locked/encrypted) và GitHub E
 | `release-please.yml` | push `main` | `googleapis/release-please-action` |
 | `release-vi-notes.yml` | PR từ nhánh `release-please--*` | kiểm tra & chèn `changelog/vi/<version>.md` vào `CHANGELOG.md` |
 | `build-images.yml` | push `main`, release published | build & push `kb-web`, `kb-collab`, `kb-migrate` lên GHCR (`sha-<7>`; release → retag `X.Y.Z`, `latest`) |
-| `deploy.yml` | sau `build-images` (main → staging; release → production với environment approval) | backup (prod) → migrate → deploy collab → deploy web → smoke test → thông báo |
-| `preview-dns.yml` | PR opened/closed | tạo/xoá DNS `kb-pr-<n>` |
+| `deploy.yml` | sau `build-images` trên `main` (hoặc chạy tay với một commit = rollback) | backup → migrate → deploy collab → deploy web → smoke test production → thông báo |
 | `nightly.yml` | cron | E2E đa trình duyệt, `pnpm audit`, perf search với seed 20k |
 | Dependabot/Renovate | tuần | cập nhật deps, nhóm theo hệ (tiptap, next, supabase) |
 
@@ -842,12 +832,11 @@ Chung cho mọi phương án: template song ngữ (§5.6); log gửi mail (thàn
 ### 7.15 Google OAuth — cấu hình ở phạm vi team
 Mục tiêu: đăng nhập Google hoạt động cho cả tài khoản công ty lẫn Gmail cá nhân (super admin `nguyenthanh.cv@gmail.com`), **không cần admin Workspace**; ai được vào thì do allowlist của app quyết định (§3.2).
 
-1. Đăng nhập **Google Cloud Console bằng `nguyenthanh.cv@gmail.com`** (tài khoản cá nhân → project không nằm trong tổ chức của công ty, không bị chính sách công ty chặn tạo project). Tạo project `kb-auth` (một project, hai OAuth client: staging và prod).
+1. Đăng nhập **Google Cloud Console bằng `nguyenthanh.cv@gmail.com`** (tài khoản cá nhân → project không nằm trong tổ chức của công ty, không bị chính sách công ty chặn tạo project). Tạo project `kb-auth` (một OAuth client production; client local riêng cho dev).
 2. **OAuth consent screen / Google Auth Platform**: User type **External** (loại *Internal* sẽ chặn Gmail cá nhân và chỉ tạo được trong tổ chức Workspace). Tên app "KB", email hỗ trợ, domain `thanhgo.com`. Scope chỉ `openid`, `email`, `profile` (không nhạy cảm).
 3. **Publishing status: "In production"**. Với scope không nhạy cảm, không phải qua quy trình xác minh của Google (không có logo thì không cần xác minh thương hiệu). Để ở chế độ *Testing* cũng được nhưng phải thêm tay từng người (tối đa 100) — không cần vì app đã có allowlist riêng.
 4. **Credentials › OAuth client ID** (Web application):
    - prod: Authorized redirect URI `https://kb-api.thanhgo.com/auth/v1/callback`
-   - staging: `https://kb-staging-api.thanhgo.com/auth/v1/callback`
    - local: client riêng với `http://127.0.0.1:54321/auth/v1/callback`
 5. Dán Client ID/Secret vào Coolify (`GOTRUE_EXTERNAL_GOOGLE_*`) của Supabase tương ứng.
 6. Trong app: super admin đăng nhập lần đầu → `/admin/access` → thêm email từng thành viên team (hoặc domain công ty khi muốn mở rộng).
@@ -891,7 +880,7 @@ Mục tiêu coverage: `packages/editor` ≥ 80 %, logic khác ≥ 60 %; mọi po
 | T0.5 | CI: `ci.yml` (lint, typecheck, unit, i18n, pr-title, db, build) có cache pnpm/turbo | `.github/workflows/ci.yml` | PR mẫu chạy xanh < 10 phút; cố tình lệch key i18n → đỏ; thêm package license không cho phép → đỏ | T0.3, T0.4 | 1 | 0.1.0 |
 | T0.6 | Release: release-please config + manifest (`Release-As: 0.1.0`), `release-vi-notes.yml`, `inject-vi-changelog.ts`, `build-changelog.ts`, trang What's new (skeleton), version ở footer + Settings › Giới thiệu + `/api/health` | `release-please-config.json`, `scripts/`, `apps/web/src/app/(app)/whats-new` | Release PR mở tự động; thiếu `changelog/vi/0.1.0.md` → check đỏ; sau merge có tag `v0.1.0`; app hiển thị `v0.1.0` và changelog đúng ngôn ngữ | T0.3, T0.5 | 1,5 | 0.1.0 |
 | T0.7 | Dockerfile web/collab/migrate, HEALTHCHECK, `/api/health`, `/health`, env zod, `build-images.yml` push GHCR | `apps/*/Dockerfile`, `infra/migrate`, `packages/shared/src/env.ts` | `docker build` cả 3 image; container healthy; image web < 250 MB; thiếu env bắt buộc → crash kèm tên biến | T0.1 | 1 | 0.1.0 |
-| T0.8 | Hạ tầng staging trên Coolify (cài Coolify lên `kb-ops-1`, §7.0): Supabase service, `kb-web`, `kb-collab`, Cloudflare DNS + Origin CA + Full strict, firewall, secrets, `deploy.yml` qua Coolify API + SSH migrate | `infra/coolify/*.md`, `.github/workflows/deploy.yml` | Merge `main` → staging tự deploy, smoke test xanh; `https://kb-staging.thanhgo.com/api/health` trả sha mới; Postgres không truy cập được từ Internet | T0.7 | 2 | 0.1.0 |
+| T0.8 | Môi trường chạy thật trên Coolify (một VPS `kb-ops-1`, §7.0): Supabase service, resource Docker Compose `kb-migrate`/`kb-collab`/`kb-web`, Cloudflare DNS + Origin CA + Full strict, firewall, secrets, `deploy.yml` qua Coolify API. *Ban đầu thiết kế là staging; thực tế chạy ở `kb.thanhgo.com` và là production (ADR 0007)* | `infra/coolify/*`, `.github/workflows/deploy.yml`, `docs/runbooks/staging.md` | Merge `main` → tự deploy, smoke test xanh; `https://kb.thanhgo.com/api/health` trả sha mới; Postgres không truy cập được từ Internet | T0.7 | 2 | 0.1.0 |
 | T0.9 | Backup: image `kb-backup`, cron, Cloudflare R2 (bucket lock + lifecycle), mã hoá age, restore runbook, job kiểm thử restore | `infra/backup`, `docs/runbooks/backup-restore.md` | Có file backup trên S3; restore vào DB tạm thành công theo runbook; alert khi quá 26 h không backup | T0.8 | 1 | 0.1.0 |
 | T0.11 | Công cụ cho agent chạy song song: `pnpm ai:next` (chọn task ready đầu tiên theo thứ tự `docs/ai/tasks.yaml` + git), `pnpm ai:status`, CI `agent-scope` (PR gắn đúng một task, deps đã merge) | `scripts/ai/*.mjs`, `.github/workflows/agent-scope.yml` | PR thiếu `Task:` hoặc deps chưa merge → check đỏ; `ai:next` trả đúng task ready đầu tiên chưa ai nhận | T0.5 | 0,5 | 0.1.0 |
 | T0.10 | Spike xác minh rủi ro: (a) hook `before_user_created` trên GoTrue self-host, (b) Hocuspocus qua Cloudflare + Traefik (timeout, reconnect), (c) verify JWT Supabase trong collab, (d) Coolify preview + DNS workflow, (e) đăng nhập Google bằng tài khoản công ty qua OAuth client External của project cá nhân, (f) gửi mail bằng Gmail App Password | ADR `docs/adr/0001…0004` | Mỗi điểm có ADR kết luận + phương án dự phòng; WS giữ kết nối ≥ 30 phút qua Cloudflare | T0.8 | 1 | 0.1.0 |
@@ -947,7 +936,7 @@ Mục tiêu coverage: `packages/editor` ≥ 80 %, logic khác ≥ 60 %; mọi po
 |---|---|---|---|---|---|---|
 | T5.1 | `app.vn_unaccent`, cấu hình `vi_unaccent`, bảng `page_search` + trigger, index GIN/trigram, backfill | migration `*_search.sql` | "nghi phep" khớp "nghỉ phép"; chuỗi NFD khớp NFC; RLS trên `page_search` pass pgTAP | T3.3 | 1 | 0.6.0 |
 | T5.2 | RPC `search_pages` (websearch + prefix, ranking §4.4, headline top N, `match_in`, lọc Space), Route Handler `/api/search` có rate limit | migration `*_search_rpc.sql`, `app/api/search` | Không trả trang ngoài quyền (test); có dấu đúng được xếp cao hơn; highlight đúng từ có dấu | T5.1 | 1,5 | 0.6.0 |
-| T5.3 | UI: quick switcher ⌘/Ctrl+K (tiêu đề), trang kết quả đầy đủ (lọc Space, phân trang, snippet, nhãn "trong bảng"), trạng thái rỗng/lỗi song ngữ | `components/search/*`, `app/(app)/search` | Điều hướng hoàn toàn bằng bàn phím; kết quả < 300 ms (staging) | T5.2 | 1,5 | 0.6.0 |
+| T5.3 | UI: quick switcher ⌘/Ctrl+K (tiêu đề), trang kết quả đầy đủ (lọc Space, phân trang, snippet, nhãn "trong bảng"), trạng thái rỗng/lỗi song ngữ | `components/search/*`, `app/(app)/search` | Điều hướng hoàn toàn bằng bàn phím; kết quả < 300 ms (production) | T5.2 | 1,5 | 0.6.0 |
 | T5.4 | Golden set 30 truy vấn thực tế + seed 20k trang, benchmark, tinh chỉnh hệ số, ghi ADR | `scripts/seed-perf.ts`, `supabase/tests/search_quality`, `docs/adr/` | MRR ≥ 0,8; p95 < 300 ms; kết quả benchmark trong ADR | T5.2 | 1 | 0.6.0 |
 
 ### M6 — Lịch sử phiên bản và audit (→ `v0.7.0`) · ~4,5 ngày
@@ -965,9 +954,9 @@ Mục tiêu coverage: `packages/editor` ≥ 80 %, logic khác ≥ 60 %; mọi po
 |---|---|---|---|---|---|---|
 | T7.1 | Hoàn chỉnh E2E (danh sách §8) chạy cả vi/en, ma trận RLS đầy đủ, `e2e.yml` bắt buộc trên PR | `apps/web/e2e`, `supabase/tests` | E2E xanh ổn định 10 lần liên tiếp (không flaky) | M1–M6 | 2 | 0.8.0 |
 | T7.2 | Bảo mật: CSP/headers, rate limit (search, mời), khoá Studio sau Cloudflare Access, `pnpm audit`, review secret, runbook xoay secret | `next.config.ts`, `docs/runbooks` | Checklist bảo mật hoàn tất; securityheaders ≥ A | T0.8 | 1 | 0.8.0 |
-| T7.3 | Production: thêm `kb-prod-1` làm remote server trong Coolify, dựng môi trường prod (theo tài liệu staging), OAuth client prod, backup + restore thử trên prod, Uptime Kuma + alert, error tracking | `infra/coolify/production.md` | Release `v0.8.0` deploy qua pipeline có duyệt; restore thử thành công; alert test đến kênh đã chọn | T0.9, T7.2 | 1,5 | 0.8.0 |
+| T7.3 | Production hoá môi trường duy nhất `kb.thanhgo.com` (ADR 0007): đổi tên cấu hình *staging* → *production* (`infra/coolify/production/`, `APP_ENV=production`, GitHub Environment `production`, biến `PRODUCTION_*` trong `deploy.yml`, runbook `docs/runbooks/production.md`; giữ tương thích trong lúc người đổi Coolify/GitHub); backup `pre-migrate` tự động trong `deploy.yml` trước khi deploy; Uptime Kuma + alert; error tracking; restore thử bản backup mới nhất | `infra/coolify/production/*`, `.github/workflows/deploy.yml`, `docs/runbooks/production.md` | Merge `main` → backup → deploy → smoke test xanh trên `kb.thanhgo.com`; Cài đặt › Giới thiệu hiện "Chính thức"; restore thử thành công; alert test đến kênh đã chọn | T0.9, T7.2 | 1,5 | 0.8.0 |
 | T7.4 | Tài liệu người dùng vi/en (bắt đầu, Space & quyền, editor & bảng, tìm kiếm, lịch sử), Space "Hướng dẫn" seed sẵn, nội dung What's new đầy đủ | `docs/user-guide/{vi,en}` | Script kiểm tra mỗi trang vi có bản en | M1–M6 | 1 | 0.8.0 |
-| T7.5 | Pilot `0.8.x` trên production với 1–2 phòng ban, thu phản hồi, sửa lỗi (buffer) | – | Không còn bug mức nghiêm trọng; phản hồi ghi thành issue | T7.3 | 3 | 0.8.x |
+| T7.5 | Pilot `0.8.x` trên production (`kb.thanhgo.com`) với 1–2 phòng ban, thu phản hồi, sửa lỗi (buffer) | – | Không còn bug mức nghiêm trọng; phản hồi ghi thành issue | T7.3 | 3 | 0.8.x |
 | T7.6 | Phát hành **1.0.0**: checklist go-live (backup/restore thử trong 7 ngày qua, alert hoạt động, không bug P0/P1 mở, E2E xanh, tài liệu vi/en đủ, ghi chú phát hành vi/en), commit `Release-As: 1.0.0`, thông báo toàn công ty (song ngữ) | `changelog/vi/1.0.0.md`, `docs/runbooks/go-live.md` | Tag `v1.0.0`, app hiển thị `v1.0.0`, trang What's new có bài giới thiệu MVP | T7.5 | 0 (trong buffer) | **1.0.0** |
 | T7.7 | Nối trang `/login`, menu người dùng và app shell vào auth thật (`@/server/auth`) thay cho mock của T1.2b; bỏ `fixme` test đăng xuất | `apps/web/src/app/(auth)/login`, `apps/web/src/components/layout`, `apps/web/src/server/auth` | Đăng nhập Google tạo phiên Supabase thật; đăng xuất xoá phiên; không còn import `@/server/auth/mock*` ngoài test; E2E đăng xuất xanh | T1.2a, T1.2b | 0,25 | 0.8.0 |
 | T7.8 | Khách chỉ có lời mời đang chờ không bị middleware đăng xuất (`has_active_access`) | `supabase/migrations`, middleware | `members.spec.ts` bỏ `fixme` và xanh; pgTAP cho trường hợp lời mời đang chờ | T1.5a | 0,5 | 0.8.0 |
@@ -1011,7 +1000,7 @@ Mục tiêu coverage: `packages/editor` ≥ 80 %, logic khác ≥ 60 %; mọi po
 6. **Audit bằng trigger + `app.actor_id`** → mọi đường ghi (web, collab, job) đều được ghi.
 7. **Tách `table_text`/`headings_text`** → trọng số search và chunk RAG theo loại nội dung.
 8. **`profiles.locale` + email/mẫu song ngữ ngay từ đầu** → thông báo V2 không phải bổ sung sau.
-9. **Không `NEXT_PUBLIC_*` theo môi trường** → cùng image cho staging/prod, preview.
+9. **Không `NEXT_PUBLIC_*` theo môi trường** → cùng image cho CI/E2E và production (thêm staging sau này không phải build lại).
 10. **Cột dự phòng rẻ**: `pages.owner_id`, `inherit_permissions`, `is_template`, `template_locale`, `profiles.last_seen_version` — thêm ngay, tránh migration dữ liệu lớn sau.
 11. **Ảnh luôn ở Storage, không base64 trong doc** → Yjs nhỏ, import/export sạch.
 
@@ -1024,15 +1013,15 @@ Mục tiêu coverage: `packages/editor` ≥ 80 %, logic khác ≥ 60 %; mọi po
 | R1 | Lệch schema editor giữa client và server → mất nội dung khi Yjs dẫn xuất | Cao | `packages/editor` dùng chung; kiểm tra `EDITOR_SCHEMA_VERSION` khi kết nối; test round-trip JSON ↔ Yjs; snapshot trước khi migrate nội dung |
 | R2 | Kéo thả hàng/cột và paste Excel phức tạp hơn dự kiến (TipTap không có sẵn, **không dùng bản trả phí** → tự viết), ô gộp | Cao | Timebox 2 ngày mỗi phần; tham khảo mã nguồn mở `prosemirror-tables` (`CellSelection`, `TableMap`) và các dự án MIT; fixture thật từ nhiều nguồn; nếu vượt: MVP chặn kéo thả khi bảng có ô gộp, hoàn thiện ở 0.5.x |
 | R3 | Sai sót RLS làm lộ dữ liệu giữa phòng ban | Cao | Helper tập trung; pgTAP ma trận bắt buộc; test "mọi bảng bật RLS"; review riêng cho migration có policy; không dùng service role cho đường đọc người dùng |
-| R4 | Vận hành Supabase self-host (nhiều container, nâng cấp, GoTrue hook chưa hỗ trợ) | TB | Ghim version image; nâng cấp trên staging trước; spike T0.10; dự phòng trigger `auth.users`; runbook nâng cấp |
+| R4 | Vận hành Supabase self-host (nhiều container, nâng cấp, GoTrue hook chưa hỗ trợ) | TB | Ghim version image; trước khi nâng cấp: snapshot VPS + backup, thử bản mới ở local (Supabase CLI cùng version); spike T0.10; dự phòng trigger `auth.users`; runbook nâng cấp |
 | R5 | WebSocket bị ngắt qua Cloudflare/Traefik, token hết hạn giữa phiên | TB | Ping 30 s, `readTimeout=0`, reconnect backoff, `sendToken` khi refresh, UI trạng thái; test ≥ 30 phút ở T0.10 |
 | R6 | Chất lượng tìm kiếm tiếng Việt (từ ghép, viết tắt) | TB | Thưởng cụm từ, trigram tiêu đề, golden set, thesaurus viết tắt; V3 hybrid vector |
 | R7 | Backup có nhưng không restore được | TB | Kiểm thử restore tự động hằng tháng + alert; backup trước mỗi migration prod |
-| R8 | Preview dùng chung DB staging → PR có migration phá staging | TB | Expand-only, label `db:staging` có kiểm soát, test migration ở CI trên DB tạm; staging có thể reset từ seed |
+| R8 | Không có staging → lỗi (nhất là migration) lên thẳng production | TB | CI + E2E bắt buộc; migration expand/contract, chạy `supabase db reset` + pgTAP ở CI; backup `pre-migrate` trước mỗi deploy; rollback image; PR rủi ro chạy local với bản restore backup trước khi merge (ADR 0007) |
 | R9 | Quên ghi chú tiếng Việt / tiếng Việt chất lượng kém | Thấp | Check bắt buộc trên Release PR; PR template nhắc; glossary thuật ngữ |
 | R10 | Một dev (bus factor, ước lượng lạc quan) | TB | Buffer 3 ngày; ADR + runbook đầy đủ; milestone có thể cắt phạm vi (T2.5, T6.2 diff, T4.3 ô gộp) |
 | R11 | Coolify API/tính năng thay đổi giữa các phiên bản | Thấp | Ghim phiên bản Coolify; bọc lời gọi API trong 1 script; dự phòng webhook deploy của Coolify |
-| R12 | Tài nguyên server không đủ (đặc biệt `kb-ops-1` khi nhiều preview) | TB | Giới hạn RAM từng container; preview tối đa 3 đồng thời; build ở GitHub Actions; prod tách server riêng (§7.0) |
+| R12 | Tài nguyên server không đủ (Coolify + production chung một máy) | TB | Giới hạn RAM từng container; build ở GitHub Actions; theo dõi RAM/CPU; nâng KVM 4 hoặc thêm máy thứ hai (§7.0) |
 | R14 | Admin gỡ nhầm domain/email → khoá nhiều người | TB | UI cảnh báo số người bị ảnh hưởng + xác nhận gõ lại tên domain; không cho gỡ domain của chính super admin đang thao tác; bootstrap email luôn đăng nhập được; audit before/after để khôi phục |
 | R16 | Phụ thuộc tài khoản cá nhân (super admin Gmail, project Google Cloud cá nhân, App Password của một người) | TB | Cấp super admin cho ≥ 1 tài khoản công ty; thêm người thứ hai làm Owner của project Google Cloud; runbook thay App Password / chuyển sang Resend; lưu thông tin trong password manager của team |
 | R17 | Công ty chặn ứng dụng OAuth bên thứ ba | TB | Kiểm tra ở T0.10; nhờ admin Workspace tin cậy Client ID (1 thao tác) |
@@ -1049,7 +1038,8 @@ Mục tiêu coverage: `packages/editor` ≥ 80 %, logic khác ≥ 60 %; mọi po
 | Ai được đăng nhập | Super admin khai báo allowlist theo **email** (team nhỏ) hoặc **domain** (cả công ty) trong trang Quản trị (§3.2) |
 | Super admin đầu tiên | `nguyenthanh.cv@gmail.com` (qua `BOOTSTRAP_SUPER_ADMIN_EMAILS`) |
 | Version khi ra mắt MVP | **1.0.0** (sau pilot `0.8.x`) |
-| Server | Hostinger VPS, 2 máy KVM 2 tách prod / ops-staging; data center gần VN nhất (§7.0) |
+| Server | Hostinger VPS, 1 máy KVM 2 (`kb-ops-1`) chạy Coolify + production; data center gần VN nhất (§7.0) |
+| Môi trường | Chỉ production `kb.thanhgo.com` — không staging, không preview theo PR; merge `main` = deploy (ADR 0007) |
 | Lưu trữ dữ liệu trong nước | Không bắt buộc |
 | Backup (S3) | Cloudflare R2 (§7.8) |
 | SMTP | Gmail SMTP + App Password của tài khoản Workspace (không cần admin); sau chuyển Resend trên `thanhgo.com` (§7.14) |
@@ -1064,7 +1054,6 @@ Mục tiêu coverage: `packages/editor` ≥ 80 %, logic khác ≥ 60 %; mọi po
 3. **Mục tiêu RPO/RTO**: đề xuất 24 h / 2 h ở MVP; PITR để V2.
 4. **Error tracking**: đề xuất Sentry cloud gói miễn phí (không tốn RAM server); GlitchTip self-host nếu không muốn gửi lỗi ra ngoài.
 5. **Đồng bộ Google Groups** → thành viên Space: đề xuất không làm (cần admin Workspace); quản lý thành viên trong app.
-6. **Dữ liệu staging**: đề xuất chỉ dữ liệu giả (seed).
-7. **Kênh cảnh báo vận hành**: đề xuất Telegram bot (dễ setup, không cần admin) hoặc email.
-8. **Review trước khi merge**: đề xuất 1 dev tự merge khi CI xanh; bật bắt buộc review khi có người thứ hai.
-9. **V3 AI — ngân sách** hằng tháng cho API và có lưu nguyên văn câu hỏi/trả lời không: quyết định khi bắt đầu V3.
+6. **Kênh cảnh báo vận hành**: đề xuất Telegram bot (dễ setup, không cần admin) hoặc email.
+7. **Review trước khi merge**: đề xuất 1 dev tự merge khi CI xanh; bật bắt buộc review khi có người thứ hai.
+8. **V3 AI — ngân sách** hằng tháng cho API và có lưu nguyên văn câu hỏi/trả lời không: quyết định khi bắt đầu V3.

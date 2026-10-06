@@ -2,6 +2,7 @@
 
 - Trạng thái: **Đề xuất** (T0.8) — chốt khi người điều phối merge PR T0.8 và deploy staging đầu tiên thành công
 - Ngày: 2026-09-26
+- Cập nhật 2026-10-06: môi trường này là **production duy nhất** (`kb.thanhgo.com`), không còn staging riêng — ADR 0007. Mô hình compose giữ nguyên.
 - Liên quan: `docs/PLAN.md` §6.5, §7.3, §7.4, §7.5, §7.6 · `docs/runbooks/staging.md` · `infra/coolify/**` · `.github/workflows/deploy.yml`
 
 ## Bối cảnh
