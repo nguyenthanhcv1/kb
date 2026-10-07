@@ -39,8 +39,12 @@
     }
   },
   "home": {
-    "emptyDescription": "Cây trang của không gian sẽ hiển thị ở đây.",
-    "emptyTitle": "Chưa có trang nào"
+    "emptyDescription": "Không gian này chưa có trang nào để đọc.",
+    "emptyDescriptionEditor": "Bấm “Trang mới” ở thanh bên để tạo trang đầu tiên.",
+    "emptyTitle": "Chưa có trang nào",
+    "hasSubpages": "Có trang con",
+    "lastEdited": "Sửa lần cuối {date}",
+    "pagesHeading": "Trang"
   },
   "invite": "Mời thành viên",
   "list": {

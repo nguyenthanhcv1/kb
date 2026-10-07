@@ -2,11 +2,11 @@ import { cache } from "react";
 
 import { parsePageRef } from "@/lib/page-href";
 import { createClient } from "@/lib/supabase/server";
-import { getPageByShortId, getPageContent, listTrash } from "@/server/pages";
+import { getPageByShortId, getPageContent, listChildPages, listTrash } from "@/server/pages";
 
 /**
- * Per-request cached page reads for the `/s/[spaceSlug]/p/[pageRef]` and `/s/[spaceSlug]/trash`
- * routes (React `cache` dedupes `generateMetadata` + page). RLS decides visibility.
+ * Per-request cached page reads for the `/s/[spaceSlug]` home, `/s/[spaceSlug]/p/[pageRef]` and
+ * `/s/[spaceSlug]/trash` routes (React `cache` dedupes `generateMetadata` + page). RLS decides visibility.
  */
 
 /** Page of a `[pageRef]` segment (any slug, looked up by short id), or `null`. */
@@ -22,4 +22,9 @@ export const loadPageContent = cache(async (pageId: string) =>
 
 export const loadTrash = cache(async (spaceId: string) =>
   listTrash(await createClient(), { spaceId }),
+);
+
+/** Live root pages of a Space in tree order (Space home). */
+export const loadRootPages = cache(async (spaceId: string) =>
+  listChildPages(await createClient(), { spaceId, parentId: null }),
 );
