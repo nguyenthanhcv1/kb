@@ -39,8 +39,12 @@
     }
   },
   "home": {
-    "emptyDescription": "The page tree of this space will appear here.",
-    "emptyTitle": "No pages yet"
+    "emptyDescription": "This space has no pages to read yet.",
+    "emptyDescriptionEditor": "Click “New page” in the sidebar to create the first page.",
+    "emptyTitle": "No pages yet",
+    "hasSubpages": "Has subpages",
+    "lastEdited": "Last edited {date}",
+    "pagesHeading": "Pages"
   },
   "invite": "Invite members",
   "list": {

@@ -3,16 +3,21 @@ import enCommon from "@kb/i18n/messages/en/common.json";
 import enErrors from "@kb/i18n/messages/en/errors.json";
 import enNav from "@kb/i18n/messages/en/nav.json";
 import enSpace from "@kb/i18n/messages/en/space.json";
+import enTree from "@kb/i18n/messages/en/tree.json";
 import viCommon from "@kb/i18n/messages/vi/common.json";
 import viErrors from "@kb/i18n/messages/vi/errors.json";
 import viNav from "@kb/i18n/messages/vi/nav.json";
 import viSpace from "@kb/i18n/messages/vi/space.json";
+import viTree from "@kb/i18n/messages/vi/tree.json";
 import { cleanup, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { NextIntlClientProvider } from "next-intl";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { formats } from "@kb/i18n";
+
+import type { PageTreeNode } from "@/server/pages";
 import type { Space, SpaceRole } from "@/server/space";
 
 const router = { push: vi.fn(), replace: vi.fn(), refresh: vi.fn() };
@@ -34,19 +39,25 @@ vi.mock("@/components/tree/page-tree", () => ({ PageTree: () => null }));
 const { ArchiveSpaceSection } = await import("./archive-space-section");
 const { CreateSpaceDialog } = await import("./create-space-dialog");
 const { SpaceHeader } = await import("./space-header");
+const { SpaceHomePages } = await import("./space-home-pages");
 const { SpaceList } = await import("./space-list");
 const { SpaceNav } = await import("./space-nav");
 const { SpaceSettingsForm } = await import("./space-settings-form");
 const { SpaceSettingsNav } = await import("./space-settings-nav");
 
 const messages = {
-  vi: { common: viCommon, errors: viErrors, nav: viNav, space: viSpace },
-  en: { common: enCommon, errors: enErrors, nav: enNav, space: enSpace },
+  vi: { common: viCommon, errors: viErrors, nav: viNav, space: viSpace, tree: viTree },
+  en: { common: enCommon, errors: enErrors, nav: enNav, space: enSpace, tree: enTree },
 };
 
 function renderWith(ui: ReactNode, locale: "vi" | "en" = "vi") {
   return render(
-    <NextIntlClientProvider locale={locale} messages={messages[locale]} timeZone="Asia/Ho_Chi_Minh">
+    <NextIntlClientProvider
+      locale={locale}
+      messages={messages[locale]}
+      formats={formats}
+      timeZone="Asia/Ho_Chi_Minh"
+    >
       {ui}
     </NextIntlClientProvider>,
   );
@@ -183,6 +194,66 @@ describe("SpaceHeader", () => {
       <SpaceHeader space={makeSpace({ role: "viewer" })} actions={<button>{"extra"}</button>} />,
     );
     expect(screen.getByRole("button", { name: "extra" })).toBeTruthy();
+  });
+});
+
+describe("SpaceHomePages", () => {
+  function makePage(overrides: Partial<PageTreeNode> = {}): PageTreeNode {
+    return {
+      id: "2000aaaa-0000-4000-8000-000000000001",
+      spaceId: "0b9a0000-0000-4000-8000-000000000001",
+      parentId: null,
+      shortId: "a1B2c3D4",
+      slug: "huong-dan",
+      title: "Hướng dẫn",
+      icon: "📘",
+      position: "a0",
+      lastEditedAt: "2026-09-26T09:00:00+00:00",
+      deletedAt: null,
+      hasChildren: false,
+      ...overrides,
+    };
+  }
+
+  it("lists the root pages in order, linking to each page", () => {
+    renderWith(
+      <SpaceHomePages
+        spaceSlug="design"
+        canEdit
+        pages={[
+          makePage({ hasChildren: true }),
+          makePage({
+            id: "2000aaaa-0000-4000-8000-000000000002",
+            shortId: "e5F6g7H8",
+            slug: "",
+            title: "",
+            icon: null,
+          }),
+        ]}
+      />,
+    );
+    expect(screen.getByRole("heading", { level: 2, name: "Trang" })).toBeTruthy();
+    const links = screen.getAllByRole("link");
+    expect(links.map((link) => link.getAttribute("href"))).toEqual([
+      "/s/design/p/huong-dan-a1B2c3D4",
+      "/s/design/p/e5F6g7H8",
+    ]);
+    expect(links[0]!.textContent).toContain("Hướng dẫn");
+    expect(links[0]!.textContent).toContain("Sửa lần cuối 16:00 26/09/2026");
+    expect(links[0]!.textContent).toContain("Có trang con");
+    expect(links[1]!.textContent).toContain("Chưa có tiêu đề");
+    expect(links[1]!.textContent).not.toContain("Có trang con");
+    expect(screen.queryByText("Chưa có trang nào")).toBeNull();
+  });
+
+  it.each([
+    [true, "Click “New page” in the sidebar to create the first page."],
+    [false, "This space has no pages to read yet."],
+  ])("shows the empty state when there are no pages (canEdit: %s)", (canEdit, description) => {
+    renderWith(<SpaceHomePages spaceSlug="design" canEdit={canEdit} pages={[]} />, "en");
+    expect(screen.getByText("No pages yet")).toBeTruthy();
+    expect(screen.getByText(description)).toBeTruthy();
+    expect(screen.queryByRole("link")).toBeNull();
   });
 });
 

@@ -22,7 +22,8 @@ import { expect, test } from "../support/test";
 
 /**
  * T1.4b, T7.1d — Space: create (slug derived from the name, default `restricted`), duplicate slug
- * error, settings, archive with confirmation; a viewer member reads the Space but cannot edit it.
+ * error, settings, archive with confirmation; the Space home lists its root pages; a viewer member
+ * reads the Space but cannot edit it.
  * Runs in the language of `E2E_LOCALE`; needs the signed-in worker user (global-setup).
  */
 const locale = e2eLocale();
@@ -96,6 +97,23 @@ test("create, configure and archive a space", async ({ page }, testInfo) => {
   await expect(page.getByRole("link", { name })).toHaveCount(0);
   await page.goto(`/s/${slug}`);
   await expect(page.getByRole("heading", { name: m.space.notFound.title })).toBeVisible();
+});
+
+test("the space home lists its root pages", async ({ page }, testInfo) => {
+  const suffix = uniqueSuffix(testInfo);
+  const slug = await createSpace(page, `Home ${suffix}`);
+  const main = page.getByRole("main");
+  await expect(main.getByText(m.space.home.emptyTitle)).toBeVisible();
+  await expect(main.getByText(m.space.home.emptyDescriptionEditor)).toBeVisible();
+
+  await addPage(page, "Handbook");
+  await page.goto(`/s/${slug}`);
+  await expect(
+    main.getByRole("heading", { level: 2, name: m.space.home.pagesHeading }),
+  ).toBeVisible();
+  await expect(main.getByText(m.space.home.emptyTitle)).toHaveCount(0);
+  await main.getByRole("link", { name: /Handbook/ }).click();
+  await expect(page).toHaveURL(/\/s\/[^/]+\/p\/handbook-[A-Za-z0-9]{8}$/);
 });
 
 test("a viewer reads the space but cannot edit it", async ({ page, browser }, testInfo) => {
