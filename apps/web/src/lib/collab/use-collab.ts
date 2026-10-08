@@ -93,7 +93,7 @@ export function useCollab(pageId: string, config: CollabClientConfig): CollabCon
       setConnection({
         doc,
         provider,
-        status: deriveCollabStatus(state),
+        status: deriveCollabStatus({ ...state, readOnly: !canWrite }),
         synced: state.synced,
         canWrite,
       });

@@ -21,6 +21,8 @@ export type CollabSnapshot = {
   synced: boolean;
   unsyncedChanges: number;
   failure: CollabFailure | null;
+  /** The server accepted the connection read-only (viewer): it refuses every local change. */
+  readOnly?: boolean;
 };
 
 /** Collapses provider events into the one status the indicator shows. */
@@ -28,7 +30,8 @@ export function deriveCollabStatus(s: CollabSnapshot): CollabStatus {
   if (s.failure) return s.failure;
   if (!s.connected) return s.synced ? "offline" : "connecting";
   if (!s.synced) return "connecting";
-  return s.unsyncedChanges > 0 ? "saving" : "saved";
+  // A read-only connection never gets its changes acknowledged: "saving" would never end.
+  return s.unsyncedChanges > 0 && !s.readOnly ? "saving" : "saved";
 }
 
 /** Maps the `reason` of `authenticationFailed` to a terminal failure, or null when retryable. */

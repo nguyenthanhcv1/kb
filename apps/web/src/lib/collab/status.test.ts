@@ -13,6 +13,9 @@ describe("deriveCollabStatus", () => {
     expect(deriveCollabStatus(base)).toBe("saved");
     expect(deriveCollabStatus({ ...base, unsyncedChanges: 2 })).toBe("saving");
   });
+  it("never stays saving on a read-only connection", () => {
+    expect(deriveCollabStatus({ ...base, unsyncedChanges: 1, readOnly: true })).toBe("saved");
+  });
   it("is offline after a sync when the connection drops", () => {
     expect(deriveCollabStatus({ ...base, connected: false, unsyncedChanges: 3 })).toBe("offline");
   });
