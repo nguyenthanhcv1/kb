@@ -74,6 +74,12 @@
     "placeholder": "Paste or type a link",
     "remove": "Remove link"
   },
+  "markdown": {
+    "empty": "The file has no content to import.",
+    "pick": "Choose a Markdown file to import",
+    "readFailed": "The file could not be read.",
+    "tooLarge": "The file is too large to import (2 MB max)."
+  },
   "mermaid": {
     "diagram": "Mermaid diagram",
     "error": "Could not draw the diagram: the Mermaid code has an error.",
@@ -188,6 +194,10 @@
       "image": {
         "description": "Insert an image from a link or upload one",
         "title": "Image"
+      },
+      "markdown": {
+        "description": "Insert the content of a .md file into the page",
+        "title": "Import Markdown"
       },
       "mermaid": {
         "description": "Flowcharts, sequence diagrams… drawn from code",

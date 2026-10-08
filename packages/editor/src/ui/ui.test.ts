@@ -89,6 +89,7 @@ describe("slash items", () => {
         heading3: "heading",
         divider: "horizontalRule",
         file: "paragraph",
+        markdown: "paragraph",
         mermaid: "codeBlock",
       };
       const type = expected[item.id] ?? item.id.split(".")[0];

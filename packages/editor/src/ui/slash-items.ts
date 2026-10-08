@@ -11,7 +11,7 @@ export const SLASH_GROUPS = ["basic", "lists", "blocks", "media"] as const;
 export type SlashGroup = (typeof SLASH_GROUPS)[number];
 
 /** Input the UI must collect before an item can run (e.g. an image URL). */
-export type SlashItemInput = { kind: "imageUrl" } | { kind: "file" };
+export type SlashItemInput = { kind: "imageUrl" } | { kind: "file" } | { kind: "markdownFile" };
 
 export interface SlashItem {
   /** Stable code; the UI maps it to a label/description (`editor.slash.items.<id>`) and an icon. */
@@ -144,6 +144,14 @@ export const SLASH_ITEMS: readonly SlashItem[] = [
     keywords: ["file", "attachment", "upload", "pdf", "tep", "dinh kem", "tai len"],
     input: { kind: "file" },
     // The UI opens a file picker; the upload inserts the link itself (`insertAttachment`).
+    run: (chain) => chain,
+  },
+  {
+    id: "markdown",
+    group: "media",
+    keywords: ["markdown", "md", "import", "nhap", "tai len", "tai lieu", "readme"],
+    input: { kind: "markdownFile" },
+    // The UI opens a file picker for a .md file and inserts its blocks itself (`insertMarkdown`).
     run: (chain) => chain,
   },
 ];
