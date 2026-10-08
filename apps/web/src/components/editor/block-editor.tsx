@@ -220,8 +220,13 @@ export function BlockEditor({
     editorRef.current = editor;
   }, [editor]);
 
+  // Switched to editing (page "Edit"): put the caret in the text so typing works at once.
+  const wasEditable = useRef(editable);
   useEffect(() => {
-    editor?.setEditable(editable);
+    if (!editor) return;
+    editor.setEditable(editable);
+    if (editable && !wasEditable.current) editor.commands.focus();
+    wasEditable.current = editable;
   }, [editor, editable]);
 
   // Keep the accessible name in the current language after a locale switch.

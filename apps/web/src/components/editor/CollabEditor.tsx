@@ -18,6 +18,8 @@ type CollabEditorProps = {
   /** Derived `content_json`: shown at once (server-rendered) while the WebSocket connects. */
   content: JSONContent | null;
   title: string;
+  /** Edit mode: typing allowed. Otherwise the page is read live (others' edits show) but locked. */
+  editing?: boolean;
   /** `/s/<space>/p/<ref>/history`, linked from the "content was restored" toast. */
   historyHref?: string;
 };
@@ -28,7 +30,14 @@ type CollabEditorProps = {
  * swaps to one bound to the Yjs document; if the connection drops later it stays mounted, so
  * typing continues and syncs on reconnect.
  */
-export function CollabEditor({ pageId, config, content, title, historyHref }: CollabEditorProps) {
+export function CollabEditor({
+  pageId,
+  config,
+  content,
+  title,
+  editing = true,
+  historyHref,
+}: CollabEditorProps) {
   const collab = useCollab(pageId, config);
   const bound = collab?.synced ? collab : null;
   const provider = collab?.provider ?? null;
@@ -54,15 +63,24 @@ export function CollabEditor({ pageId, config, content, title, historyHref }: Co
     [bound],
   );
 
+  const status = collab?.status ?? "connecting";
+  // While reading, the save status only shows when something needs attention (unsaved changes
+  // after "Done", offline, a reload needed).
+  const showStatus = editing || (status !== "saved" && status !== "connecting");
+
   return (
     <div className="flex flex-col gap-3">
-      <div className="md:pl-8">
-        <CollabStatusIndicator status={collab?.status ?? "connecting"} />
-      </div>
+      {showStatus && (
+        <div className="md:pl-8">
+          <CollabStatusIndicator status={status} />
+        </div>
+      )}
       {bound ? (
         <BlockEditor
           key="collab"
-          editable={bound.canWrite && bound.status !== "outdated" && bound.status !== "forbidden"}
+          editable={
+            editing && bound.canWrite && bound.status !== "outdated" && bound.status !== "forbidden"
+          }
           extensions={extensions}
           extensionOptions={{
             undoRedo: false,

@@ -42,6 +42,12 @@
       "suggestions": "Suggestions"
     },
     "menu": "Page actions",
+    "mode": {
+      "done": "Done",
+      "doneLabel": "Done, back to viewing",
+      "edit": "Edit",
+      "editLabel": "Edit page"
+    },
     "title": {
       "label": "Page title",
       "saving": "Saving…"

@@ -42,6 +42,12 @@
       "suggestions": "Gợi ý"
     },
     "menu": "Thao tác với trang",
+    "mode": {
+      "done": "Xong",
+      "doneLabel": "Xong, quay lại chế độ xem",
+      "edit": "Sửa",
+      "editLabel": "Sửa trang"
+    },
     "title": {
       "label": "Tiêu đề trang",
       "saving": "Đang lưu…"
