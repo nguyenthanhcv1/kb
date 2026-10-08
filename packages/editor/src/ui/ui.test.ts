@@ -89,6 +89,7 @@ describe("slash items", () => {
         heading3: "heading",
         divider: "horizontalRule",
         file: "paragraph",
+        mermaid: "codeBlock",
       };
       const type = expected[item.id] ?? item.id.split(".")[0];
       expect(json).toContain(`"type":"${type}"`);
@@ -110,7 +111,9 @@ describe("slash items", () => {
   it("covers every block type of the schema", () => {
     const created = new Set(
       SLASH_ITEMS.map(
-        (item) => ({ divider: "horizontalRule" })[item.id] ?? item.id.replace(/\d$|\..*$/, ""),
+        (item) =>
+          ({ divider: "horizontalRule", mermaid: "codeBlock" })[item.id] ??
+          item.id.replace(/\d$|\..*$/, ""),
       ),
     );
     // List items, table rows and cells come with their parent; the rest must be reachable from "/".

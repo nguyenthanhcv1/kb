@@ -29,6 +29,19 @@ export {
   SHORTCUT_GROUPS,
 } from "./shortcuts";
 export {
+  findMermaidBlocks,
+  isMermaidBlock,
+  MERMAID_LANGUAGE,
+  MERMAID_PREVIEW_CLASS,
+  MERMAID_SOURCE_CLASS,
+  MERMAID_TEMPLATE,
+  type MermaidBlock,
+  MermaidPreview,
+  type MermaidPreviewOptions,
+  mermaidPreviewPluginKey,
+  type MermaidRender,
+} from "./mermaid";
+export {
   runSlashItem,
   SlashCommand,
   type SlashCommandOptions,

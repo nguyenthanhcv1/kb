@@ -74,6 +74,11 @@
     "placeholder": "Paste or type a link",
     "remove": "Remove link"
   },
+  "mermaid": {
+    "diagram": "Mermaid diagram",
+    "error": "Could not draw the diagram: the Mermaid code has an error.",
+    "loading": "Drawing diagram…"
+  },
   "placeholder": {
     "heading": "Heading {level}",
     "paragraph": "Type text, or \"/\" to insert a block"
@@ -183,6 +188,10 @@
       "image": {
         "description": "Insert an image from a link or upload one",
         "title": "Image"
+      },
+      "mermaid": {
+        "description": "Flowcharts, sequence diagrams… drawn from code",
+        "title": "Mermaid diagram"
       },
       "orderedList": {
         "description": "A list with numbering",

@@ -4,6 +4,7 @@ import { normalizeVi } from "@kb/i18n";
 
 import { CALLOUT_VARIANTS, type CalloutVariant } from "../extensions/callout";
 import { DEFAULT_TABLE_SIZE } from "../extensions/table";
+import { MERMAID_LANGUAGE, MERMAID_TEMPLATE } from "./mermaid";
 import { findTable } from "./table-actions";
 
 export const SLASH_GROUPS = ["basic", "lists", "blocks", "media"] as const;
@@ -95,6 +96,18 @@ export const SLASH_ITEMS: readonly SlashItem[] = [
     group: "blocks",
     keywords: ["code", "snippet", "ma nguon", "doan ma", "```"],
     run: (chain) => chain.setCodeBlock(),
+  },
+  {
+    id: "mermaid",
+    group: "blocks",
+    keywords: ["mermaid", "diagram", "flowchart", "chart", "so do", "luu do", "bieu do", "uml"],
+    // A code block in the "mermaid" language, filled with a starter diagram the view draws (T7.14).
+    run: (chain) =>
+      chain.setCodeBlock({ language: MERMAID_LANGUAGE }).command(({ tr, dispatch }) => {
+        const { $from } = tr.selection;
+        if (dispatch && $from.parent.content.size === 0) tr.insertText(MERMAID_TEMPLATE, $from.pos);
+        return true;
+      }),
   },
   ...CALLOUT_VARIANTS.map((variant): SlashItem => ({
     id: `callout.${variant}`,
