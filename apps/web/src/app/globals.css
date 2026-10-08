@@ -5,66 +5,108 @@
 @custom-variant dark (&:is(.dark *));
 
 /*
- * Design tokens (shadcn/ui "neutral"). Components use only these variables through Tailwind
+ * Design tokens — "KA Atlas", the Key Account theme (shadcn/ui variable names).
+ * Ink #14202E text, Teal #0B6E69 primary, Paper #F7F8F5 page, Amber #B7791F for
+ * Key-Account-only highlights. Components use only these variables through Tailwind
  * utilities (bg-background, text-muted-foreground…) — never raw colours.
+ * Hex in comments is for reference only.
  */
 :root {
   --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
+  --background: oklch(0.978 0.004 121.6); /* Paper #F7F8F5 */
+  --foreground: oklch(0.239 0.032 252.9); /* Ink #14202E */
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
+  --card-foreground: oklch(0.239 0.032 252.9);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.47 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.556 0 0);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.556 0 0);
+  --popover-foreground: oklch(0.239 0.032 252.9);
+  --primary: oklch(0.487 0.082 189.2); /* Teal #0B6E69 */
+  --primary-foreground: oklch(1 0 0);
+  --secondary: oklch(0.944 0.005 117.9); /* #ECEDE9 */
+  --secondary-foreground: oklch(0.239 0.032 252.9);
+  --muted: oklch(0.944 0.005 117.9);
+  --muted-foreground: oklch(0.446 0.03 257.7); /* Slate #4A5565 */
+  --accent: oklch(0.947 0.015 186.7); /* Teal soft #E3F1EF */
+  --accent-foreground: oklch(0.388 0.063 188.7);
+  --destructive: oklch(0.5 0.182 29.5); /* #B42318 */
+  --border: oklch(0.916 0.007 124.5); /* #E2E4DF */
+  --input: oklch(0.841 0.011 123.5); /* #C9CCC4 */
+  --ring: oklch(0.487 0.082 189.2);
+  /* Status + Key Account highlight (text colour on its soft background ≥ 4.5:1). */
+  --success: oklch(0.517 0.118 153.8);
+  --success-soft: oklch(0.951 0.019 157.9);
+  --warning: oklch(0.508 0.108 73.3);
+  --warning-soft: oklch(0.966 0.032 87.3);
+  --info: oklch(0.489 0.14 255.8);
+  --info-soft: oklch(0.946 0.016 253.9);
+  --highlight: oklch(0.424 0.083 69.9); /* Amber text on --highlight-soft */
+  --highlight-soft: oklch(0.961 0.027 83.5);
+  /* The sidebar is ink in both themes. */
+  --sidebar: oklch(0.239 0.032 252.9); /* Ink #14202E */
+  --sidebar-foreground: oklch(0.883 0.012 252.1); /* #D3D9E0 */
+  --sidebar-muted-foreground: oklch(0.76 0.02 255.6); /* #A9B2BE */
+  --sidebar-primary: oklch(0.714 0.106 188); /* Teal light #3FB8AF */
+  --sidebar-primary-foreground: oklch(0.222 0.026 191.2);
+  --sidebar-accent: oklch(0.318 0.047 256.2); /* #22334A */
+  --sidebar-accent-foreground: oklch(1 0 0);
+  --sidebar-border: oklch(0.348 0.046 256.1); /* #2A3B52 */
+  --sidebar-ring: oklch(0.714 0.106 188);
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.72 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
+  --background: oklch(0.198 0.025 256.5); /* #0E1621 */
+  --foreground: oklch(0.935 0.007 247.9);
+  --card: oklch(0.244 0.033 254.5); /* #152130 */
+  --card-foreground: oklch(0.935 0.007 247.9);
+  --popover: oklch(0.244 0.033 254.5);
+  --popover-foreground: oklch(0.935 0.007 247.9);
+  --primary: oklch(0.714 0.106 188); /* Teal light #3FB8AF */
+  --primary-foreground: oklch(0.222 0.026 191.2);
+  --secondary: oklch(0.292 0.035 252.3); /* #1F2D3D */
+  --secondary-foreground: oklch(0.935 0.007 247.9);
+  --muted: oklch(0.292 0.035 252.3);
+  --muted-foreground: oklch(0.76 0.02 255.6); /* #A9B2BE */
+  --accent: oklch(0.311 0.037 206.5); /* #17363A */
+  --accent-foreground: oklch(0.903 0.044 187.5);
+  --destructive: oklch(0.714 0.15 27.8); /* #F27A6D */
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --ring: oklch(0.714 0.106 188);
+  --success: oklch(0.793 0.127 156.7);
+  --success-soft: oklch(0.319 0.048 158);
+  --warning: oklch(0.832 0.1 82.6);
+  --warning-soft: oklch(0.308 0.046 86.3);
+  --info: oklch(0.766 0.084 254.9);
+  --info-soft: oklch(0.285 0.053 259.7);
+  --highlight: oklch(0.832 0.1 82.6);
+  --highlight-soft: oklch(0.308 0.046 86.3);
+  --sidebar: oklch(0.175 0.022 255); /* #0A111A */
+  --sidebar-foreground: oklch(0.883 0.012 252.1);
+  --sidebar-muted-foreground: oklch(0.76 0.02 255.6);
+  --sidebar-primary: oklch(0.714 0.106 188);
+  --sidebar-primary-foreground: oklch(0.222 0.026 191.2);
+  --sidebar-accent: oklch(0.269 0.037 255.4); /* #1A2738 */
+  --sidebar-accent-foreground: oklch(1 0 0);
+  --sidebar-border: oklch(1 0 0 / 8%);
+  --sidebar-ring: oklch(0.714 0.106 188);
+}
+
+/*
+ * Inside the ink sidebar, the general tokens point at the sidebar ones so components
+ * placed there (muted text, outline buttons, inputs, focus rings) keep their contrast.
+ * Popovers and menus portal out of the sidebar and keep the page tokens.
+ */
+[data-slot="sidebar"] {
+  --background: var(--sidebar);
+  --foreground: var(--sidebar-foreground);
+  --muted: var(--sidebar-accent);
+  --muted-foreground: var(--sidebar-muted-foreground);
+  --accent: var(--sidebar-accent);
+  --accent-foreground: var(--sidebar-accent-foreground);
+  --primary: var(--sidebar-primary);
+  --primary-foreground: var(--sidebar-primary-foreground);
+  --border: var(--sidebar-border);
+  --input: var(--sidebar-border);
+  --ring: var(--sidebar-ring);
 }
 
 @theme inline {
@@ -86,8 +128,17 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+  --color-highlight: var(--highlight);
+  --color-highlight-soft: var(--highlight-soft);
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-muted-foreground: var(--sidebar-muted-foreground);
   --color-sidebar-primary: var(--sidebar-primary);
   --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
   --color-sidebar-accent: var(--sidebar-accent);
@@ -98,9 +149,13 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+  /* Be Vietnam Pro / JetBrains Mono are loaded with next/font in app/layout.tsx. */
   --font-sans:
-    ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial,
-    "Noto Sans", sans-serif;
+    var(--font-be-vietnam-pro), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+  --font-mono:
+    var(--font-jetbrains-mono), ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono",
+    monospace;
 }
 
 @layer base {
