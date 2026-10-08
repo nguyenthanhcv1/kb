@@ -90,6 +90,37 @@
     }
   }
 
+  /*
+   * Mermaid diagrams (T7.14): drawn under their ```mermaid code block. Read-only views show only
+   * the drawing; the code stays visible when it has an error or while the library loads.
+   */
+  & .kb-mermaid {
+    @apply overflow-x-auto rounded-md border bg-background p-4;
+
+    & svg {
+      @apply mx-auto h-auto max-w-full;
+    }
+    & > p {
+      @apply text-sm text-muted-foreground;
+    }
+    & > pre {
+      @apply mt-2 border-0 bg-transparent p-0 text-xs whitespace-pre-wrap text-destructive;
+    }
+  }
+  & .kb-mermaid[data-state="error"] > p {
+    @apply font-medium text-destructive;
+  }
+  & .kb-mermaid[data-state="idle"],
+  & .kb-mermaid[data-state="empty"] {
+    @apply hidden;
+  }
+  &[contenteditable="false"] pre.kb-mermaid-source:has(+ .kb-mermaid[data-state="ok"]) {
+    @apply hidden;
+  }
+  &[contenteditable="false"] pre.kb-mermaid-source + .kb-mermaid[data-state="ok"] {
+    @apply mt-0;
+  }
+
   /* Callouts (variant stored as a code, see CALLOUT_VARIANTS). */
   & div[data-type="callout"] {
     @apply rounded-md border-l-4 px-4 py-3;

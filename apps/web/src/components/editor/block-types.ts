@@ -1,5 +1,5 @@
 import type { Editor } from "@tiptap/core";
-import { type SlashItem, SLASH_ITEMS } from "@kb/editor/ui";
+import { MERMAID_LANGUAGE, type SlashItem, SLASH_ITEMS } from "@kb/editor/ui";
 import {
   CircleCheckIcon,
   Heading1Icon,
@@ -13,6 +13,7 @@ import {
   ListTodoIcon,
   type LucideIcon,
   MinusIcon,
+  NetworkIcon,
   OctagonAlertIcon,
   PilcrowIcon,
   QuoteIcon,
@@ -34,6 +35,7 @@ export const BLOCK_ICONS: Record<string, LucideIcon> = {
   taskList: ListTodoIcon,
   blockquote: QuoteIcon,
   codeBlock: SquareCodeIcon,
+  mermaid: NetworkIcon,
   "callout.info": InfoIcon,
   "callout.success": CircleCheckIcon,
   "callout.warning": TriangleAlertIcon,
@@ -66,6 +68,7 @@ export function activeBlockItem(editor: Editor): SlashItem | undefined {
     ["taskList", () => editor.isActive("taskList")],
     ["orderedList", () => editor.isActive("orderedList")],
     ["bulletList", () => editor.isActive("bulletList")],
+    ["mermaid", () => editor.isActive("codeBlock", { language: MERMAID_LANGUAGE })],
     ["codeBlock", () => editor.isActive("codeBlock")],
     ["blockquote", () => editor.isActive("blockquote")],
     ["callout.info", () => editor.isActive("callout", { variant: "info" })],

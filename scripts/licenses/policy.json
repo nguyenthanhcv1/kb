@@ -14,6 +14,10 @@
       "license": "CC-BY-4.0",
       "reason": "Chỉ là dữ liệu trình duyệt, dùng lúc build (browserslist)."
     },
+    "khroma": {
+      "license": "Unknown",
+      "reason": "Thực chất MIT (file license trong package), chỉ thiếu trường license trong package.json; phụ thuộc của mermaid (sơ đồ, T7.14)."
+    },
     "language-subtag-registry": {
       "license": "CC0-1.0",
       "reason": "Dữ liệu public domain; phụ thuộc của eslint-plugin-jsx-a11y."
@@ -21,6 +25,10 @@
     "minimatch": {
       "license": "BlueOak-1.0.0",
       "reason": "Blue Oak Model License, permissive (tương đương MIT)."
+    },
+    "robust-predicates": {
+      "license": "Unlicense",
+      "reason": "Public domain (Unlicense), permissive hơn MIT; phụ thuộc của d3-delaunay qua mermaid (T7.14)."
     }
   }
 }

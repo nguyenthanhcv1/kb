@@ -157,6 +157,35 @@ test("typed content is saved and still there after a reload", async ({ page, doc
   await expect(reloaded.locator("h1")).toHaveText(text);
 });
 
+test("a Mermaid diagram from the slash menu is drawn, redrawn on edit and kept after a reload", async ({
+  page,
+  doc,
+}) => {
+  const { editor, m } = doc;
+  await newLine(page, editor);
+  await page.keyboard.type("/");
+  await page
+    .getByRole("option", { name: new RegExp(escape(m.editor.slash.items.mermaid.title)) })
+    .first()
+    .click();
+  const diagram = editor.getByRole("img", { name: m.editor.mermaid.diagram });
+  await expect(diagram.locator("svg")).toBeVisible({ timeout: 15_000 });
+
+  // A syntax error shows the translated message; fixing the code draws the diagram again.
+  await page.keyboard.type(" -->");
+  await expect(editor.getByText(m.editor.mermaid.error)).toBeVisible();
+  await page.keyboard.type(" C");
+  await expect(diagram.locator("svg")).toContainText("C");
+  await waitForSaved(page);
+
+  await page.reload();
+  const reloaded = await editableEditor(page);
+  await expect(reloaded.locator("pre code")).toContainText("A --> B --> C");
+  await expect(
+    reloaded.getByRole("img", { name: m.editor.mermaid.diagram }).locator("svg"),
+  ).toBeVisible({ timeout: 15_000 });
+});
+
 test("a viewer sees the content but cannot edit", async ({ page, doc, browser }) => {
   test.skip(!supabaseEnv(), "E2E_SUPABASE_* is not set (needed to create the viewer)");
   const text = `Chi doc ${Date.now().toString(36)}`;

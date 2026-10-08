@@ -6,6 +6,7 @@ import {
   FileUpload,
   filterSlashItems,
   insertAttachment,
+  MermaidPreview,
   Placeholder,
   runSlashItem,
   SLASH_ITEMS,
@@ -34,6 +35,7 @@ import { BlockHandle } from "./block-handle";
 import { useBlockText } from "./block-types";
 import { FormattingBubbleMenu } from "./bubble-menu";
 import { ImageDialog } from "./image-dialog";
+import { createMermaidRenderer } from "./mermaid-renderer";
 import { ShortcutsDialog } from "./shortcuts-dialog";
 import { renderSlashMenu } from "./slash-menu";
 import { TableMenu } from "./table-menu";
@@ -184,6 +186,13 @@ export function BlockEditor({
         labels: { row: tTable("drag.row"), column: tTable("drag.column") },
       }),
       TablePaste,
+      MermaidPreview.configure({
+        render: createMermaidRenderer(() => ({
+          diagram: latest.t("mermaid.diagram"),
+          error: latest.t("mermaid.error"),
+          loading: latest.t("mermaid.loading"),
+        })),
+      }),
       TableShortcuts.configure({
         onMenuShortcut: () => {
           setTableMenuRequest((count) => count + 1);

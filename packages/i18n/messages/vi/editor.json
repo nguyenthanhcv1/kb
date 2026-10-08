@@ -74,6 +74,11 @@
     "placeholder": "Dán hoặc nhập liên kết",
     "remove": "Bỏ liên kết"
   },
+  "mermaid": {
+    "diagram": "Sơ đồ Mermaid",
+    "error": "Không vẽ được sơ đồ: mã Mermaid có lỗi.",
+    "loading": "Đang vẽ sơ đồ…"
+  },
   "placeholder": {
     "heading": "Tiêu đề {level}",
     "paragraph": "Nhập văn bản, hoặc gõ \"/\" để chèn khối"
@@ -183,6 +188,10 @@
       "image": {
         "description": "Chèn hình ảnh từ đường dẫn hoặc tải lên từ máy",
         "title": "Hình ảnh"
+      },
+      "mermaid": {
+        "description": "Lưu đồ, sơ đồ tuần tự… vẽ từ mã",
+        "title": "Sơ đồ Mermaid"
       },
       "orderedList": {
         "description": "Danh sách đánh số thứ tự",
