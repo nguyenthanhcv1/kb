@@ -14,14 +14,16 @@ export function isEmptyDocument(doc: JSONContent | null | undefined): boolean {
 }
 
 /**
- * Page body. Editors get the collaborative editor (Yjs through kb-collab, with the save status)
- * whenever collab is configured; everyone else reads the server-rendered `content_json`.
+ * Page body. Editors get the collaborative editor (Yjs through kb-collab: live, with the save
+ * status) whenever collab is configured — read-only until `editing`; everyone else reads the
+ * server-rendered `content_json`.
  */
 export function PageContent({
   content,
   title,
   pageId,
   collab = null,
+  editing = false,
   historyHref,
 }: {
   content: JSONContent | null;
@@ -29,6 +31,8 @@ export function PageContent({
   pageId?: string;
   /** Set only when the viewer may edit this page and `COLLAB_PUBLIC_URL` is configured. */
   collab?: CollabClientConfig | null;
+  /** The editor chose "Edit": the collaborative body accepts typing. */
+  editing?: boolean;
   /** History route of the page, linked from the "content was restored" toast. */
   historyHref?: string;
 }) {
@@ -40,6 +44,7 @@ export function PageContent({
         config={collab}
         content={content}
         title={title}
+        editing={editing}
         historyHref={historyHref}
       />
     );

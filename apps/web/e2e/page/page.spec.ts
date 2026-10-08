@@ -47,6 +47,14 @@ test("rename, trash and restore a page", async ({ page, context }, testInfo) => 
   await page.getByRole("button", { name: "🚀" }).click();
   await expect(page.getByRole("button", { name: m.tree.page.icon.change })).toContainText("🚀");
 
+  // A new page opens for editing; "Done" locks title and icon, "Edit" unlocks them.
+  await page.getByRole("button", { name: m.tree.page.mode.doneLabel }).click();
+  await expect(title).toHaveCount(0);
+  await expect(page.getByRole("heading", { level: 1, name: pageTitle })).toBeVisible();
+  await expect(page.getByRole("button", { name: m.tree.page.icon.change })).toHaveCount(0);
+  await page.getByRole("button", { name: m.tree.page.mode.editLabel }).click();
+  await expect(title).toHaveValue(pageTitle);
+
   // Move to trash → the page shows the trashed notice and appears in the Space trash.
   await page.getByRole("button", { name: m.tree.page.menu }).click();
   await page.getByRole("menuitem", { name: m.tree.actions.moveToTrash }).click();

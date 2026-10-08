@@ -74,9 +74,24 @@ export async function openPage(page: Page, title: string): Promise<string> {
   return new URL(page.url()).pathname;
 }
 
-/** The page editor once the collaboration session is connected, editable and saved. */
+/**
+ * Switches the open page to editing ("Edit"; a new, empty page already opens that way). Retried:
+ * a click before hydration does nothing.
+ */
+export async function startEditing(page: Page) {
+  const m = load(e2eLocale());
+  const edit = page.getByRole("button", { name: m.tree.page.mode.editLabel });
+  const done = page.getByRole("button", { name: m.tree.page.mode.doneLabel });
+  await expect(async () => {
+    if (await edit.isVisible()) await edit.click();
+    await expect(done).toBeVisible({ timeout: 1_000 });
+  }).toPass();
+}
+
+/** The page editor once switched to editing, the collaboration session connected and saved. */
 export async function editableEditor(page: Page) {
   const m = load(e2eLocale());
+  await startEditing(page);
   const editor = page.getByRole("textbox", { name: m.editor.content.label });
   await expect(editor).toHaveAttribute("contenteditable", "true");
   await waitForSaved(page);

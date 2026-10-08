@@ -1,7 +1,7 @@
 "use client";
 
 import type { JSONContent } from "@tiptap/core";
-import { ArchiveRestoreIcon, HistoryIcon, Trash2Icon } from "lucide-react";
+import { ArchiveRestoreIcon, CheckIcon, HistoryIcon, PencilIcon, Trash2Icon } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
@@ -15,7 +15,7 @@ import { restorePageAction } from "@/server/pages/actions";
 
 import { pageErrorKey } from "./errors";
 import { PageActionsMenu } from "./page-actions-menu";
-import { PageContent } from "./page-content";
+import { isEmptyDocument, PageContent } from "./page-content";
 import { PageIconPicker } from "./page-icon-picker";
 import { PageTitle } from "./page-title";
 
@@ -30,14 +30,18 @@ type PageViewProps = {
 };
 
 /**
- * `/s/<space>/p/<ref>`: icon, title (editable in place for editors), the trashed notice with
- * "restore", and the read-only content. A rename changes the slug, so the URL is replaced with
- * the new canonical one (old links keep working through the route's redirect).
+ * `/s/<space>/p/<ref>`: icon, title, the trashed notice with "restore", and the content. Pages
+ * open for reading; editors switch to editing with "Edit" (title, icon and body become editable,
+ * changes are saved as they type) and back with "Done". A new, empty page opens for editing.
+ * A rename changes the slug, so the URL is replaced with the new canonical one (old links keep
+ * working through the route's redirect).
  */
 export function PageView({ page, spaceSlug, canEdit, content, collab = null }: PageViewProps) {
   const router = useRouter();
   const trashed = page.deletedAt !== null;
   const editable = canEdit && !trashed;
+  const [editing, setEditing] = useState(() => isEmptyDocument(content));
+  const editMode = editable && editing;
 
   function onRenamed(renamed: PageSummary) {
     if (renamed.slug !== page.slug) router.replace(pageHref(spaceSlug, renamed), { scroll: false });
@@ -50,9 +54,10 @@ export function PageView({ page, spaceSlug, canEdit, content, collab = null }: P
       <header className="flex items-start gap-2">
         {/* `md:pl-8`: aligned with the editor content, whose gutter holds the block handle. */}
         <div className="flex min-w-0 flex-1 flex-col gap-2 md:pl-8">
-          <PageIconPicker page={page} editable={editable} onChanged={() => router.refresh()} />
-          <PageTitle page={page} editable={editable} onRenamed={onRenamed} />
+          <PageIconPicker page={page} editable={editMode} onChanged={() => router.refresh()} />
+          <PageTitle page={page} editable={editMode} onRenamed={onRenamed} />
         </div>
+        {editable && <EditModeButton editing={editMode} onChange={setEditing} />}
         {!trashed && <HistoryLink spaceSlug={spaceSlug} page={page} />}
         {editable && <PageActionsMenu page={page} />}
       </header>
@@ -61,9 +66,31 @@ export function PageView({ page, spaceSlug, canEdit, content, collab = null }: P
         title={page.title}
         pageId={page.id}
         collab={editable ? collab : null}
+        editing={editMode}
         historyHref={`${pageHref(spaceSlug, page)}/history`}
       />
     </article>
+  );
+}
+
+function EditModeButton({
+  editing,
+  onChange,
+}: {
+  editing: boolean;
+  onChange: (editing: boolean) => void;
+}) {
+  const t = useTranslations("tree.page.mode");
+  return editing ? (
+    <Button variant="outline" size="sm" aria-label={t("doneLabel")} onClick={() => onChange(false)}>
+      <CheckIcon aria-hidden />
+      {t("done")}
+    </Button>
+  ) : (
+    <Button variant="outline" size="sm" aria-label={t("editLabel")} onClick={() => onChange(true)}>
+      <PencilIcon aria-hidden />
+      {t("edit")}
+    </Button>
   );
 }
 

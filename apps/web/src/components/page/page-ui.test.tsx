@@ -33,6 +33,13 @@ vi.mock("@/server/pages/actions", () => actions);
 vi.mock("@/components/editor/block-editor", () => ({
   BlockEditor: () => <div data-testid="block-editor" />,
 }));
+vi.mock("@/components/editor/CollabEditor", () => ({
+  CollabEditor: ({ editing }: { editing: boolean }) => (
+    <div data-testid="collab-editor" data-editing={String(editing)} />
+  ),
+}));
+
+const collab = { url: "wss://collab.test", schemaVersion: 1 };
 
 const { PageView } = await import("./page-view");
 const { TrashList } = await import("./trash-list");
@@ -74,6 +81,12 @@ const doc = {
 };
 
 beforeEach(() => vi.clearAllMocks());
+
+/** Pages open for reading: "Edit" unlocks the title, icon and body. */
+async function startEditing(user: ReturnType<typeof userEvent.setup>, locale: "vi" | "en" = "vi") {
+  const tree = locale === "vi" ? viTree : enTree;
+  await user.click(screen.getByRole("button", { name: tree.page.mode.editLabel }));
+}
 afterEach(cleanup);
 
 describe("helpers", () => {
@@ -89,6 +102,34 @@ describe("helpers", () => {
 });
 
 describe("PageView", () => {
+  it("opens for reading; Edit unlocks title, icon and body, Done locks them again", async () => {
+    const user = userEvent.setup();
+    renderWith(
+      <PageView page={makePage()} spaceSlug="design" canEdit content={doc} collab={collab} />,
+    );
+    expect(screen.queryByRole("textbox", { name: "Tiêu đề trang" })).toBeNull();
+    expect(screen.queryByRole("button", { name: viTree.page.icon.change })).toBeNull();
+    expect(screen.getByTestId("collab-editor").dataset.editing).toBe("false");
+
+    await startEditing(user);
+    expect(screen.getByRole("textbox", { name: "Tiêu đề trang" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: viTree.page.icon.change })).toBeTruthy();
+    expect(screen.getByTestId("collab-editor").dataset.editing).toBe("true");
+
+    await user.click(screen.getByRole("button", { name: viTree.page.mode.doneLabel }));
+    expect(screen.queryByRole("textbox", { name: "Tiêu đề trang" })).toBeNull();
+    expect(screen.getByTestId("collab-editor").dataset.editing).toBe("false");
+    expect(screen.getByRole("button", { name: viTree.page.mode.editLabel })).toBeTruthy();
+  });
+
+  it("opens a new, empty page for editing", () => {
+    renderWith(
+      <PageView page={makePage()} spaceSlug="design" canEdit content={null} collab={collab} />,
+    );
+    expect(screen.getByTestId("collab-editor").dataset.editing).toBe("true");
+    expect(screen.getByRole("button", { name: viTree.page.mode.doneLabel })).toBeTruthy();
+  });
+
   it("renames on Enter and replaces the URL with the new slug", async () => {
     const user = userEvent.setup();
     actions.renamePageAction.mockResolvedValue({
@@ -96,6 +137,7 @@ describe("PageView", () => {
       data: makePage({ title: "Hướng dẫn mới", slug: "huong-dan-moi" }),
     });
     renderWith(<PageView page={makePage()} spaceSlug="design" canEdit content={doc} />);
+    await startEditing(user);
 
     const title = screen.getByRole("textbox", { name: "Tiêu đề trang" });
     await user.clear(title);
@@ -115,6 +157,7 @@ describe("PageView", () => {
   it("restores the saved title on Escape without saving", async () => {
     const user = userEvent.setup();
     renderWith(<PageView page={makePage()} spaceSlug="design" canEdit content={doc} />);
+    await startEditing(user);
     const title = screen.getByRole<HTMLTextAreaElement>("textbox", { name: "Tiêu đề trang" });
     await user.type(title, " x{Escape}");
     expect(title.value).toBe("Hướng dẫn");
@@ -125,6 +168,7 @@ describe("PageView", () => {
     const user = userEvent.setup();
     actions.renamePageAction.mockResolvedValue({ ok: false, code: "FORBIDDEN" });
     renderWith(<PageView page={makePage()} spaceSlug="design" canEdit content={doc} />, "en");
+    await startEditing(user, "en");
     const title = screen.getByRole("textbox", { name: "Page title" });
     await user.type(title, "!{Enter}");
     expect((await screen.findByRole("alert")).textContent).toBe(enErrors.FORBIDDEN);
@@ -135,6 +179,7 @@ describe("PageView", () => {
     const user = userEvent.setup();
     actions.setPageIconAction.mockResolvedValue({ ok: true, data: makePage({ icon: "🚀" }) });
     renderWith(<PageView page={makePage()} spaceSlug="design" canEdit content={doc} />, "en");
+    await startEditing(user, "en");
 
     await user.click(screen.getByRole("button", { name: "Change icon" }));
     await user.click(screen.getByRole("button", { name: "🚀" }));
