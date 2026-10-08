@@ -110,6 +110,7 @@ tasks:
   - { id: T7.11, title: "Sửa .gitignore cho apps/web/e2e/.auth (phiên E2E)", deps: [T7.1b], est: 0.05, ver: 0.8.0 }
   - { id: T7.12, title: "Viewer (chỉ đọc) đôi khi mất editor sau khi mở trang, chỉ ở en trên CI: tìm nguyên nhân, sửa, hết flaky 2 test viewer của editor/bảng", deps: [T7.1c], est: 0.5, ver: 0.8.0 }
   - { id: T7.13, title: "Kết nối trợ lý AI (Claude, ChatGPT) qua MCP: /api/mcp, OAuth 2.1 + token cá nhân, công cụ đọc/tạo/sửa/xoá trang bằng quyền người dùng, Cài đặt › Trợ lý AI", deps: [T1.3, T3.7, T5.2], est: 2, ver: 0.8.0, ui: true, human: true }
+  - { id: T7.14, title: "Sơ đồ Mermaid trong editor: khối mã ```mermaid được vẽ thành sơ đồ (tải thư viện khi cần, strict, sáng/tối), mục trong menu /", deps: [T3.2], est: 0.5, ver: 0.8.0, ui: true }
   - { id: T7.4,  title: "Tài liệu người dùng vi/en + Space Hướng dẫn seed + nội dung What's new", deps: [T6.4b], est: 1, ver: 0.8.0, ui: true }
   - { id: T7.3,  title: "Production hoá môi trường duy nhất kb.thanhgo.com (ADR 0007): đổi tên cấu hình staging → production (infra, APP_ENV, GitHub Environment, runbook), backup pre-migrate trong deploy.yml, monitoring + alert, restore thử", deps: [T7.2, T0.9], est: 1.5, ver: 0.8.0, human: true }
   - { id: T7.5,  title: "Pilot 0.8.x, thu phản hồi → tạo task sửa lỗi (thêm vào tasks.yaml theo thứ tự)", deps: [T7.3, T7.1c, T7.1d, T7.4, T7.7, T7.8, T7.12], est: 3, ver: 0.8.x, manual: true }
