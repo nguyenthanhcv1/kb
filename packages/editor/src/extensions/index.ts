@@ -2,15 +2,17 @@ import { type AnyExtension, getSchema } from "@tiptap/core";
 import { CodeBlockLowlight } from "@tiptap/extension-code-block-lowlight";
 import { Image } from "@tiptap/extension-image";
 import { TaskItem, TaskList } from "@tiptap/extension-list";
-import { UniqueID, type UniqueIDOptions } from "@tiptap/extension-unique-id";
+import type { UniqueIDOptions } from "@tiptap/extension-unique-id";
 import type { Schema } from "@tiptap/pm/model";
 import { StarterKit } from "@tiptap/starter-kit";
 import { common, createLowlight } from "lowlight";
 
 import { Callout } from "./callout";
+import { QuietTrailingNode, QuietUniqueID } from "./quiet-open";
 import { createTableExtensions } from "./table";
 
 export { CALLOUT_VARIANTS, Callout, type CalloutVariant } from "./callout";
+export { isRemoteTransaction } from "./quiet-open";
 export {
   CELL_BACKGROUND_ATTR,
   CELL_BACKGROUND_COLORS,
@@ -93,14 +95,17 @@ export function createExtensions(options: CreateExtensionsOptions = {}): AnyExte
         openOnClick: false,
       },
       undoRedo: options.undoRedo === false ? false : {},
+      // Replaced by QuietTrailingNode: opening a page must not change it (quiet-open.ts).
+      trailingNode: false,
     }),
+    QuietTrailingNode,
     CodeBlockLowlight.configure({ lowlight, defaultLanguage: null }),
     TaskList,
     TaskItem.configure({ nested: true }),
     Image.configure({ inline: false, allowBase64: false }),
     Callout,
     ...createTableExtensions(),
-    UniqueID.configure({
+    QuietUniqueID.configure({
       types: [...BLOCK_ID_TYPES],
       ...options.uniqueId,
       filterTransaction: (tr) =>
