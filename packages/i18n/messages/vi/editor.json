@@ -74,6 +74,12 @@
     "placeholder": "Dán hoặc nhập liên kết",
     "remove": "Bỏ liên kết"
   },
+  "markdown": {
+    "empty": "Tệp không có nội dung để nhập.",
+    "pick": "Chọn tệp Markdown để nhập",
+    "readFailed": "Không đọc được tệp.",
+    "tooLarge": "Tệp quá lớn để nhập (tối đa 2 MB)."
+  },
   "mermaid": {
     "diagram": "Sơ đồ Mermaid",
     "error": "Không vẽ được sơ đồ: mã Mermaid có lỗi.",
@@ -188,6 +194,10 @@
       "image": {
         "description": "Chèn hình ảnh từ đường dẫn hoặc tải lên từ máy",
         "title": "Hình ảnh"
+      },
+      "markdown": {
+        "description": "Chèn nội dung từ một tệp .md vào trang",
+        "title": "Nhập Markdown"
       },
       "mermaid": {
         "description": "Lưu đồ, sơ đồ tuần tự… vẽ từ mã",

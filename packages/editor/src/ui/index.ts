@@ -21,6 +21,17 @@ export {
   type UploadedAttachment,
 } from "./file-upload";
 export {
+  insertMarkdown,
+  isMarkdownFile,
+  looksLikeMarkdown,
+  MARKDOWN_FILE_ACCEPT,
+  MARKDOWN_IMPORT_MAX_BYTES,
+  MarkdownPaste,
+  markdownPastePluginKey,
+  markdownTransaction,
+  shouldPasteAsMarkdown,
+} from "./markdown-paste";
+export {
   EDITOR_SHORTCUTS,
   type EditorShortcut,
   EditorShortcuts,

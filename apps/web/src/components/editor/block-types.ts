@@ -5,6 +5,7 @@ import {
   Heading1Icon,
   Heading2Icon,
   FileIcon,
+  FileUpIcon,
   Heading3Icon,
   ImageIcon,
   InfoIcon,
@@ -44,6 +45,7 @@ export const BLOCK_ICONS: Record<string, LucideIcon> = {
   table: TableIcon,
   image: ImageIcon,
   file: FileIcon,
+  markdown: FileUpIcon,
 };
 
 /**

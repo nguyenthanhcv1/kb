@@ -6,6 +6,11 @@ import {
   FileUpload,
   filterSlashItems,
   insertAttachment,
+  insertMarkdown,
+  isMarkdownFile,
+  MARKDOWN_FILE_ACCEPT,
+  MARKDOWN_IMPORT_MAX_BYTES,
+  MarkdownPaste,
   MermaidPreview,
   Placeholder,
   runSlashItem,
@@ -103,10 +108,44 @@ export function BlockEditor({
   }));
   const editorRef = useRef<Editor | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
+  const markdownInput = useRef<HTMLInputElement>(null);
   /** Incremented by the "File" slash item: opens the file picker. */
   const [filePickerRequest, setFilePickerRequest] = useState(0);
+  /** Incremented by the "Import Markdown" slash item: opens the .md file picker. */
+  const [markdownPickerRequest, setMarkdownPickerRequest] = useState(0);
   const nextUpload = useRef(0);
   const [uploads, setUploads] = useState<UploadStatus[]>([]);
+
+  const failNotice = (name: string, error: string) => {
+    const key = nextUpload.current++;
+    setUploads((list) => [...list, { key, name, state: "failed", error }]);
+  };
+
+  /** Reads `.md` files and inserts their content as blocks (the page's own content, not a link). */
+  const importMarkdown = async (files: File[], pos: number | null) => {
+    let at = pos;
+    for (const file of files) {
+      const name = file.name || t("upload.unnamed");
+      if (file.size > MARKDOWN_IMPORT_MAX_BYTES) {
+        failNotice(name, t("markdown.tooLarge"));
+        continue;
+      }
+      let markdown: string;
+      try {
+        markdown = await file.text();
+      } catch {
+        failNotice(name, t("markdown.readFailed"));
+        continue;
+      }
+      const editor = editorRef.current;
+      if (!editor || !insertMarkdown(editor, markdown, at)) {
+        failNotice(name, t("markdown.empty"));
+        continue;
+      }
+      // Later files follow the first one.
+      at = null;
+    }
+  };
 
   const startUploads = (files: File[], pos: number | null) => {
     if (!pageId) return;
@@ -133,8 +172,15 @@ export function BlockEditor({
         });
     }
   };
+  /** Dropped or pasted files: a .md file becomes page content; "File" still attaches one. */
+  const handleFiles = (files: File[], pos: number | null) => {
+    const markdown = files.filter(isMarkdownFile);
+    if (markdown.length > 0) void importMarkdown(markdown, pos);
+    const others = files.filter((file) => !isMarkdownFile(file));
+    if (others.length > 0) startUploads(others, pos);
+  };
   useEffect(() => {
-    Object.assign(latest, { t, title: text.title, onChange, onFiles: startUploads });
+    Object.assign(latest, { t, title: text.title, onChange, onFiles: handleFiles });
   });
 
   const editor = useEditor({
@@ -164,6 +210,8 @@ export function BlockEditor({
           }
           props.editor.chain().focus().deleteRange(props.range).run();
           if (props.item.input.kind === "file") setFilePickerRequest((count) => count + 1);
+          else if (props.item.input.kind === "markdownFile")
+            setMarkdownPickerRequest((count) => count + 1);
           else setPendingImage(props.item);
         },
       }),
@@ -182,6 +230,7 @@ export function BlockEditor({
         },
       }),
       FileUpload.configure({ onFiles: (files, pos) => latest.onFiles(files, pos) }),
+      MarkdownPaste,
       TableDrag.configure({
         labels: { row: tTable("drag.row"), column: tTable("drag.column") },
       }),
@@ -217,6 +266,10 @@ export function BlockEditor({
   }, [filePickerRequest]);
 
   useEffect(() => {
+    if (markdownPickerRequest > 0) markdownInput.current?.click();
+  }, [markdownPickerRequest]);
+
+  useEffect(() => {
     editorRef.current = editor;
   }, [editor]);
 
@@ -248,20 +301,35 @@ export function BlockEditor({
           <TableMenu editor={editor} pageTitle={title} focusRequest={tableMenuRequest} />
         </>
       )}
-      {pageId && editable && (
+      {editable && (
         <>
           <input
-            ref={fileInput}
+            ref={markdownInput}
             type="file"
             multiple
             hidden
             tabIndex={-1}
-            aria-label={t("upload.pick")}
+            accept={MARKDOWN_FILE_ACCEPT}
+            aria-label={t("markdown.pick")}
             onChange={(event) => {
-              startUploads(Array.from(event.target.files ?? []), null);
+              void importMarkdown(Array.from(event.target.files ?? []), null);
               event.target.value = "";
             }}
           />
+          {pageId && (
+            <input
+              ref={fileInput}
+              type="file"
+              multiple
+              hidden
+              tabIndex={-1}
+              aria-label={t("upload.pick")}
+              onChange={(event) => {
+                startUploads(Array.from(event.target.files ?? []), null);
+                event.target.value = "";
+              }}
+            />
+          )}
           <div role="status" aria-live="polite" className="mt-2 flex flex-col gap-1 md:pl-8">
             {uploads.map((item) => (
               <p
