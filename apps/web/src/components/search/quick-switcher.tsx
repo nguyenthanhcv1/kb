@@ -53,7 +53,20 @@ export function searchHref(query: string): string {
  * arrows move, Enter opens, Esc closes). With an empty box it lists the recently opened results;
  * the last row leads to the full results page.
  */
-export function QuickSwitcher({ triggerClassName }: { triggerClassName?: string }) {
+export function QuickSwitcher({
+  triggerClassName,
+  variant = "bar",
+  globalShortcut = true,
+}: {
+  triggerClassName?: string;
+  /** `bar` is the compact top-bar field; `hero` the large search box of the home page. */
+  variant?: "bar" | "hero";
+  /**
+   * Whether this instance owns the Cmd/Ctrl+K shortcut. Only one mounted instance should
+   * (two would toggle their dialogs together), so the home hero passes `false`.
+   */
+  globalShortcut?: boolean;
+}) {
   const t = useTranslations("search");
   const tErrors = useTranslations("errors");
   const tTree = useTranslations("tree");
@@ -86,6 +99,7 @@ export function QuickSwitcher({ triggerClassName }: { triggerClassName?: string 
   }, []);
 
   useEffect(() => {
+    if (!globalShortcut) return;
     const onKeyDown = (event: globalThis.KeyboardEvent) => {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
         event.preventDefault();
@@ -94,7 +108,7 @@ export function QuickSwitcher({ triggerClassName }: { triggerClassName?: string 
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [handleOpenChange]);
+  }, [handleOpenChange, globalShortcut]);
 
   const trimmed = query.trim();
   useEffect(() => {
@@ -168,22 +182,36 @@ export function QuickSwitcher({ triggerClassName }: { triggerClassName?: string 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
-        <Button
-          variant="outline"
-          size="sm"
-          className={cn(
-            "h-9 gap-2 px-2.5 text-muted-foreground sm:w-56 sm:justify-start",
-            triggerClassName,
-          )}
-          aria-label={t("quickSwitcher.trigger")}
-          aria-keyshortcuts="Control+K Meta+K"
-        >
-          <SearchIcon className="size-4" aria-hidden />
-          <span className="hidden flex-1 text-left sm:inline">{t("placeholder")}</span>
-          <kbd className="hidden rounded border bg-muted px-1.5 font-mono text-[11px] sm:inline">
-            {shortcut}
-          </kbd>
-        </Button>
+        {variant === "hero" ? (
+          <button
+            type="button"
+            aria-label={t("quickSwitcher.trigger")}
+            className={cn(
+              "flex h-14 w-full items-center gap-3 rounded-[10px] border border-primary bg-card px-4 text-left text-base text-muted-foreground ring-[3px] ring-primary/20 outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50",
+              triggerClassName,
+            )}
+          >
+            <SearchIcon className="size-5 shrink-0" aria-hidden />
+            <span className="flex-1 truncate">{t("placeholder")}</span>
+          </button>
+        ) : (
+          <Button
+            variant="outline"
+            size="sm"
+            className={cn(
+              "h-9 gap-2 px-2.5 text-muted-foreground sm:w-56 sm:justify-start",
+              triggerClassName,
+            )}
+            aria-label={t("quickSwitcher.trigger")}
+            aria-keyshortcuts="Control+K Meta+K"
+          >
+            <SearchIcon className="size-4" aria-hidden />
+            <span className="hidden flex-1 text-left sm:inline">{t("placeholder")}</span>
+            <kbd className="hidden rounded border bg-muted px-1.5 font-mono text-[11px] sm:inline">
+              {shortcut}
+            </kbd>
+          </Button>
+        )}
       </DialogTrigger>
       <DialogContent
         className="top-[12%] translate-y-0 gap-0 overflow-hidden p-0 sm:max-w-xl"
