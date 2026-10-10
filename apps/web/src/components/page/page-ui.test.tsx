@@ -1,4 +1,5 @@
 // @vitest-environment happy-dom
+import { formats } from "@kb/i18n";
 import enCommon from "@kb/i18n/messages/en/common.json";
 import enErrors from "@kb/i18n/messages/en/errors.json";
 import enTree from "@kb/i18n/messages/en/tree.json";
@@ -53,7 +54,12 @@ const messages = {
 
 function renderWith(ui: ReactNode, locale: "vi" | "en" = "vi") {
   return render(
-    <NextIntlClientProvider locale={locale} messages={messages[locale]} timeZone="Asia/Ho_Chi_Minh">
+    <NextIntlClientProvider
+      locale={locale}
+      messages={messages[locale]}
+      formats={formats}
+      timeZone="Asia/Ho_Chi_Minh"
+    >
       {ui}
     </NextIntlClientProvider>,
   );
@@ -105,7 +111,14 @@ describe("PageView", () => {
   it("opens for reading; Edit unlocks title, icon and body, Done locks them again", async () => {
     const user = userEvent.setup();
     renderWith(
-      <PageView page={makePage()} spaceSlug="design" canEdit content={doc} collab={collab} />,
+      <PageView
+        page={makePage()}
+        spaceSlug="design"
+        spaceName="Design"
+        canEdit
+        content={doc}
+        collab={collab}
+      />,
     );
     expect(screen.queryByRole("textbox", { name: "Tiêu đề trang" })).toBeNull();
     expect(screen.queryByRole("button", { name: viTree.page.icon.change })).toBeNull();
@@ -124,7 +137,14 @@ describe("PageView", () => {
 
   it("opens a new, empty page for editing", () => {
     renderWith(
-      <PageView page={makePage()} spaceSlug="design" canEdit content={null} collab={collab} />,
+      <PageView
+        page={makePage()}
+        spaceSlug="design"
+        spaceName="Design"
+        canEdit
+        content={null}
+        collab={collab}
+      />,
     );
     expect(screen.getByTestId("collab-editor").dataset.editing).toBe("true");
     expect(screen.getByRole("button", { name: viTree.page.mode.doneLabel })).toBeTruthy();
@@ -136,7 +156,9 @@ describe("PageView", () => {
       ok: true,
       data: makePage({ title: "Hướng dẫn mới", slug: "huong-dan-moi" }),
     });
-    renderWith(<PageView page={makePage()} spaceSlug="design" canEdit content={doc} />);
+    renderWith(
+      <PageView page={makePage()} spaceSlug="design" spaceName="Design" canEdit content={doc} />,
+    );
     await startEditing(user);
 
     const title = screen.getByRole("textbox", { name: "Tiêu đề trang" });
@@ -156,7 +178,9 @@ describe("PageView", () => {
 
   it("restores the saved title on Escape without saving", async () => {
     const user = userEvent.setup();
-    renderWith(<PageView page={makePage()} spaceSlug="design" canEdit content={doc} />);
+    renderWith(
+      <PageView page={makePage()} spaceSlug="design" spaceName="Design" canEdit content={doc} />,
+    );
     await startEditing(user);
     const title = screen.getByRole<HTMLTextAreaElement>("textbox", { name: "Tiêu đề trang" });
     await user.type(title, " x{Escape}");
@@ -167,7 +191,10 @@ describe("PageView", () => {
   it("shows a translated error when the rename fails", async () => {
     const user = userEvent.setup();
     actions.renamePageAction.mockResolvedValue({ ok: false, code: "FORBIDDEN" });
-    renderWith(<PageView page={makePage()} spaceSlug="design" canEdit content={doc} />, "en");
+    renderWith(
+      <PageView page={makePage()} spaceSlug="design" spaceName="Design" canEdit content={doc} />,
+      "en",
+    );
     await startEditing(user, "en");
     const title = screen.getByRole("textbox", { name: "Page title" });
     await user.type(title, "!{Enter}");
@@ -178,7 +205,10 @@ describe("PageView", () => {
   it("changes and removes the icon through setPageIconAction", async () => {
     const user = userEvent.setup();
     actions.setPageIconAction.mockResolvedValue({ ok: true, data: makePage({ icon: "🚀" }) });
-    renderWith(<PageView page={makePage()} spaceSlug="design" canEdit content={doc} />, "en");
+    renderWith(
+      <PageView page={makePage()} spaceSlug="design" spaceName="Design" canEdit content={doc} />,
+      "en",
+    );
     await startEditing(user, "en");
 
     await user.click(screen.getByRole("button", { name: "Change icon" }));
@@ -198,11 +228,37 @@ describe("PageView", () => {
   it("moves the page to the trash from the page menu", async () => {
     const user = userEvent.setup();
     actions.trashPageAction.mockResolvedValue({ ok: true, data: makePage() });
-    renderWith(<PageView page={makePage()} spaceSlug="design" canEdit content={doc} />, "en");
+    renderWith(
+      <PageView page={makePage()} spaceSlug="design" spaceName="Design" canEdit content={doc} />,
+      "en",
+    );
     await user.click(screen.getByRole("button", { name: enTree.page.menu }));
     await user.click(await screen.findByRole("menuitem", { name: enTree.actions.moveToTrash }));
     expect(actions.trashPageAction).toHaveBeenCalledWith({ pageId: makePage().id });
     expect(router.refresh).toHaveBeenCalled();
+  });
+
+  it("shows the breadcrumb with the ancestors and when the page was last edited", () => {
+    renderWith(
+      <PageView
+        page={makePage({ lastEditedAt: "2026-10-08T07:30:00+00:00" })}
+        spaceSlug="design"
+        spaceName="Design"
+        ancestors={[
+          { id: "a1", title: "Quy trình", icon: null, slug: "quy-trinh", shortId: "Zz9Yy8Xx" },
+        ]}
+        canEdit={false}
+        content={doc}
+      />,
+    );
+    const nav = screen.getByRole("navigation", { name: viTree.breadcrumb.label });
+    expect(within(nav).getByRole("link", { name: "Design" }).getAttribute("href")).toBe(
+      "/s/design",
+    );
+    expect(within(nav).getByRole("link", { name: "Quy trình" }).getAttribute("href")).toBe(
+      "/s/design/p/quy-trinh-Zz9Yy8Xx",
+    );
+    expect(screen.getByText(/^Cập nhật .*14:30/)).toBeTruthy();
   });
 
   it("is read-only for viewers, with the untitled placeholder and the empty-content notice", () => {
@@ -210,6 +266,7 @@ describe("PageView", () => {
       <PageView
         page={makePage({ title: "", icon: null })}
         spaceSlug="design"
+        spaceName="Design"
         canEdit={false}
         content={null}
       />,
@@ -227,6 +284,7 @@ describe("PageView", () => {
       <PageView
         page={makePage({ deletedAt: "2026-09-27T09:00:00+00:00" })}
         spaceSlug="design"
+        spaceName="Design"
         canEdit
         content={doc}
       />,

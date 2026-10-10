@@ -42,6 +42,9 @@
       "suggestions": "Gợi ý"
     },
     "menu": "Thao tác với trang",
+    "meta": {
+      "updated": "Cập nhật {date}"
+    },
     "mode": {
       "done": "Xong",
       "doneLabel": "Xong, quay lại chế độ xem",
@@ -51,6 +54,10 @@
     "title": {
       "label": "Tiêu đề trang",
       "saving": "Đang lưu…"
+    },
+    "toc": {
+      "label": "Mục lục",
+      "title": "Trong bài này"
     },
     "trashed": {
       "description": "Khôi phục để đưa trang về vị trí cũ và sửa tiếp.",

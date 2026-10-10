@@ -6,6 +6,7 @@ import {
   getPageByShortId,
   getPageContent,
   listChildPages,
+  listPageAncestors,
   listRecentPages,
   listTrash,
 } from "@/server/pages";
@@ -41,6 +42,16 @@ export const loadRecentPages = cache(async () => {
     return await listRecentPages(await createClient(), { limit: 8 });
   } catch (error) {
     console.error("[pages] listRecentPages failed", error);
+    return [];
+  }
+});
+
+/** Ancestors of a page, root first; empty on a read error (the breadcrumb then shows Space › page). */
+export const loadPageAncestors = cache(async (pageId: string) => {
+  try {
+    return await listPageAncestors(await createClient(), { pageId });
+  } catch (error) {
+    console.error("[pages] listPageAncestors failed", error);
     return [];
   }
 });

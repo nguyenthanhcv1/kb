@@ -6,20 +6,21 @@
  */
 
 .kb-editor-content {
-  @apply min-h-40 pb-24 text-base leading-7 outline-none md:pl-8;
+  @apply min-h-40 pb-24 text-[15px] leading-[26px] outline-none md:pl-8;
 
   & > * + * {
     @apply mt-2;
   }
 
+  /* KA Atlas type scale; `scroll-mt-24` keeps a heading clear of the sticky top bar. */
   & h1 {
-    @apply mt-8 mb-2 text-3xl leading-tight font-bold tracking-tight;
+    @apply mt-8 mb-2 scroll-mt-24 text-[32px] leading-10 font-bold tracking-[-0.02em];
   }
   & h2 {
-    @apply mt-6 mb-1 text-2xl leading-snug font-semibold tracking-tight;
+    @apply mt-8 mb-2 scroll-mt-24 text-[22px] leading-[30px] font-bold;
   }
   & h3 {
-    @apply mt-4 mb-1 text-xl leading-snug font-semibold;
+    @apply mt-6 mb-1 scroll-mt-24 text-[17px] leading-6 font-semibold;
   }
   & > :first-child {
     @apply mt-0;
@@ -121,25 +122,25 @@
     @apply mt-0;
   }
 
-  /* Callouts (variant stored as a code, see CALLOUT_VARIANTS). */
+  /* Callouts: flat soft panels, one status token per variant (variant stored as a code, see CALLOUT_VARIANTS). */
   & div[data-type="callout"] {
-    @apply rounded-md border-l-4 px-4 py-3;
+    @apply rounded-lg px-4 py-3.5 text-sm leading-[22px];
 
     & > * + * {
       @apply mt-2;
     }
   }
   & div[data-type="callout"][data-variant="info"] {
-    @apply border-sky-500 bg-sky-50 dark:bg-sky-950/40;
+    @apply bg-info-soft;
   }
   & div[data-type="callout"][data-variant="success"] {
-    @apply border-emerald-500 bg-emerald-50 dark:bg-emerald-950/40;
+    @apply bg-success-soft;
   }
   & div[data-type="callout"][data-variant="warning"] {
-    @apply border-amber-500 bg-amber-50 dark:bg-amber-950/40;
+    @apply bg-warning-soft;
   }
   & div[data-type="callout"][data-variant="danger"] {
-    @apply border-red-500 bg-red-50 dark:bg-red-950/40;
+    @apply bg-destructive/10;
   }
 
   /*
@@ -164,7 +165,7 @@
     }
   }
   & th {
-    @apply bg-muted font-semibold;
+    @apply bg-muted text-xs font-semibold tracking-wide text-muted-foreground uppercase;
   }
   /* Selected cells (drag across cells or Shift+arrow). */
   & .selectedCell::after {
@@ -333,4 +334,8 @@
 .kb-editor-content :is(td, th)[data-background-color="pink"],
 .kb-cell-swatch[data-background-color="pink"] {
   @apply bg-pink-100 dark:bg-pink-950/60;
+}
+/* A coloured header cell keeps the body text colour (the muted header colour is for plain cells). */
+.kb-editor-content th[data-background-color] {
+  @apply text-foreground;
 }
