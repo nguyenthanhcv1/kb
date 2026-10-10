@@ -64,7 +64,7 @@ describe("PageToc", () => {
     renderToc(root);
 
     expect(await screen.findByRole("navigation")).toBeTruthy();
-    expect(screen.getByRole("complementary", { name: viTree.page.toc.label })).toBeTruthy();
+    expect(screen.getByRole("navigation", { name: viTree.page.toc.label })).toBeTruthy();
     expect(screen.getByText(viTree.page.toc.title)).toBeTruthy();
     await user.click(screen.getByRole("button", { name: "Các bước" }));
     expect(scroll).toHaveBeenCalledOnce();

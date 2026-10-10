@@ -51,6 +51,13 @@
       "edit": "Sửa",
       "editLabel": "Sửa trang"
     },
+    "properties": {
+      "noParent": "Không có (trang gốc)",
+      "parent": "Trang cha",
+      "space": "Không gian",
+      "title": "Thuộc tính trang",
+      "updated": "Cập nhật lần cuối"
+    },
     "title": {
       "label": "Tiêu đề trang",
       "saving": "Đang lưu…"

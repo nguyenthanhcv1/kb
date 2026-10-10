@@ -51,6 +51,13 @@
       "edit": "Edit",
       "editLabel": "Edit page"
     },
+    "properties": {
+      "noParent": "None (top-level page)",
+      "parent": "Parent page",
+      "space": "Space",
+      "title": "Page properties",
+      "updated": "Last updated"
+    },
     "title": {
       "label": "Page title",
       "saving": "Saving…"

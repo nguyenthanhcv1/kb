@@ -123,8 +123,14 @@ describe("PageView", () => {
     expect(screen.queryByRole("textbox", { name: "Tiêu đề trang" })).toBeNull();
     expect(screen.queryByRole("button", { name: viTree.page.icon.change })).toBeNull();
     expect(screen.getByTestId("collab-editor").dataset.editing).toBe("false");
+    expect(screen.queryByRole("region", { name: viTree.page.properties.title })).toBeNull();
 
     await startEditing(user);
+    const properties = screen.getByRole("region", { name: viTree.page.properties.title });
+    expect(within(properties).getByRole("link", { name: "Design" }).getAttribute("href")).toBe(
+      "/s/design",
+    );
+    expect(within(properties).getByText(viTree.page.properties.noParent)).toBeTruthy();
     expect(screen.getByRole("textbox", { name: "Tiêu đề trang" })).toBeTruthy();
     expect(screen.getByRole("button", { name: viTree.page.icon.change })).toBeTruthy();
     expect(screen.getByTestId("collab-editor").dataset.editing).toBe("true");

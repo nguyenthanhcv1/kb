@@ -18,6 +18,7 @@ import { pageErrorKey } from "./errors";
 import { PageActionsMenu } from "./page-actions-menu";
 import { isEmptyDocument, PageContent } from "./page-content";
 import { PageIconPicker } from "./page-icon-picker";
+import { PageProperties } from "./page-properties";
 import { PageToc } from "./page-toc";
 import { PageTitle } from "./page-title";
 
@@ -52,6 +53,7 @@ export function PageView({
   collab = null,
 }: PageViewProps) {
   const t = useTranslations("tree.page.meta");
+  const tToc = useTranslations("tree.page.toc");
   const format = useFormatter();
   const rootRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
@@ -101,7 +103,19 @@ export function PageView({
           historyHref={`${pageHref(spaceSlug, page)}/history`}
         />
       </article>
-      <PageToc rootRef={rootRef} />
+      {/* Right column from `xl`: page properties while editing, then the table of contents. */}
+      <aside aria-label={tToc("label")} className="hidden w-56 shrink-0 xl:block">
+        <div className="sticky top-24 flex flex-col gap-6">
+          {editMode && (
+            <PageProperties
+              space={{ slug: spaceSlug, name: spaceName }}
+              parent={ancestors.at(-1) ?? null}
+              lastEditedAt={page.lastEditedAt}
+            />
+          )}
+          <PageToc rootRef={rootRef} />
+        </div>
+      </aside>
     </div>
   );
 }

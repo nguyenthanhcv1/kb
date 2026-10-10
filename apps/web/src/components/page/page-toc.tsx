@@ -31,7 +31,8 @@ const SCROLL_OFFSET = 120;
 
 /**
  * "On this page": the headings of the body (read from the rendered document, so it follows live
- * edits), click to scroll, the one being read highlighted. Shown from `xl` up; nothing without headings.
+ * edits), click to scroll, the one being read highlighted. Nothing without headings; the page shows it
+ * in a column from `xl` up.
  */
 export function PageToc({ rootRef }: { rootRef: RefObject<HTMLElement | null> }) {
   const t = useTranslations("tree.page.toc");
@@ -71,33 +72,31 @@ export function PageToc({ rootRef }: { rootRef: RefObject<HTMLElement | null> })
   if (headings.length === 0) return null;
 
   return (
-    <aside aria-label={t("label")} className="hidden w-56 shrink-0 xl:block">
-      <nav className="sticky top-24 flex flex-col gap-0.5 text-sm">
-        <p className="mb-2 text-[11px] leading-4 font-semibold tracking-[0.08em] text-muted-foreground uppercase">
-          {t("title")}
-        </p>
-        {headings.map((heading, index) => (
-          <button
-            key={index}
-            type="button"
-            aria-current={index === active ? "location" : undefined}
-            onClick={() => {
-              const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-              heading.element.scrollIntoView({
-                behavior: reduce ? "auto" : "smooth",
-                block: "start",
-              });
-            }}
-            className={cn(
-              "border-l-2 border-border py-1.5 pr-2 pl-3 text-left text-muted-foreground outline-none hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50",
-              heading.level === 3 && "pl-6",
-              index === active && "border-primary font-semibold text-primary hover:text-primary",
-            )}
-          >
-            {heading.text}
-          </button>
-        ))}
-      </nav>
-    </aside>
+    <nav aria-label={t("label")} className="flex flex-col gap-0.5 text-sm">
+      <p className="mb-2 text-[11px] leading-4 font-semibold tracking-[0.08em] text-muted-foreground uppercase">
+        {t("title")}
+      </p>
+      {headings.map((heading, index) => (
+        <button
+          key={index}
+          type="button"
+          aria-current={index === active ? "location" : undefined}
+          onClick={() => {
+            const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+            heading.element.scrollIntoView({
+              behavior: reduce ? "auto" : "smooth",
+              block: "start",
+            });
+          }}
+          className={cn(
+            "border-l-2 border-border py-1.5 pr-2 pl-3 text-left text-muted-foreground outline-none hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50",
+            heading.level === 3 && "pl-6",
+            index === active && "border-primary font-semibold text-primary hover:text-primary",
+          )}
+        >
+          {heading.text}
+        </button>
+      ))}
+    </nav>
   );
 }
