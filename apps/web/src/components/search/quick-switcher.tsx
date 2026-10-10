@@ -53,7 +53,7 @@ export function searchHref(query: string): string {
  * arrows move, Enter opens, Esc closes). With an empty box it lists the recently opened results;
  * the last row leads to the full results page.
  */
-export function QuickSwitcher() {
+export function QuickSwitcher({ triggerClassName }: { triggerClassName?: string }) {
   const t = useTranslations("search");
   const tErrors = useTranslations("errors");
   const tTree = useTranslations("tree");
@@ -171,7 +171,10 @@ export function QuickSwitcher() {
         <Button
           variant="outline"
           size="sm"
-          className="h-9 gap-2 px-2.5 text-muted-foreground sm:w-56 sm:justify-start"
+          className={cn(
+            "h-9 gap-2 px-2.5 text-muted-foreground sm:w-56 sm:justify-start",
+            triggerClassName,
+          )}
           aria-label={t("quickSwitcher.trigger")}
           aria-keyshortcuts="Control+K Meta+K"
         >

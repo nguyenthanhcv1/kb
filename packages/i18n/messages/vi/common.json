@@ -4,6 +4,7 @@
     "save": "Lưu"
   },
   "app": {
+    "brand": "KA Knowledge",
     "name": "KB",
     "tagline": "Kho tri thức nội bộ"
   },
@@ -18,6 +19,10 @@
     "names": {
       "en": "English",
       "vi": "Tiếng Việt"
+    },
+    "short": {
+      "en": "EN",
+      "vi": "VI"
     },
     "toggle": "Đổi ngôn ngữ"
   },
