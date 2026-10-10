@@ -15,6 +15,13 @@
     "submit": "Create",
     "submitting": "Creating…"
   },
+  "dashboard": {
+    "heroTitle": "What are you looking for today?",
+    "recentEmpty": "No pages have been edited yet.",
+    "recentTitle": "Recently updated",
+    "recentUpdated": "Updated {date}",
+    "spacesTitle": "Spaces"
+  },
   "forbidden": {
     "description": "Only admins of this space can change its settings.",
     "title": "You cannot open these settings"

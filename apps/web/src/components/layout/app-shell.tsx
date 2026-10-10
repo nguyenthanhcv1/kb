@@ -7,6 +7,7 @@ import { useState, type ReactNode } from "react";
 import { QuickSwitcher } from "@/components/search/quick-switcher";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { cn } from "@/components/ui/utils";
 import type { CurrentUser } from "@/server/auth";
 
 import { Brand } from "./brand";
@@ -47,7 +48,7 @@ export function AppShell({ sidebar, user, version, children }: AppShellProps) {
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-40 flex h-14 items-center gap-2 border-b bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+        <header className="sticky top-0 z-40 flex h-16 items-center gap-3 border-b bg-card/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-card/80 md:px-6">
           <Sheet open={open} onOpenChange={setOpen}>
             <SheetTrigger asChild>
               <Button
@@ -74,11 +75,20 @@ export function AppShell({ sidebar, user, version, children }: AppShellProps) {
             </SheetContent>
           </Sheet>
           <div className="md:hidden">
-            <Brand />
+            <Brand compact />
           </div>
-          <div className="ml-auto flex items-center gap-1">
-            {user && <QuickSwitcher />}
-            <LocaleSwitcher />
+          {user && (
+            <div className="ml-auto flex shrink-0 md:ml-0 md:max-w-[520px] md:flex-1 md:shrink">
+              <QuickSwitcher triggerClassName="h-10 w-10 rounded-md border-input bg-background px-0 text-sm hover:bg-background sm:w-auto sm:px-3 md:w-full" />
+            </div>
+          )}
+          <div className={cn("flex items-center gap-1", !user && "ml-auto", user && "md:ml-auto")}>
+            <div className="sm:hidden">
+              <LocaleSwitcher />
+            </div>
+            <div className="hidden sm:block">
+              <LocaleSwitcher variant="segmented" />
+            </div>
             <ThemeToggle />
             {user && <UserMenu user={user} />}
           </div>

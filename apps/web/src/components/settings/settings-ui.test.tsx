@@ -159,4 +159,22 @@ describe("LocaleSwitcher", () => {
     expect(actions.setLocale).toHaveBeenCalledWith("en");
     await vi.waitFor(() => expect(router.refresh).toHaveBeenCalled());
   });
+  it("shows the segmented variant as VI / EN buttons and switches on click", async () => {
+    const user = userEvent.setup();
+    actions.setLocale.mockResolvedValue({ ok: true, data: { locale: "en", saved: true } });
+    renderWith(<LocaleSwitcher variant="segmented" />);
+
+    const group = screen.getByRole("group", { name: "Ngôn ngữ" });
+    expect(group.textContent).toBe("VIEN");
+    expect(screen.getByRole("button", { name: "Tiếng Việt" }).getAttribute("aria-pressed")).toBe(
+      "true",
+    );
+    expect(screen.getByRole("button", { name: "English" }).getAttribute("aria-pressed")).toBe(
+      "false",
+    );
+
+    await user.click(screen.getByRole("button", { name: "English" }));
+    expect(actions.setLocale).toHaveBeenCalledWith("en");
+    await vi.waitFor(() => expect(router.refresh).toHaveBeenCalled());
+  });
 });

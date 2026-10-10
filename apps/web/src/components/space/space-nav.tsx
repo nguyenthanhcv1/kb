@@ -44,8 +44,11 @@ export function SpaceNav({ spaces, canCreate }: SpaceNavProps) {
 
   return (
     <section aria-labelledby={headingId} className="flex flex-col gap-1">
-      <div className="flex items-center justify-between gap-2 px-2 pb-1">
-        <h2 id={headingId} className="text-xs font-medium tracking-wide text-muted-foreground">
+      <div className="flex items-center justify-between gap-2 px-2.5 pb-1">
+        <h2
+          id={headingId}
+          className="text-[11px] font-semibold tracking-[0.08em] text-muted-foreground uppercase"
+        >
           <Link
             href="/"
             className="rounded-sm hover:text-sidebar-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"

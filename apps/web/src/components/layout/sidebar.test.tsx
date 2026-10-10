@@ -20,6 +20,15 @@ function renderSidebar(locale: "vi" | "en", version?: string) {
   );
 }
 
+describe("Sidebar", () => {
+  it("shows the KA Knowledge lockup with the tagline and the main links", () => {
+    renderSidebar("en");
+    expect(screen.getByText("KA Knowledge")).toBeTruthy();
+    expect(screen.getByText("Internal knowledge base")).toBeTruthy();
+    expect(screen.getByRole("link", { name: /KA Knowledge/ }).getAttribute("href")).toBe("/");
+  });
+});
+
 describe("Sidebar footer", () => {
   it("shows the running version linking to What's new", () => {
     renderSidebar("vi", "0.1.0");

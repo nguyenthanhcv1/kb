@@ -2,6 +2,7 @@
 import enWhatsNew from "@kb/i18n/messages/en/whatsNew.json";
 import viWhatsNew from "@kb/i18n/messages/vi/whatsNew.json";
 import { cleanup, render, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { NextIntlClientProvider } from "next-intl";
 import { afterEach, describe, expect, it } from "vitest";
 
@@ -81,5 +82,50 @@ describe("WhatsNewList", () => {
     cleanup();
     renderList("en", [{ ...RELEASES[1]!, markdown: "", isFallback: false }]);
     expect(screen.getByText(enWhatsNew.noNotes)).toBeTruthy();
+  });
+
+  it("marks only the newest version as latest", () => {
+    renderList("vi", RELEASES);
+    const articles = screen.getAllByRole("article");
+    expect(within(articles[0]!).getByText(viWhatsNew.latest)).toBeTruthy();
+    expect(within(articles[1]!).queryByText(viWhatsNew.latest)).toBeNull();
+  });
+
+  it("filters the notes to one kind of change and hides versions without it", async () => {
+    const user = userEvent.setup();
+    renderList("en", [
+      {
+        version: "0.2.0",
+        date: "2026-10-12",
+        markdown: "### Added\n\n- New space\n\n### Fixed\n\n- Login loop",
+        language: "en",
+        isFallback: false,
+      },
+      {
+        version: "0.1.0",
+        date: "2026-09-30",
+        markdown: "### Added\n\n- First release",
+        language: "en",
+        isFallback: false,
+      },
+    ]);
+    const group = screen.getByRole("group", { name: enWhatsNew.filterLabel });
+    expect(
+      within(group).getByRole("button", { name: enWhatsNew.all }).getAttribute("aria-pressed"),
+    ).toBe("true");
+    expect(screen.getAllByRole("article")).toHaveLength(2);
+
+    await user.click(within(group).getByRole("button", { name: enWhatsNew.fixes }));
+    const articles = screen.getAllByRole("article");
+    expect(articles).toHaveLength(1);
+    expect(within(articles[0]!).getByText("Login loop")).toBeTruthy();
+    expect(within(articles[0]!).queryByText("New space")).toBeNull();
+
+    await user.click(within(group).getByRole("button", { name: enWhatsNew.improvements }));
+    expect(screen.queryByRole("article")).toBeNull();
+    expect(screen.getByText(enWhatsNew.noMatch)).toBeTruthy();
+
+    await user.click(within(group).getByRole("button", { name: enWhatsNew.all }));
+    expect(screen.getAllByRole("article")).toHaveLength(2);
   });
 });

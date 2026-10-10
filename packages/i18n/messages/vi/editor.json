@@ -222,6 +222,9 @@
     },
     "label": "Chèn khối"
   },
+  "toolbar": {
+    "label": "Thanh công cụ định dạng"
+  },
   "upload": {
     "dismiss": "Đóng",
     "failed": "Không tải được “{name}”: {error}",

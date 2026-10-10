@@ -11,6 +11,18 @@ Pages always open in **view mode**: you read the content without typing into it 
 
 A new page (no content yet) opens in edit mode.
 
+## Reading a page
+
+- The **path at the top** (Space, parent pages, current page) shows where you are; click an item to go up. Long paths are shortened with "…".
+- Under the title, the **Updated** line shows when the page was last edited.
+- **On this page** (the table of contents) appears in the right column on wide screens and lists the level 1 to 3 headings of the page. Click an item to scroll there; the one you are reading is highlighted. It updates as the page changes and is hidden while the page has no headings.
+
+## The toolbar while editing
+
+When you click **Edit**, a toolbar appears above the content: **Heading 1, 2, 3**, **Bold**, **Italic**, bulleted list, callout, code block, table and image. Click the button of the current block again to go back to a paragraph. The **Table** button is off while the cursor is inside a table. The floating menu over selected text and the `/` key work as before.
+
+On wide screens, the **Page properties** card in the right column shows the Space, the parent page and the last update (read-only; to move a page, drag it in the sidebar).
+
 ## Good to know
 
 - **Done** is not a save button: the content is already saved as you type. If you click Done before saving finishes or while offline, the status stays visible until everything is saved.
