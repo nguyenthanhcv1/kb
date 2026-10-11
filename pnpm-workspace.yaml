@@ -12,3 +12,9 @@ onlyBuiltDependencies:
 auditConfig:
   ignoreGhsas:
     - GHSA-vfj7-8cjw-p6xm # braces ≤3.0.3 (eslint-config-next → fast-glob → micromatch), chỉ chạy khi lint
+
+# Bản vá lỗ hổng mức high mà dependency trực tiếp chưa kéo về (cùng minor, không đổi API).
+# Gỡ mỗi dòng khi next / postcss tự đòi bản đã vá.
+overrides:
+  sharp: ">=0.35.5"
+  source-map-js: ">=1.2.2"
