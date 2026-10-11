@@ -47,7 +47,10 @@ test("language and time zone follow the profile to another device", async ({ bro
   await expect(title).toHaveText(m[to].settings.title);
   await expect(page.locator("html")).toHaveAttribute("lang", to);
   // The top bar shows the language switcher (VI / EN buttons) in the new language.
-  await expect(page.getByRole("group", { name: m[to].common.locale.label })).toBeVisible();
+  // Scoped to the top bar: the Settings page has its own "Language" group (the radio fieldset).
+  await expect(
+    page.getByRole("banner").getByRole("group", { name: m[to].common.locale.label }),
+  ).toBeVisible();
   await first.close();
 
   // "Another device": a new session in a browser asking for the previous language, without the
