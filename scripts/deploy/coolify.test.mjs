@@ -96,6 +96,7 @@ describe("triggerDeploy", () => {
     const client = createClient({ apiUrl: "https://c.test", token: "t", fetch: fn });
     assert.equal(await triggerDeploy(client, "app"), "dep-1");
     assert.equal(calls[0].url, "https://c.test/api/v1/deploy?uuid=app&force=false");
+    assert.equal(calls[0].init.method, "POST");
   });
 
   it("fails when Coolify starts nothing", async () => {
