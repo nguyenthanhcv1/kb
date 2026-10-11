@@ -7,6 +7,14 @@
 
 * **deps:** update Next.js to fix known security vulnerabilities ([#106](https://github.com/nguyenthanhcv1/kb/issues/106)) ([c952cfc](https://github.com/nguyenthanhcv1/kb/commit/c952cfc400ed7ed3f9ddbf2ce3448ad0c26a0a5d))
 
+<!-- vi-notes:start -->
+### Tiếng Việt
+
+#### Bảo mật
+
+- Cập nhật thành phần nền của ứng dụng (Next.js) để vá các lỗ hổng bảo mật đã được công bố. Không có thay đổi nào về cách dùng.
+<!-- vi-notes:end -->
+
 ## 1.0.0 (2026-10-11)
 
 
