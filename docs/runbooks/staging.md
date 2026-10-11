@@ -226,7 +226,7 @@ Rồi điền `COLLAB_DATABASE_URL` trong Coolify, bật hook GoTrue (bước 6.
 
 ## 12. Deploy đầu tiên
 
-1. [ ] Actions › **Deploy** › Run workflow › ref `main`. Theo dõi các bước: resolve → image có trên GHCR → Coolify deploy (`queued → in_progress → finished`) → smoke test collab, web, `/internal` = 404.
+1. [ ] Actions › **Deploy** › Run workflow › ref `main`. Theo dõi các bước: resolve → image có trên GHCR → Coolify deploy (`queued → in_progress → finished`) → smoke test collab, web, `/internal` = 404 hoặc 503 (không bao giờ tới ứng dụng).
 2. [ ] Từ đây mỗi merge vào `main` tự deploy sau `Build images`.
 
 ## 13. Kiểm tra (tiêu chí hoàn thành T0.8)
@@ -236,7 +236,7 @@ Từ máy bất kỳ ngoài server:
 ```bash
 curl -s https://kb-staging.thanhgo.com/api/health            # {"status":"ok","version":"…","sha":"<sha main mới nhất>","env":"staging"}
 curl -s https://kb-staging-collab.thanhgo.com/health         # {"status":"ok",…,"database":"ok","sha":"…"}
-curl -s -o /dev/null -w '%{http_code}\n' -X POST https://kb-staging-collab.thanhgo.com/internal/documents/x/replace   # 404
+curl -s -o /dev/null -w '%{http_code}\n' -X POST https://kb-staging-collab.thanhgo.com/internal/documents/x/replace   # 404 hoặc 503; mã khác (200/400/401/403) nghĩa là /internal đang lộ
 curl -s -o /dev/null -w '%{http_code}\n' https://kb-staging-api.thanhgo.com/auth/v1/health   # 401 (thiếu apikey) — Kong trả lời qua Cloudflare
 npx --yes wscat -c 'wss://kb-staging-collab.thanhgo.com/?schemaVersion=1'   # "Connected" = WebSocket qua Cloudflare + Traefik OK (auth sẽ bị từ chối — bình thường)
 ```

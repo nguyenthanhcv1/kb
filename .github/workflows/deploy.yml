@@ -133,7 +133,13 @@ jobs:
           base=${COLLAB_HEALTH_URL%/health}
           code=$(curl -s -o /dev/null -w '%{http_code}' -X POST "$base/internal/documents/00000000-0000-4000-8000-000000000000/replace")
           echo "POST $base/internal/… → $code"
-          [ "$code" = 404 ] || { echo "::error::/internal/* must answer 404 from the Internet (got $code)"; exit 1; }
+          # 404 = Traefik has no router for the path; 503 ("no available server") = the proxy has a
+          # catch-all router without a backend. Either way the request never reaches kb-collab.
+          # Anything else (2xx, 401, 403, 400…) would come from the app itself: /internal is exposed.
+          case "$code" in
+            404|503) ;;
+            *) echo "::error::/internal/* must answer 404 or 503 from the Internet (got $code)"; exit 1 ;;
+          esac
 
       - name: Summary
         if: always()
