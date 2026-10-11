@@ -1,8 +1,9 @@
 #!/usr/bin/env node
-// CI `agent-scope`: PR gắn đúng một task trong docs/ai/tasks.yaml và không phá quy tắc chung.
-//   Không còn lane/vùng sở hữu — agent nào cũng làm được task nào, sửa được file nào task cần.
-//   Kiểm tra: dòng `Agent:`/`Task:` trong thân PR, `[Txx]` trong tiêu đề, deps đã merge vào nhánh
-//   gốc, không sửa file chỉ release-please được sửa (WORKFLOW §5).
+// CI `agent-scope`: PR hoặc gắn đúng một task trong docs/ai/tasks.yaml, hoặc là việc theo yêu cầu
+//   (`Task: none`, không cần task — WORKFLOW §0), và không phá quy tắc chung.
+//   Không còn lane/vùng sở hữu — agent nào cũng làm được việc nào, sửa được file nào việc cần.
+//   Kiểm tra: dòng `Agent:`/`Task:` trong thân PR, `[Txx]` trong tiêu đề (có task) hoặc không có
+//   (`Task: none`), deps đã merge vào nhánh gốc, không sửa file chỉ release-please được sửa (WORKFLOW §5).
 // Chạy trong CI: env PR_BODY, PR_TITLE, PR_AUTHOR_TYPE, BASE_SHA, HEAD_SHA (xem agent-scope.yml).
 // Chạy local:   PR_BODY="$(cat body.md)" PR_TITLE="…" node scripts/ai/scope.mjs --base origin/main
 import { execFileSync } from "node:child_process";
@@ -16,8 +17,13 @@ export const FORBIDDEN = ["CHANGELOG.md", ".release-please-manifest.json"];
 /** Bỏ comment HTML của PR template trước khi đọc các dòng `Agent:`/`Task:`. */
 const stripComments = (/** @type {string} */ s) => s.replace(/<!--[\s\S]*?-->/g, "");
 
+/** `Task: none` (hoặc `-`, `n/a`, `không`) = việc theo yêu cầu, không thuộc hàng đợi `tasks.yaml`. */
+export const NO_TASK = "none";
+const NO_TASK_LINE = /^(?:(?:none|n\/a|không(?: có)?)\b|[-—])/i;
+
 /**
  * Đọc `Agent:` và `Task:` trong thân PR. Agent là tên tự do (`claude`, `codex`, `claude-2`, `human`…).
+ * `task` là mã `Txx`, hoặc `"none"` khi PR là việc theo yêu cầu, hoặc `null` khi chưa điền.
  * @param {string} body
  * @returns {{ agent: string | null, task: string | null }}
  */
@@ -26,7 +32,9 @@ export function parsePrBody(body) {
   const agentLine = text.match(/^\s*Agent:[ \t]*(.*)$/im)?.[1].trim() ?? "";
   const taskLine = text.match(/^\s*Task:[ \t]*(.*)$/im)?.[1].trim() ?? "";
   const agent = agentLine.match(/^`?([a-z][\w.-]*)`?/i)?.[1].toLowerCase() ?? null;
-  const task = taskLine.match(/\b(T\d+(?:\.\d+)?[a-z]?)\b/)?.[1] ?? null;
+  const task = NO_TASK_LINE.test(taskLine)
+    ? NO_TASK
+    : (taskLine.match(/\b(T\d+(?:\.\d+)?[a-z]?)\b/)?.[1] ?? null);
   return { agent, task };
 }
 
@@ -73,7 +81,20 @@ export function checkScope({ taskFile, body, title, files, done, authorIsBot = f
   }
 
   if (!taskId) {
-    r.errors.push('Thân PR thiếu dòng "Task: Txx" (PR template).');
+    r.errors.push('Thân PR thiếu dòng "Task: Txx" hoặc "Task: none" (PR template).');
+    return r;
+  }
+  if (taskId === NO_TASK) {
+    const refs = [...new Set([...title.matchAll(OPEN_PR_REF)].map((m) => m[1]))];
+    if (refs.length) {
+      r.errors.push(
+        `Task: none nhưng tiêu đề có ${refs.map((id) => `[${id}]`).join(", ")} — ` +
+          "bỏ mã task khỏi tiêu đề, hoặc ghi đúng Task: Txx.",
+      );
+    }
+    r.notes.push(
+      `Agent ${agent} · việc theo yêu cầu (không thuộc tasks.yaml) · ${files.length} file.`,
+    );
     return r;
   }
   const task = taskFile.tasks.find((t) => t.id === taskId);

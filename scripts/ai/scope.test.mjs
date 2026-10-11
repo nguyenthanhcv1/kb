@@ -77,6 +77,20 @@ describe("checkScope", () => {
     assert.deepEqual(run("claude", "T1.4b", [], { done: new Set(["T1.4a"]) }).errors, []);
   });
 
+  it("Task: none = việc theo yêu cầu: không cần task, tiêu đề không được có [Txx]", () => {
+    assert.equal(parsePrBody(body("claude", "none")).task, "none");
+    assert.equal(parsePrBody(body("claude", "- (sửa lỗi theo yêu cầu)")).task, "none");
+    assert.deepEqual(run("claude", "none", [], { title: "fix(web): x" }).errors, []);
+    assert.match(
+      run("claude", "none", [], { title: "fix(web): x [T1.4a]" }).errors[0],
+      /Task: none/,
+    );
+    assert.match(
+      run("claude", "none", mod("CHANGELOG.md"), { title: "fix: x" }).errors[0],
+      /release-please/,
+    );
+  });
+
   it("task manual phải do người làm", () => {
     assert.match(run("claude", "T7.6", []).errors[0], /manual/);
   });

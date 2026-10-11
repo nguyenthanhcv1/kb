@@ -13,14 +13,22 @@ bằng tay.
 | `scripts/release/build-changelog.mjs`     | Sinh `apps/web/src/generated/changelog.json` cho trang Có gì mới; chạy tự động trước `build`/`dev` của web (`pnpm changelog:build`).                                                                            |
 | `changelog/vi/<version>.md`               | Ghi chú tiếng Việt viết tay — hướng dẫn ở [`changelog/vi/README.md`](../../changelog/vi/README.md).                                                                                                             |
 
+## Vì sao trang "Có gì mới" trống?
+
+Trang đọc `CHANGELOG.md` + `changelog/vi/<version>.md` lúc **build**. Cả hai chỉ có sau khi một Release PR được merge. Nếu repo **chưa có** `.release-please-manifest.json`, `release-please.yml` chỉ cảnh báo và bỏ qua → không có Release PR, không có tag, trang hiện "Chưa có phiên bản nào được phát hành" và version ở footer là `v0.0.0-<sha>`. Làm "Thiết lập lần đầu" bên dưới là hết.
+
 ## Thiết lập lần đầu (người điều phối, một lần)
 
 1. **Tạo `.release-please-manifest.json`** ở gốc repo với nội dung `{ ".": "0.0.0" }` (commit trực tiếp
    hoặc PR `Agent: human`). Agent không được tạo/sửa file này (WORKFLOW §7, check `agent-scope`).
    Chưa có file → `release-please.yml` chỉ cảnh báo và bỏ qua.
-   - `0.0.0` nghĩa là "chưa phát hành": release-please dùng `initial-version: "0.1.0"` trong config →
-     Release PR đầu tiên là **0.1.0**, không cần footer `Release-As`. (Dự phòng nếu vẫn ra số khác:
-     tạo commit rỗng trên `main` có footer `Release-As: 0.1.0`.)
+   - `0.0.0` nghĩa là "chưa phát hành". KB **đã chạy production** nên bản đầu tiên nên là **`1.0.0`**
+     (bản chính thức; PLAN §6.2): sau khi có manifest, đẩy lên `main` (qua PR) một commit có footer
+     `Release-As: 1.0.0`, vd `git commit --allow-empty -m "chore(release): 1.0.0" -m "Release-As: 1.0.0"`.
+     Không ép số → release-please dùng `initial-version` (`0.1.0`).
+   - Bản đầu tiên gom **toàn bộ lịch sử** commit `feat`/`fix` (khá dài). Muốn chỉ tính từ một mốc: thêm
+     `"bootstrap-sha": "<sha>"` vào `release-please-config.json` rồi bỏ đi sau bản đầu. Ghi chú tiếng Việt
+     `changelog/vi/1.0.0.md` nên là bản tổng quan "bản chính thức đầu tiên" thay vì liệt kê từng thay đổi.
 2. **GitHub App cho release** (khuyến nghị mạnh). PR, push, tag tạo bằng `GITHUB_TOKEN` **không kích
    hoạt workflow khác**: Release PR sẽ không có CI/`release-vi-notes`, tag `vX.Y.Z` không kích hoạt
    `build-images.yml`.
@@ -35,6 +43,21 @@ bằng tay.
    **đóng rồi mở lại** Release PR để CI và `release-vi-notes` chạy, và phải chạy tay `build-images.yml`
    (workflow_dispatch trên tag) sau khi phát hành.
 4. Branch protection `main`: thêm check bắt buộc **`release-vi-notes`** (PR thường: job bị skip = đạt).
+
+## Agent làm gì khi người yêu cầu phát hành
+
+Người nói "phát hành" / "cập nhật Có gì mới" → agent:
+
+1. Tìm Release PR đang mở (`chore(release): release X.Y.Z`, nhánh `release-please--branches--main`). Chưa có
+   mà `main` có `feat`/`fix` mới → kiểm tra workflow `Release Please` (manifest, token) và báo người.
+2. Đọc mục `Added`/`Fixed`/`Changed` của PR, viết `changelog/vi/X.Y.Z.md` (theo `changelog/vi/README.md`:
+   câu người dùng hiểu, thuật ngữ theo glossary, xưng "bạn").
+3. Đưa file vào `main` bằng PR `docs(release): add Vietnamese notes for X.Y.Z` (`Task: none`); **không** tự merge Release PR.
+4. Báo người: Release PR + việc còn lại (chờ `release-vi-notes` và CI xanh, người squash-merge). Merge xong
+   thì trang Có gì mới có bản mới sau lần deploy kế tiếp (build lại image).
+
+Tần suất gợi ý: phát hành khi đã gom đủ thay đổi người dùng thấy được (vài ngày một lần, hoặc sau mỗi
+tính năng lớn); `chore`/`docs`/`ci`/`test`/`refactor` không tạo Release PR.
 
 ## Mỗi lần phát hành
 

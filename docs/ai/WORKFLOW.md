@@ -1,9 +1,18 @@
 # Quy trình nhiều AI agent làm việc song song
 
 > Áp dụng cho mọi agent (Claude Code, ChatGPT Codex, …) và **người điều phối** (human).
-> **Không còn lane**: mọi task nằm trong **một hàng đợi chung** `docs/ai/tasks.yaml`, sắp theo thứ tự thực hiện; agent nào vào cũng làm được bất kỳ task nào, sửa được file nào task cần.
+> **Không còn lane**: agent nào cũng làm được mọi việc, sửa được file nào việc cần. Task roadmap nằm trong **một hàng đợi chung** `docs/ai/tasks.yaml` (sắp theo thứ tự); việc phát sinh hằng ngày đi thẳng từ yêu cầu của người (§0).
 > Quy tắc tóm tắt nằm ở `AGENTS.md` §0 (Codex tự đọc `AGENTS.md`; Claude đọc `CLAUDE.md` → import `AGENTS.md`). Tài liệu này là bản đầy đủ.
 > Lịch sử: trước đây task được chia lane `claude-1`/`claude-2`/`codex-1` (và `codex-2` cũ). PR/commit cũ ghi các tên đó giữ nguyên.
+
+## 0. Hai loại việc (giai đoạn production)
+
+KB đã chạy thật; việc thường ngày là **yêu cầu trực tiếp của người**, không cần có dòng trong `tasks.yaml`:
+
+- **Việc theo yêu cầu** (mặc định): PR ghi `Task: none`, tiêu đề **không** có `[Txx]`. `agent-scope` chỉ kiểm tra `Agent:`, không sửa file release-please, tiêu đề không mang mã task. Chống trùng việc bằng **draft PR sớm + xem PR đang mở**, không bằng mã task.
+- **Task roadmap** (khi người nêu `Txx` hoặc bảo "lấy task kế tiếp"): toàn bộ §1–§7 dưới đây áp dụng nguyên văn.
+
+Các mục §1–§7 viết cho task roadmap; với việc theo yêu cầu, bỏ qua phần mã task/deps/`ai:next`, giữ nguyên các phần còn lại (một việc = một PR nhỏ, file nóng §5, merge `main` §5.2, kiểm tra §7.4, Handoff). Agent **không** thêm dòng vào `tasks.yaml` để hợp thức hoá việc mình làm.
 
 ## 1. Nguyên lý chống xung đột
 
@@ -21,8 +30,8 @@ Xung đột giữa các agent xảy ra ở 3 chỗ: **cùng nhận một task**,
 
 | Ai | Làm gì |
 |---|---|
-| Agent (Claude Code, Codex, …) | Lấy task ready kế tiếp trong hàng đợi, làm đến khi mở PR. Không giới hạn khu vực: DB, server, UI, editor, collab, CI, hạ tầng, tài liệu. |
-| Người điều phối (human) | Khởi động phiên, cấp secret, thao tác UI nhà cung cấp (Coolify, Hostinger, Cloudflare, Google Cloud), review & merge, sửa `tasks.yaml`, làm các task `manual: true`. |
+| Agent (Claude Code, Codex, …) | Làm việc người yêu cầu; hoặc lấy task ready kế tiếp trong hàng đợi khi người bảo. Không giới hạn khu vực: DB, server, UI, editor, collab, CI, hạ tầng, tài liệu. |
+| Người điều phối (human) | Đưa yêu cầu, cấp secret, thao tác UI nhà cung cấp (Coolify, Hostinger, Cloudflare, Google Cloud), review & merge (kể cả Release PR), sửa `tasks.yaml` khi muốn theo dõi hạng mục lớn, làm các task `manual: true`. |
 
 Tên agent (`Agent:` trong thân PR, tiền tố nhánh) là **tên tự do** để truy vết, vd `claude`, `codex`, `claude-2`. Không cần đăng ký trước.
 
@@ -114,7 +123,8 @@ Deps `b → a` trong `tasks.yaml` là mốc để **merge** `b` (CI `agent-scope
 - Merge theo thứ tự: PR contract → PR nền tảng (DB, tooling) → PR giao diện. Ưu tiên PR đang chặn nhiều task khác.
 - Bật trên GitHub: squash merge only, "Default commit message = Pull request title and description", "Require branches to be up to date before merging", required checks (`ci`, `agent-scope`), xoá nhánh sau merge.
 - Khi hai agent vô tình nhận cùng task: giữ PR mở trước, đóng PR còn lại, ghi lại bài học vào `docs/ai/WORKFLOW.md`.
-- Thêm/sửa task (bug từ pilot, task mới): sửa `tasks.yaml` trong PR riêng (`Agent: human`), chèn task vào đúng vị trí ưu tiên (sau mọi deps của nó). Task hỗn hợp server + giao diện nên tách `a`/`b` để hai agent làm song song.
+- Hạng mục lớn muốn theo dõi dài hạn: thêm vào `tasks.yaml` trong PR riêng (`Agent: human`), chèn đúng vị trí ưu tiên (sau mọi deps của nó), tách `a`/`b` nếu cần. Lỗi nhỏ, chỉnh sửa, tính năng nhỏ: **không cần** task — chỉ cần yêu cầu rõ và `Task: none`.
+- Sau một nhóm thay đổi người dùng thấy được (`feat`/`fix` đã merge): bảo agent "phát hành" → Release PR + ghi chú tiếng Việt (`docs/runbooks/release.md`), để trang Có gì mới luôn cập nhật.
 
 ## 9. Khác biệt Claude Code và Codex cần lưu ý
 
