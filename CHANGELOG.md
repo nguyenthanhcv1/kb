@@ -84,3 +84,32 @@
 ### Security
 
 * **web:** add security headers, database rate limits and dependency audit [T7.2] ([#49](https://github.com/nguyenthanhcv1/kb/issues/49)) ([65bc161](https://github.com/nguyenthanhcv1/kb/commit/65bc16111c13fd8434286e86523d673434dd2abc))
+
+<!-- vi-notes:start -->
+### Tiếng Việt
+
+#### Thêm
+
+- Bản chính thức đầu tiên của kho kiến thức: đăng nhập bằng tài khoản Google công ty, chỉ những người được quản trị viên cho phép mới vào được.
+- Tổ chức nội dung theo **không gian** với phân quyền theo vai trò; mời thành viên và khách bằng email, xem nhật ký hoạt động của từng không gian (có bộ lọc và xuất CSV).
+- Cây trang ở thanh bên: tạo, đổi tên, kéo thả sắp xếp, chuyển vào thùng rác và khôi phục; cây tự cập nhật giữa các tab.
+- Trình soạn thảo theo khối: menu gõ "/", thanh định dạng, phím tắt, kéo thả khối, tải ảnh và tệp bằng kéo thả hoặc dán, sơ đồ Mermaid, dán văn bản Markdown hoặc nhập tệp `.md` vào trang.
+- Bảng đầy đủ: thêm xoá hàng cột, gộp và tách ô, tô màu nền ô, kéo thả hàng và cột, dán dữ liệu từ Excel hoặc Google Sheets, xuất CSV.
+- Sửa cùng lúc nhiều người, hiển thị trạng thái lưu; trang mở ở chế độ xem với nút **Sửa** và **Xong**.
+- Lịch sử phiên bản của trang: tự động lưu khi sửa, xem trước, so sánh khác biệt và khôi phục.
+- Tìm kiếm tiếng Việt gõ không dấu vẫn ra kết quả, mở nhanh bằng Ctrl+K hoặc trang kết quả riêng.
+- Giao diện mới (KA Atlas): trang chủ có ô tìm kiếm lớn, thẻ không gian và các trang vừa sửa; trang đọc có đường dẫn, thời gian cập nhật và mục lục "Trong bài này".
+- Giao diện tiếng Việt và tiếng Anh, chế độ sáng và tối; chọn ngôn ngữ, múi giờ, tên và ảnh đại diện trong phần cài đặt cá nhân.
+- Kết nối trợ lý AI (Claude, ChatGPT) để đọc và sửa trang bằng đúng quyền của bạn.
+- Trang **Có gì mới** hiển thị các thay đổi của từng phiên bản; phiên bản hiện tại hiện ở chân thanh bên và trong Cài đặt › Giới thiệu.
+
+#### Sửa lỗi
+
+- Đăng nhập Google quay về đúng địa chỉ ứng dụng, khách được mời không bị đăng xuất trước khi chấp nhận lời mời.
+- Mở trang chỉ để xem không còn bị tự lưu thành phiên bản mới.
+- Trang chủ của không gian liệt kê đầy đủ các trang; ảnh đại diện lưu ở nơi khác hiển thị bình thường.
+
+#### Bảo mật
+
+- Bổ sung các tiêu đề bảo mật, giới hạn tần suất truy cập và kiểm tra thư viện có lỗ hổng.
+<!-- vi-notes:end -->
