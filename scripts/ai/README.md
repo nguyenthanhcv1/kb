@@ -29,9 +29,11 @@ Tuỳ chọn chung của `ai:next`/`ai:status`: `--json`, `--no-fetch` (không `
 Đọc `Agent:` và `Task:` trong thân PR (bỏ comment HTML của template), `tasks.yaml` **từ nhánh gốc**
 (PR không tự thêm task được), `git log` của nhánh gốc và `git diff --name-status base...head`.
 
+`Task: none` (hoặc `-`, `n/a`) = việc theo yêu cầu, không thuộc hàng đợi: chỉ kiểm tra `Agent:`, file release-please, và tiêu đề **không** chứa `[Txx]`.
+
 Lỗi (check đỏ):
 
-- thiếu `Agent:` (tên tự do) hoặc `Task:`; task không có trong `tasks.yaml`; task `manual` mà
+- thiếu `Agent:` (tên tự do) hoặc `Task:` (`Txx` hoặc `none`); task không có trong `tasks.yaml`; task `manual` mà
   không phải `Agent: human`;
 - tiêu đề thiếu `[Txx]` khớp dòng `Task:`, hoặc chứa mã của task khác (một PR = một task);
 - `deps` của task chưa merge vào nhánh gốc;

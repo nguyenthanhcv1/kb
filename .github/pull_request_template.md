@@ -1,6 +1,7 @@
 <!--
 Tiêu đề PR = commit message sau squash-merge (CI kiểm tra bằng commitlint):
   <type>(<scope>): <mô tả tiếng Anh, chữ thường đầu câu> [<task-id>]     vd: feat(db): add core schema and RLS [T1.1]
+  Việc theo yêu cầu (Task: none): bỏ phần [<task-id>]                  vd: fix(web): keep the sidebar open after saving a page
   type : feat | fix | perf | refactor | security | docs | chore | ci | test | build | style | revert
   scope: web | collab | db | editor | table | search | auth | i18n | infra | ci | release | docs | deps (có thể bỏ trống)
   feat/fix xuất hiện trong trang "What's new" → viết câu người dùng đọc hiểu được.
@@ -8,7 +9,7 @@ Xem CONTRIBUTING.md và AGENTS.md.
 -->
 
 Agent: <!-- tên agent tự do: claude | codex | claude-2 | … ; người điều phối: human -->
-Task: <!-- T1.1 — xem docs/ai/tasks.yaml và docs/PLAN.md §9 -->
+Task: <!-- none (việc theo yêu cầu — mặc định) | Txx nếu làm task trong docs/ai/tasks.yaml -->
 
 ## Tóm tắt
 
@@ -30,12 +31,13 @@ Task: <!-- T1.1 — xem docs/ai/tasks.yaml và docs/PLAN.md §9 -->
 
 **Phạm vi**
 
-- [ ] Chỉ một task; chỉ sửa những gì task cần — không sửa tay `pnpm-lock.yaml`, `types.gen.ts`, `CHANGELOG.md`, version
-- [ ] Đã merge `origin/main` mới nhất; mọi `deps` của task đã có trên `main`
+- [ ] Chỉ một việc (một yêu cầu hoặc một task); chỉ sửa những gì việc cần — không sửa tay `pnpm-lock.yaml`, `types.gen.ts`, `CHANGELOG.md`, version
+- [ ] Đã merge `origin/main` mới nhất; (nếu có `Txx`) mọi `deps` của task đã có trên `main`
 
 **Changelog & version**
 
-- [ ] Tiêu đề PR đúng Conventional Commits, scope hợp lệ, có `[Txx]`
+- [ ] Tiêu đề PR đúng Conventional Commits, scope hợp lệ, có `[Txx]` chỉ khi `Task: Txx`
+- [ ] `feat`/`fix` = người dùng thấy ở "Có gì mới": tiêu đề là câu tiếng Anh dễ hiểu; việc nội bộ dùng `chore`/`refactor`/`docs`/`ci`/`test`
 - [ ] Thay đổi phá vỡ có `!` hoặc footer `BREAKING CHANGE:` (và đi theo expand → contract)
 
 **i18n**
