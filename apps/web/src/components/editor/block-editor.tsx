@@ -37,6 +37,7 @@ import {
   type UploadDeps,
 } from "./attachment-upload";
 import { BlockHandle } from "./block-handle";
+import { EditorToolbar } from "./editor-toolbar";
 import { useBlockText } from "./block-types";
 import { FormattingBubbleMenu } from "./bubble-menu";
 import { ImageDialog } from "./image-dialog";
@@ -289,6 +290,15 @@ export function BlockEditor({
 
   return (
     <div className={cn("kb-editor relative", className)}>
+      {editor && editable && (
+        <EditorToolbar
+          editor={editor}
+          onImage={() => {
+            const image = SLASH_ITEMS.find((item) => item.id === "image");
+            if (image) setPendingImage(image);
+          }}
+        />
+      )}
       <EditorContent editor={editor} />
       {editor && editable && (
         <>

@@ -4,10 +4,11 @@ import type { JSONContent } from "@tiptap/core";
 import { ArchiveRestoreIcon, CheckIcon, HistoryIcon, PencilIcon, Trash2Icon } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useTranslations } from "next-intl";
-import { useState, useTransition } from "react";
+import { useFormatter, useTranslations } from "next-intl";
+import { useRef, useState, useTransition } from "react";
 
 import type { CollabClientConfig } from "@/lib/collab/config";
+import { PageBreadcrumb } from "@/components/tree/page-breadcrumb";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { pageHref, spaceTrashHref } from "@/lib/page-href";
 import type { PageSummary } from "@/server/pages";
@@ -17,11 +18,16 @@ import { pageErrorKey } from "./errors";
 import { PageActionsMenu } from "./page-actions-menu";
 import { isEmptyDocument, PageContent } from "./page-content";
 import { PageIconPicker } from "./page-icon-picker";
+import { PageProperties } from "./page-properties";
+import { PageToc } from "./page-toc";
 import { PageTitle } from "./page-title";
 
 type PageViewProps = {
   page: PageSummary;
   spaceSlug: string;
+  spaceName: string;
+  /** Root first, without the page itself (`listPageAncestors`); empty for a root page. */
+  ancestors?: readonly Pick<PageSummary, "id" | "title" | "icon" | "slug" | "shortId">[];
   /** Editors and admins of the Space (RLS decides; this only shows the controls). */
   canEdit: boolean;
   content: JSONContent | null;
@@ -30,13 +36,26 @@ type PageViewProps = {
 };
 
 /**
- * `/s/<space>/p/<ref>`: icon, title, the trashed notice with "restore", and the content. Pages
+ * `/s/<space>/p/<ref>`: breadcrumb, icon, title, when it was last edited, the trashed notice with
+ * "restore", the content and, from `xl`, a table of contents ("On this page"). Pages
  * open for reading; editors switch to editing with "Edit" (title, icon and body become editable,
  * changes are saved as they type) and back with "Done". A new, empty page opens for editing.
  * A rename changes the slug, so the URL is replaced with the new canonical one (old links keep
  * working through the route's redirect).
  */
-export function PageView({ page, spaceSlug, canEdit, content, collab = null }: PageViewProps) {
+export function PageView({
+  page,
+  spaceSlug,
+  spaceName,
+  ancestors = [],
+  canEdit,
+  content,
+  collab = null,
+}: PageViewProps) {
+  const t = useTranslations("tree.page.meta");
+  const tToc = useTranslations("tree.page.toc");
+  const format = useFormatter();
+  const rootRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
   const trashed = page.deletedAt !== null;
   const editable = canEdit && !trashed;
@@ -49,27 +68,55 @@ export function PageView({ page, spaceSlug, canEdit, content, collab = null }: P
   }
 
   return (
-    <article className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-6 sm:px-8 sm:py-10">
-      {trashed && <TrashedPageNotice page={page} spaceSlug={spaceSlug} canRestore={canEdit} />}
-      <header className="flex items-start gap-2">
-        {/* `md:pl-8`: aligned with the editor content, whose gutter holds the block handle. */}
-        <div className="flex min-w-0 flex-1 flex-col gap-2 md:pl-8">
-          <PageIconPicker page={page} editable={editMode} onChanged={() => router.refresh()} />
-          <PageTitle page={page} editable={editMode} onRenamed={onRenamed} />
+    <div
+      ref={rootRef}
+      className="mx-auto flex w-full max-w-3xl gap-12 px-4 py-6 sm:px-8 sm:py-10 xl:max-w-[66rem]"
+    >
+      <article className="flex min-w-0 flex-1 flex-col gap-6 xl:max-w-3xl">
+        <div className="md:pl-8">
+          <PageBreadcrumb
+            space={{ slug: spaceSlug, name: spaceName }}
+            ancestors={ancestors}
+            page={page}
+          />
         </div>
-        {editable && <EditModeButton editing={editMode} onChange={setEditing} />}
-        {!trashed && <HistoryLink spaceSlug={spaceSlug} page={page} />}
-        {editable && <PageActionsMenu page={page} />}
-      </header>
-      <PageContent
-        content={content}
-        title={page.title}
-        pageId={page.id}
-        collab={editable ? collab : null}
-        editing={editMode}
-        historyHref={`${pageHref(spaceSlug, page)}/history`}
-      />
-    </article>
+        {trashed && <TrashedPageNotice page={page} spaceSlug={spaceSlug} canRestore={canEdit} />}
+        <header className="flex items-start gap-2">
+          {/* `md:pl-8`: aligned with the editor content, whose gutter holds the block handle. */}
+          <div className="flex min-w-0 flex-1 flex-col gap-2 md:pl-8">
+            <PageIconPicker page={page} editable={editMode} onChanged={() => router.refresh()} />
+            <PageTitle page={page} editable={editMode} onRenamed={onRenamed} />
+            <p className="text-[13px] text-muted-foreground">
+              {t("updated", { date: format.dateTime(new Date(page.lastEditedAt), "dateTime") })}
+            </p>
+          </div>
+          {editable && <EditModeButton editing={editMode} onChange={setEditing} />}
+          {!trashed && <HistoryLink spaceSlug={spaceSlug} page={page} />}
+          {editable && <PageActionsMenu page={page} />}
+        </header>
+        <PageContent
+          content={content}
+          title={page.title}
+          pageId={page.id}
+          collab={editable ? collab : null}
+          editing={editMode}
+          historyHref={`${pageHref(spaceSlug, page)}/history`}
+        />
+      </article>
+      {/* Right column from `xl`: page properties while editing, then the table of contents. */}
+      <aside aria-label={tToc("label")} className="hidden w-56 shrink-0 xl:block">
+        <div className="sticky top-24 flex flex-col gap-6">
+          {editMode && (
+            <PageProperties
+              space={{ slug: spaceSlug, name: spaceName }}
+              parent={ancestors.at(-1) ?? null}
+              lastEditedAt={page.lastEditedAt}
+            />
+          )}
+          <PageToc rootRef={rootRef} />
+        </div>
+      </aside>
+    </div>
   );
 }
 

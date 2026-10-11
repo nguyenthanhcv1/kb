@@ -222,6 +222,9 @@
     },
     "label": "Insert block"
   },
+  "toolbar": {
+    "label": "Formatting toolbar"
+  },
   "upload": {
     "dismiss": "Dismiss",
     "failed": "Could not upload “{name}”: {error}",

@@ -114,6 +114,11 @@ tasks:
   - { id: T7.15, title: "Mở trang không được tự lưu: editor tự thêm đoạn trống cuối trang (TrailingNode) và gán ID block (UniqueID) khi đồng bộ lần đầu → chỉ làm khi người dùng sửa; viewer không kẹt 'Đang lưu…'", deps: [T3.5], est: 0.5, ver: 0.8.0 }
   - { id: T7.16, title: "Trang mở ở chế độ xem; nút Sửa/Xong (tiêu đề, biểu tượng, nội dung chỉ sửa được khi đang sửa), trang trống mở thẳng chế độ sửa", deps: [T7.15], est: 1, ver: 0.8.0, ui: true }
   - { id: T7.17, title: "Markdown trong editor: dán văn bản Markdown (VS Code, README, câu trả lời AI) hiện thành block định dạng thay vì khối mã; nhập tệp .md vào trang (mục / Nhập Markdown, kéo thả)", deps: [T3.2], est: 0.5, ver: 0.8.0, ui: true }
+  - { id: T7.18, title: "KA Atlas — vỏ ứng dụng: logo KA Knowledge, điều hướng Trang chủ/Tìm kiếm/Có gì mới, nhóm Không gian, thanh trên (ô tìm ⌘K, VI/EN, tài khoản)", deps: [T0.1b, T5.3, T0.6b], est: 1, ver: 0.8.0, ui: true }
+  - { id: T7.19, title: "KA Atlas — trang chủ: khối tìm kiếm lớn, thẻ Không gian, danh sách trang sửa gần đây", deps: [T7.18, T1.4b], est: 1, ver: 0.8.0, ui: true }
+  - { id: T7.20, title: "KA Atlas — trang đọc bài: breadcrumb, dòng thông tin trang, mục lục 'Trong bài này', kiểu bảng/callout theo thiết kế", deps: [T7.18, T7.16], est: 1.5, ver: 0.8.0, ui: true }
+  - { id: T7.21, title: "KA Atlas — trình soạn thảo: thanh công cụ, menu bảng, bảng Thuộc tính trang (giữ Sửa/Xong và tự lưu)", deps: [T7.20, T3.2], est: 1.5, ver: 0.8.0, ui: true }
+  - { id: T7.22, title: "KA Atlas — trang 'Có gì mới': bố cục, bộ lọc loại thay đổi, nhãn phiên bản hiện tại", deps: [T7.18], est: 0.5, ver: 0.8.0, ui: true }
   - { id: T7.4,  title: "Tài liệu người dùng vi/en + Space Hướng dẫn seed + nội dung What's new", deps: [T6.4b], est: 1, ver: 0.8.0, ui: true }
   - { id: T7.3,  title: "Production hoá môi trường duy nhất kb.thanhgo.com (ADR 0007): đổi tên cấu hình staging → production (infra, APP_ENV, GitHub Environment, runbook), backup pre-migrate trong deploy.yml, monitoring + alert, restore thử", deps: [T7.2, T0.9], est: 1.5, ver: 0.8.0, human: true }
   - { id: T7.5,  title: "Pilot 0.8.x, thu phản hồi → tạo task sửa lỗi (thêm vào tasks.yaml theo thứ tự)", deps: [T7.3, T7.1c, T7.1d, T7.4, T7.7, T7.8, T7.12], est: 3, ver: 0.8.x, manual: true }

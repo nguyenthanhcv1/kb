@@ -8,7 +8,7 @@ import { collabClientConfig } from "@/lib/collab/config";
 import { canonicalPageRedirect } from "@/lib/page-href";
 
 import { loadSpace } from "../../../../_lib/data";
-import { loadPageByRef, loadPageContent } from "../../../../_lib/pages";
+import { loadPageAncestors, loadPageByRef, loadPageContent } from "../../../../_lib/pages";
 
 type Props = { params: Promise<{ spaceSlug: string; pageRef: string }> };
 
@@ -32,7 +32,10 @@ export default async function PageRoute({ params }: Props) {
 
   const space = await loadSpace(page.spaceSlug);
   if (!space) notFound();
-  const content = await loadPageContent(page.id);
+  const [content, ancestors] = await Promise.all([
+    loadPageContent(page.id),
+    loadPageAncestors(page.id),
+  ]);
 
   return (
     <PageView
@@ -40,6 +43,8 @@ export default async function PageRoute({ params }: Props) {
       key={page.id}
       page={page}
       spaceSlug={space.slug}
+      spaceName={space.name}
+      ancestors={ancestors}
       canEdit={canEditSpaceContent(space.role)}
       collab={collabClientConfig()}
       content={(content?.contentJson as JSONContent | undefined) ?? null}

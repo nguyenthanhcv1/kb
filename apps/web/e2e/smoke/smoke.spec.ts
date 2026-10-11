@@ -19,6 +19,6 @@ test(`signed-out visitors land on the login page in ${locale}`, async ({ page, c
   await page.goto("/");
   await expect(page).toHaveURL(/\/login/);
   await expect(page.locator("html")).toHaveAttribute("lang", locale);
-  const { app } = message<{ app: { name: string } }>(locale, "common");
-  await expect(page.getByText(app.name).first()).toBeVisible();
+  const { app } = message<{ app: { brand: string } }>(locale, "common");
+  await expect(page.getByText(app.brand).first()).toBeVisible();
 });

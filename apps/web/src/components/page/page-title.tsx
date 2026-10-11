@@ -55,7 +55,7 @@ export function PageTitle({ page, editable, onRenamed }: PageTitleProps) {
     return (
       <h1
         className={cn(
-          "text-3xl font-bold break-words sm:text-4xl",
+          "text-[32px] leading-10 font-bold tracking-[-0.02em] break-words",
           !page.title && "text-muted-foreground",
         )}
       >
@@ -89,7 +89,7 @@ export function PageTitle({ page, editable, onRenamed }: PageTitleProps) {
 
   return (
     <div className="flex flex-col gap-1">
-      <h1 className="text-3xl font-bold sm:text-4xl">
+      <h1 className="text-[32px] leading-10 font-bold tracking-[-0.02em]">
         <textarea
           ref={ref}
           value={value}

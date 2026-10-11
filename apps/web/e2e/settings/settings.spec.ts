@@ -46,7 +46,8 @@ test("language and time zone follow the profile to another device", async ({ bro
   await savePreferences(page, from, to, "Europe/Berlin");
   await expect(title).toHaveText(m[to].settings.title);
   await expect(page.locator("html")).toHaveAttribute("lang", to);
-  await expect(page.getByRole("button", { name: m[to].common.locale.toggle })).toBeVisible();
+  // The top bar shows the language switcher (VI / EN buttons) in the new language.
+  await expect(page.getByRole("group", { name: m[to].common.locale.label })).toBeVisible();
   await first.close();
 
   // "Another device": a new session in a browser asking for the previous language, without the

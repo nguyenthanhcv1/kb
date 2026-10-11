@@ -4,6 +4,7 @@
     "save": "Save"
   },
   "app": {
+    "brand": "KA Knowledge",
     "name": "KB",
     "tagline": "Internal knowledge base"
   },
@@ -18,6 +19,10 @@
     "names": {
       "en": "English",
       "vi": "Tiếng Việt"
+    },
+    "short": {
+      "en": "EN",
+      "vi": "VI"
     },
     "toggle": "Change language"
   },

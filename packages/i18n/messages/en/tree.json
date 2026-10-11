@@ -42,15 +42,29 @@
       "suggestions": "Suggestions"
     },
     "menu": "Page actions",
+    "meta": {
+      "updated": "Updated {date}"
+    },
     "mode": {
       "done": "Done",
       "doneLabel": "Done, back to viewing",
       "edit": "Edit",
       "editLabel": "Edit page"
     },
+    "properties": {
+      "noParent": "None (top-level page)",
+      "parent": "Parent page",
+      "space": "Space",
+      "title": "Page properties",
+      "updated": "Last updated"
+    },
     "title": {
       "label": "Page title",
       "saving": "Saving…"
+    },
+    "toc": {
+      "label": "Table of contents",
+      "title": "On this page"
     },
     "trashed": {
       "description": "Restore it to put the page back where it was and keep editing.",

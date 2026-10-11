@@ -139,6 +139,15 @@ export type PageTreeNode = PageSummary & { hasChildren: boolean };
 /** A page with the slug of its Space, for building and checking its URL. */
 export type PageWithSpace = PageSummary & { spaceSlug: string };
 
+export const listRecentPagesInputSchema = z.object({
+  /** How many pages to return (default 8). */
+  limit: z.number().int().min(1).max(50).default(8),
+});
+export type ListRecentPagesInput = z.input<typeof listRecentPagesInputSchema>;
+
+/** A recently edited page with the name, icon and slug of its Space (home page list). */
+export type RecentPage = PageWithSpace & { spaceName: string; spaceIcon: string | null };
+
 /** Derived read-only content of a page (`page_documents.content_json`, written by kb-collab). */
 export type PageContent = {
   /** ProseMirror JSON of the shared editor schema. */
@@ -251,6 +260,45 @@ export async function getPageByShortId(
   const space = (data as { space?: { slug?: unknown } | null }).space;
   if (typeof space?.slug !== "string") return null;
   return { ...pageRowSchema.parse(data), spaceSlug: space.slug };
+}
+
+/**
+ * Live pages the caller can read, most recently edited first, across all their active Spaces
+ * (RLS decides which). Feeds the "Recently updated" list on the home page.
+ *
+ * ```ts
+ * await listRecentPages(supabase, { limit: 5 });
+ * // [{ id: "2000…0001", title: "Quy trình đối soát", lastEditedAt: "2026-10-08T07:30:00+00:00",
+ * //    spaceSlug: "spe", spaceName: "Shopee Express", spaceIcon: "🛍️", … }]
+ * ```
+ */
+export async function listRecentPages(
+  supabase: SupabaseClient,
+  input: ListRecentPagesInput = {},
+): Promise<RecentPage[]> {
+  const { limit } = parseInput(listRecentPagesInputSchema, input);
+  const { data, error } = await supabase
+    .from("pages")
+    .select(`${PAGE_COLUMNS}, space:spaces!inner(slug, name, icon)`)
+    .is("deleted_at", null)
+    .is("space.archived_at", null)
+    .order("last_edited_at", { ascending: false })
+    .order("id", { ascending: true })
+    .limit(limit);
+  if (error) throw toPageError(error);
+  return (data ?? []).flatMap((row) => {
+    const space = (row as { space?: { slug?: unknown; name?: unknown; icon?: unknown } | null })
+      .space;
+    if (typeof space?.slug !== "string" || typeof space.name !== "string") return [];
+    return [
+      {
+        ...pageRowSchema.parse(row),
+        spaceSlug: space.slug,
+        spaceName: space.name,
+        spaceIcon: typeof space.icon === "string" ? space.icon : null,
+      },
+    ];
+  });
 }
 
 /**
