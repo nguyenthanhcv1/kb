@@ -12,7 +12,7 @@
 //
 // Coolify API v4 (checked against Coolify 4.0.0-beta.4xx; field names change between betas —
 // docs/runbooks/staging.md says how to verify them): PATCH /applications/{uuid}/envs,
-// GET /deploy?uuid=…, GET /deployments/{deployment_uuid}.
+// POST /deploy?uuid=…, GET /deployments/{deployment_uuid}.
 import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
 
@@ -108,8 +108,9 @@ export async function setImageTag(client, appUuid, tag) {
  * @returns {Promise<string>} deployment uuid
  */
 export async function triggerDeploy(client, appUuid) {
+  // Newer Coolify rejects GET /deploy with 405 ("This endpoint has changed to a POST request").
   const result = await client.request(
-    "GET",
+    "POST",
     `/deploy?uuid=${encodeURIComponent(appUuid)}&force=false`,
   );
   // {"deployments":[{"message","resource_uuid","deployment_uuid"}]}
