@@ -35,6 +35,9 @@ export const AUDIT_ACTIONS = [
   "invitation.create",
   "invitation.revoke",
   "member.add",
+  "member.group_add",
+  "member.group_remove",
+  "member.group_role_change",
   "member.remove",
   "member.role_change",
   "page.create",
@@ -86,6 +89,9 @@ export const AUDIT_ACTION_ENTITY_TYPE: Record<AuditAction, AuditEntityType> = {
   "invitation.create": "invitation",
   "invitation.revoke": "invitation",
   "member.add": "member",
+  "member.group_add": "member",
+  "member.group_remove": "member",
+  "member.group_role_change": "member",
   "member.remove": "member",
   "member.role_change": "member",
   "page.create": "page",
@@ -189,6 +195,8 @@ export const auditLogEntrySchema = z.object({
    * - `space.archive` / `space.unarchive`: `{ name }`
    * - `member.add`: `{ user_id, role }` · `member.role_change`: `{ user_id, from_role, to_role }`
    * - `member.remove`: `{ user_id, role, self }` (`self` = the member left by themselves)
+   * - `member.group_add` / `member.group_remove`: `{ group_id, name, role }` · `member.group_role_change`: `{ group_id, name, from_role, to_role }`
+   * - `group.delete` also has `space_count` (Spaces the group reached)
    * - `invitation.create`: `{ email, role, expires_at }` · `invitation.revoke`: `{ email, role }`
    * - `invitation.accept`: `{ email, role, user_id }`
    * - `access.add` / `access.remove`: `{ kind, value, note }` · `access.update`: `{ kind, value, changes }`

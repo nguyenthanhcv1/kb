@@ -172,6 +172,31 @@ describe("describeAuditEntry", () => {
     });
   });
 
+  it("names the group and its role for group grants", () => {
+    const base = { entityType: "member", metadata: { group_id: "g", name: "KAS", role: "editor" } };
+    for (const action of ["member.group_add", "member.group_remove"]) {
+      expect(describeAuditEntry({ ...base, action }, people)).toEqual({
+        target: { kind: "text", text: "KAS" },
+        details: [{ kind: "role", role: "editor" }],
+      });
+    }
+    expect(
+      describeAuditEntry(
+        {
+          action: "member.group_role_change",
+          entityType: "member",
+          metadata: { name: "KAS", from_role: "viewer", to_role: "editor" },
+        },
+        people,
+      ),
+    ).toEqual({
+      target: { kind: "text", text: "KAS" },
+      details: [{ kind: "roleChange", from: "viewer", to: "editor" }],
+    });
+    expect(auditActionLabel("member.group_add").key).toBe("actions.member_group_add");
+    expect(SPACE_AUDIT_ACTIONS).toContain("member.group_add");
+  });
+
   it("marks members who left by themselves and unknown people", () => {
     expect(
       describeAuditEntry(

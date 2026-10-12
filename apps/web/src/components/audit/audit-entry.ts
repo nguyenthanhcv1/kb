@@ -237,6 +237,27 @@ export function describeAuditEntry(
         details: from && to ? [{ kind: "roleChange", from, to }] : [],
       };
     }
+    case "member.group_add":
+    case "member.group_remove": {
+      const name = str(m.name);
+      return {
+        target: name
+          ? { kind: "text", text: name }
+          : { kind: "entity", entityType: entry.entityType },
+        details: role ? [{ kind: "role", role }] : [],
+      };
+    }
+    case "member.group_role_change": {
+      const name = str(m.name);
+      const from = str(m.from_role);
+      const to = str(m.to_role);
+      return {
+        target: name
+          ? { kind: "text", text: name }
+          : { kind: "entity", entityType: entry.entityType },
+        details: from && to ? [{ kind: "roleChange", from, to }] : [],
+      };
+    }
     case "member.remove":
       return {
         target: { kind: "person", person },
