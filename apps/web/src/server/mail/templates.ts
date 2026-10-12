@@ -51,3 +51,37 @@ export async function buildTestEmail(context: TestEmailContext): Promise<Omit<Ma
   });
   return { subject, text, html: textToHtml(text) };
 }
+
+export interface AccountDecisionEmailContext {
+  locale: Locale;
+  decision: "approved" | "rejected";
+  /** Why the account was rejected (optional, rejected only). */
+  reason?: string;
+  /** Public origin of kb-web: the approval email links to it. */
+  appUrl: string;
+}
+
+/**
+ * Sent to the person when a super admin reviews their account:
+ * `email.accountApproved.*` / `email.accountRejected.*`, in their own locale.
+ */
+export async function buildAccountDecisionEmail(
+  context: AccountDecisionEmailContext,
+): Promise<Omit<MailMessage, "to">> {
+  const messages = await loadMessages(context.locale, ["common", "email"]);
+  const t = createTranslator({
+    locale: context.locale,
+    messages,
+    formats,
+    timeZone: defaultTimeZone,
+  });
+  const app = t("common.app.name");
+  if (context.decision === "approved") {
+    const text = t("email.accountApproved.body", { app, url: context.appUrl });
+    return { subject: t("email.accountApproved.subject", { app }), text, html: textToHtml(text) };
+  }
+  const text = context.reason
+    ? t("email.accountRejected.bodyWithReason", { app, reason: context.reason })
+    : t("email.accountRejected.body", { app });
+  return { subject: t("email.accountRejected.subject", { app }), text, html: textToHtml(text) };
+}

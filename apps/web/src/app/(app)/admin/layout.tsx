@@ -4,6 +4,8 @@ import type { ReactNode } from "react";
 import { AdminForbidden } from "@/components/admin/admin-forbidden";
 import { AdminNav } from "@/components/admin/admin-nav";
 
+import { listPendingAccounts } from "@/server/admin/actions";
+
 import { requireUser } from "../_lib/data";
 
 /**
@@ -14,12 +16,16 @@ import { requireUser } from "../_lib/data";
 export default async function AdminLayout({ children }: { children: ReactNode }) {
   const user = await requireUser();
   if (!user.isSuperAdmin) return <AdminForbidden />;
-  const t = await getTranslations("admin");
+  const [t, pending] = await Promise.all([
+    getTranslations("admin"),
+    listPendingAccounts({ status: "pending", limit: 1 }),
+  ]);
+  const pendingCount = pending.ok ? pending.data.total : 0;
 
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 p-4 sm:p-6">
       <h1 className="text-2xl font-semibold">{t("title")}</h1>
-      <AdminNav />
+      <AdminNav pendingCount={pendingCount} />
       {children}
     </div>
   );

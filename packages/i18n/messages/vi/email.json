@@ -1,4 +1,13 @@
 {
+  "accountApproved": {
+    "body": "Tài khoản {app} của bạn đã được duyệt. Bạn có thể đăng nhập bằng Google ngay bây giờ:\n\n{url}",
+    "subject": "Tài khoản {app} của bạn đã được duyệt"
+  },
+  "accountRejected": {
+    "body": "Yêu cầu tạo tài khoản {app} của bạn chưa được duyệt.\n\nNếu bạn cho rằng đây là nhầm lẫn, hãy liên hệ quản trị viên.",
+    "bodyWithReason": "Yêu cầu tạo tài khoản {app} của bạn chưa được duyệt.\n\nLý do: {reason}\n\nNếu bạn cho rằng đây là nhầm lẫn, hãy liên hệ quản trị viên.",
+    "subject": "Yêu cầu tài khoản {app}"
+  },
   "invitation": {
     "accept": "Nhận lời mời",
     "body": "{inviter} đã mời bạn tham gia không gian {space}. Quyền của bạn: {role}.",

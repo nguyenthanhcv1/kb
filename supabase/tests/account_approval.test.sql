@@ -2,7 +2,7 @@
 -- Fixtures turn `require_account_approval` on (the local seed turns it off for the other tests).
 begin;
 
-select plan(31);
+select plan(32);
 
 update public.app_settings
 set require_account_approval = true,
@@ -143,6 +143,22 @@ select is(
   'Not one of ours',
   'a rejection is audited with its reason'
 );
+
+-- The decision functions return who to notify -------------------------------------------------
+
+insert into auth.users (id, email) values
+  ('00000000-0000-0000-0000-000000000307', 'notify-me@outside.example');
+
+set local role authenticated;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000301', true);
+
+select results_eq(
+  $$ select * from public.admin_approve_account('00000000-0000-0000-0000-000000000307', true) $$,
+  $$ values ('notify-me@outside.example', 'vi') $$,
+  'approving returns the email and locale to notify'
+);
+
+reset role;
 
 select * from finish();
 rollback;

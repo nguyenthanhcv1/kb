@@ -67,6 +67,49 @@
     },
     "title": "Truy cập"
   },
+  "approvals": {
+    "approve": {
+      "confirm": "Duyệt",
+      "kind": {
+        "guest": "Khách",
+        "guestHint": "Chỉ thấy những Space được thêm vào.",
+        "internal": "Người dùng nội bộ",
+        "internalHint": "Thấy mọi Space nội bộ và có thể được thêm vào các Space khác."
+      },
+      "kindLabel": "Loại tài khoản",
+      "label": "Duyệt",
+      "open": "Duyệt {name}",
+      "title": "Duyệt {name}?"
+    },
+    "badge": "{count, plural, other {# tài khoản}} đang chờ",
+    "count": "{count, plural, other {# tài khoản}}",
+    "description": "Tài khoản mới chưa vào được cho đến khi bạn duyệt. Hãy chọn mỗi người là người dùng nội bộ hay khách.",
+    "done": {
+      "approve": "Đã duyệt {name}.",
+      "notNotified": "Không gửi được email thông báo.",
+      "reject": "Đã từ chối {name}."
+    },
+    "empty": "Không có tài khoản nào.",
+    "reasonLabel": "Lý do",
+    "reject": {
+      "confirm": "Từ chối",
+      "label": "Từ chối",
+      "open": "Từ chối {name}",
+      "reasonHint": "Người này bị đăng xuất và nhận email kèm lý do này.",
+      "reasonLabel": "Lý do (không bắt buộc)",
+      "reasonPlaceholder": "Vì sao tài khoản này chưa được duyệt?",
+      "title": "Từ chối {name}?"
+    },
+    "rejectedAt": "Từ chối {date, date, medium}",
+    "signedUpAt": "Đăng ký {date, date, medium}",
+    "status": {
+      "label": "Lọc theo trạng thái",
+      "pending": "Đang chờ",
+      "rejected": "Đã từ chối"
+    },
+    "title": "Chờ duyệt",
+    "working": "Đang lưu…"
+  },
   "forbidden": {
     "description": "Chỉ quản trị viên hệ thống mới mở được trang Quản trị.",
     "title": "Bạn không có quyền truy cập"

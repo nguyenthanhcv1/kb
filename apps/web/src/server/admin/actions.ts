@@ -1,30 +1,42 @@
 "use server";
 
+import { headers } from "next/headers";
+
+import { webEnv } from "@/lib/env";
 import { createClient } from "@/lib/supabase/server";
 
 import { sendMail } from "../mail";
-import { buildTestEmail } from "../mail/templates";
+import { buildAccountDecisionEmail, buildTestEmail } from "../mail/templates";
 
 import {
   AdminError,
   addAccessEntries as addAccessEntriesCore,
+  approveAccount as approveAccountCore,
   listAccessEntries as listAccessEntriesCore,
+  listPendingAccounts as listPendingAccountsCore,
   listUsers as listUsersCore,
   previewAccessRemoval as previewAccessRemovalCore,
+  rejectAccount as rejectAccountCore,
   removeAccessEntries as removeAccessEntriesCore,
   sendTestEmail as sendTestEmailCore,
   setUserDeactivated as setUserDeactivatedCore,
   setUserSuperAdmin as setUserSuperAdminCore,
   type AccessEntryIdsInput,
   type AccessImpact,
+  type AccountDecisionDeps,
+  type AccountDecisionOutput,
   type AddAccessEntriesInput,
   type AddAccessEntriesOutput,
+  type ApproveAccountInput,
   type AdminDb,
   type AdminErrorCode,
   type AdminUser,
   type ListAccessEntriesOutput,
+  type ListPendingAccountsInput,
+  type ListPendingAccountsOutput,
   type ListUsersInput,
   type ListUsersOutput,
+  type RejectAccountInput,
   type RemoveAccessEntriesOutput,
   type SendTestEmailInput,
   type SendTestEmailOutput,
@@ -102,4 +114,34 @@ export async function sendTestEmail(
   input: SendTestEmailInput = {},
 ): Promise<AdminActionResult<SendTestEmailOutput>> {
   return run((db) => sendTestEmailCore(db, input, { sendMail, buildTestEmail }));
+}
+
+export async function listPendingAccounts(
+  input?: ListPendingAccountsInput,
+): Promise<AdminActionResult<ListPendingAccountsOutput>> {
+  return run((db) => listPendingAccountsCore(db, input));
+}
+
+/** `APP_URL` (required when deployed), else the request origin (local dev). */
+async function accountDecisionDeps(): Promise<AccountDecisionDeps> {
+  let appUrl = webEnv().APP_URL;
+  if (!appUrl) {
+    const h = await headers();
+    const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3000";
+    const proto = h.get("x-forwarded-proto") ?? "http";
+    appUrl = h.get("origin") ?? `${proto}://${host}`;
+  }
+  return { sendMail, buildAccountDecisionEmail, appUrl };
+}
+
+export async function approveAccount(
+  input: ApproveAccountInput,
+): Promise<AdminActionResult<AccountDecisionOutput>> {
+  return run(async (db) => approveAccountCore(db, input, await accountDecisionDeps()));
+}
+
+export async function rejectAccount(
+  input: RejectAccountInput,
+): Promise<AdminActionResult<AccountDecisionOutput>> {
+  return run(async (db) => rejectAccountCore(db, input, await accountDecisionDeps()));
 }

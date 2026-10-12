@@ -466,6 +466,92 @@ export interface TestEmailDeps {
 }
 
 // ---------------------------------------------------------------------------------------------
+// Account approval
+// ---------------------------------------------------------------------------------------------
+
+export const ACCOUNT_REVIEW_STATUSES = ["pending", "rejected"] as const;
+export type AccountReviewStatus = (typeof ACCOUNT_REVIEW_STATUSES)[number];
+
+export const REJECT_REASON_MAX = 500;
+
+export const pendingAccountSchema = z.object({
+  id: z.guid(),
+  email: z.string(),
+  fullName: z.string().nullable(),
+  avatarUrl: z.string().nullable(),
+  status: z.enum(ACCOUNT_REVIEW_STATUSES),
+  /** Shown only for `rejected` accounts. */
+  rejectReason: z.string().nullable(),
+  /** ISO 8601 (UTC): when the account signed up. */
+  createdAt: z.string(),
+  /** ISO 8601 (UTC): when a super admin rejected it; `null` while pending. */
+  reviewedAt: z.string().nullable(),
+});
+export type PendingAccount = z.infer<typeof pendingAccountSchema>;
+
+export const listPendingAccountsInputSchema = z.object({
+  status: z.enum(ACCOUNT_REVIEW_STATUSES).default("pending"),
+  limit: z.number().int().min(1).max(200).default(50),
+  offset: z.number().int().min(0).default(0),
+});
+export type ListPendingAccountsInput = z.input<typeof listPendingAccountsInputSchema>;
+
+export const listPendingAccountsOutputSchema = z.object({
+  accounts: z.array(pendingAccountSchema),
+  /** Matching accounts ignoring limit/offset. */
+  total: z.number().int(),
+});
+export type ListPendingAccountsOutput = z.infer<typeof listPendingAccountsOutputSchema>;
+
+export const listPendingAccountsExample: ListPendingAccountsOutput = {
+  accounts: [
+    {
+      id: "5d2f0000-0000-4000-8000-000000000011",
+      email: "lan.nguyen@kas.example",
+      fullName: "Lan Nguyễn",
+      avatarUrl: null,
+      status: "pending",
+      rejectReason: null,
+      createdAt: "2026-10-12T02:15:00+00:00",
+      reviewedAt: null,
+    },
+  ],
+  total: 1,
+};
+
+export const approveAccountInputSchema = z.object({
+  userId: z.guid(),
+  /** The admin's choice: `false` = internal user (sees `internal` Spaces), `true` = guest. */
+  guest: z.boolean(),
+});
+export type ApproveAccountInput = z.input<typeof approveAccountInputSchema>;
+
+export const rejectAccountInputSchema = z.object({
+  userId: z.guid(),
+  reason: z.string().trim().max(REJECT_REASON_MAX).optional(),
+});
+export type RejectAccountInput = z.input<typeof rejectAccountInputSchema>;
+
+/** Outcome of approving / rejecting: `notified` = the decision email was sent. */
+export const accountDecisionOutputSchema = z.object({ notified: z.boolean() });
+export type AccountDecisionOutput = z.infer<typeof accountDecisionOutputSchema>;
+
+export type AccountDecision = "approved" | "rejected";
+
+/** What {@link approveAccount} / {@link rejectAccount} need besides the DB. */
+export interface AccountDecisionDeps {
+  sendMail: SendMail;
+  buildAccountDecisionEmail: (context: {
+    locale: "vi" | "en";
+    decision: AccountDecision;
+    reason?: string;
+    appUrl: string;
+  }) => Promise<Omit<MailMessage, "to">>;
+  /** Public origin of kb-web, for the sign-in link. */
+  appUrl: string;
+}
+
+// ---------------------------------------------------------------------------------------------
 // Database seam
 // ---------------------------------------------------------------------------------------------
 
@@ -848,6 +934,133 @@ export async function setUserSuperAdmin(
   });
   if (error) throw dbError(error);
   return fetchUser(db, caller, userId);
+}
+
+// ---------------------------------------------------------------------------------------------
+// Account approval (functions)
+// ---------------------------------------------------------------------------------------------
+
+const pendingRowSchema = z.object({
+  id: z.string(),
+  email: z.string(),
+  full_name: z.string().nullable(),
+  avatar_url: z.string().nullable(),
+  status: z.enum(ACCOUNT_REVIEW_STATUSES),
+  reject_reason: z.string().nullable(),
+  created_at: z.string(),
+  reviewed_at: z.string().nullable(),
+  total_count: z.number(),
+});
+
+const decisionRowSchema = z.object({ email: z.string(), locale: z.enum(["vi", "en"]) });
+
+/**
+ * Accounts waiting for review (`status: "pending"`, oldest first) or already rejected ones.
+ *
+ * @throws {AdminError} `VALIDATION_FAILED`, `FORBIDDEN`, `ADMIN_ACTION_FAILED`.
+ */
+export async function listPendingAccounts(
+  db: AdminDb,
+  input: ListPendingAccountsInput = {},
+): Promise<ListPendingAccountsOutput> {
+  const parsed = parseInput(listPendingAccountsInputSchema, input);
+  await requireSuperAdmin(db);
+  const { data, error } = await db.rpc("admin_list_pending_accounts", {
+    p_status: parsed.status,
+    p_limit: parsed.limit,
+    p_offset: parsed.offset,
+  });
+  if (error) throw dbError(error);
+  const rows = z.array(pendingRowSchema).parse(data ?? []);
+  return {
+    accounts: rows.map((row) => ({
+      id: row.id,
+      email: row.email,
+      fullName: row.full_name,
+      avatarUrl: row.avatar_url,
+      status: row.status,
+      rejectReason: row.reject_reason,
+      createdAt: row.created_at,
+      reviewedAt: row.reviewed_at,
+    })),
+    total: rows[0]?.total_count ?? 0,
+  };
+}
+
+/** Best effort: a mail problem never undoes the decision, the admin is only told it was not sent. */
+async function notifyDecision(
+  deps: AccountDecisionDeps,
+  row: z.infer<typeof decisionRowSchema>,
+  decision: AccountDecision,
+  reason?: string,
+): Promise<boolean> {
+  try {
+    const content = await deps.buildAccountDecisionEmail({
+      locale: row.locale,
+      decision,
+      reason,
+      appUrl: deps.appUrl,
+    });
+    await deps.sendMail({ to: row.email, ...content });
+    return true;
+  } catch (error) {
+    console.error("[admin] account decision email failed", error);
+    return false;
+  }
+}
+
+async function decideAccount(
+  db: AdminDb,
+  fn: "admin_approve_account" | "admin_reject_account",
+  args: Record<string, unknown>,
+): Promise<z.infer<typeof decisionRowSchema>> {
+  const { data, error } = await db.rpc(fn, args);
+  if (error) throw dbError(error);
+  const [row] = z.array(decisionRowSchema).parse(data ?? []);
+  if (!row) throw new AdminError("ADMIN_ACTION_FAILED");
+  return row;
+}
+
+/**
+ * Approves a pending (or rejected) account as an internal user (`guest: false`) or a guest and
+ * emails them. Audited as `user.approve`.
+ *
+ * @throws {AdminError} `VALIDATION_FAILED`, `FORBIDDEN`, `USER_NOT_FOUND`, `ACCOUNT_NOT_PENDING`
+ *   (already active), `ADMIN_ACTION_FAILED`.
+ */
+export async function approveAccount(
+  db: AdminDb,
+  input: ApproveAccountInput,
+  deps: AccountDecisionDeps,
+): Promise<AccountDecisionOutput> {
+  const { userId, guest } = parseInput(approveAccountInputSchema, input);
+  await requireSuperAdmin(db);
+  const row = await decideAccount(db, "admin_approve_account", {
+    p_user_id: userId,
+    p_is_guest: guest,
+  });
+  return { notified: await notifyDecision(deps, row, "approved") };
+}
+
+/**
+ * Rejects a pending account (the reason, if any, is stored and sent in the email). The person is
+ * signed out on their next request. Audited as `user.reject`.
+ *
+ * @throws {AdminError} `VALIDATION_FAILED`, `FORBIDDEN`, `USER_NOT_FOUND`, `ACCOUNT_NOT_PENDING`
+ *   (not pending), `ADMIN_ACTION_FAILED`.
+ */
+export async function rejectAccount(
+  db: AdminDb,
+  input: RejectAccountInput,
+  deps: AccountDecisionDeps,
+): Promise<AccountDecisionOutput> {
+  const { userId, reason } = parseInput(rejectAccountInputSchema, input);
+  await requireSuperAdmin(db);
+  const row = await decideAccount(db, "admin_reject_account", {
+    p_user_id: userId,
+    p_reason: reason || null,
+  });
+  return { notified: await notifyDecision(deps, row, "rejected", reason || undefined) };
 }
 
 // ---------------------------------------------------------------------------------------------

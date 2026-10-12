@@ -343,11 +343,12 @@ comment on function public.admin_list_pending_accounts(text, integer, integer) i
 -- Approve a pending (or rejected) account. `p_is_guest` is the admin's choice: an internal user
 -- sees `internal` Spaces, a guest only the Spaces they are added to.
 create or replace function public.admin_approve_account(p_user_id uuid, p_is_guest boolean)
-returns void
+returns table (email text, locale text)
 language plpgsql
 security definer
 set search_path = ''
 as $$
+#variable_conflict use_column
 declare
   v_profile public.profiles;
 begin
@@ -368,18 +369,22 @@ begin
       reviewed_at = now(),
       reject_reason = null
   where id = p_user_id;
+
+  return query select v_profile.email::text, v_profile.locale;
 end;
 $$;
 
 comment on function public.admin_approve_account(uuid, boolean) is
-  'Super admin only. pending/rejected -> active; the admin chooses internal (false) or guest (true).';
+  'Super admin only. pending/rejected -> active; the admin chooses internal (false) or guest (true). '
+  'Returns the account email and locale (for the notification email).';
 
 create or replace function public.admin_reject_account(p_user_id uuid, p_reason text default null)
-returns void
+returns table (email text, locale text)
 language plpgsql
 security definer
 set search_path = ''
 as $$
+#variable_conflict use_column
 declare
   v_profile public.profiles;
 begin
@@ -399,11 +404,13 @@ begin
       reviewed_at = now(),
       reject_reason = nullif(btrim(coalesce(p_reason, '')), '')
   where id = p_user_id;
+
+  return query select v_profile.email::text, v_profile.locale;
 end;
 $$;
 
 comment on function public.admin_reject_account(uuid, text) is
-  'Super admin only. pending -> rejected, with an optional reason shown to the user.';
+  'Super admin only. pending -> rejected, with an optional reason. Returns the account email and locale.';
 
 -- /admin/users: pending and rejected accounts show up with their status as the access reason.
 drop function public.admin_list_users(text, text, uuid, integer, integer);

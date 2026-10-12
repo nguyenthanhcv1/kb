@@ -67,6 +67,49 @@
     },
     "title": "Access"
   },
+  "approvals": {
+    "approve": {
+      "confirm": "Approve",
+      "kind": {
+        "guest": "Guest",
+        "guestHint": "Only sees the Spaces they are added to.",
+        "internal": "Internal user",
+        "internalHint": "Sees every internal Space and can be added to others."
+      },
+      "kindLabel": "Account type",
+      "label": "Approve",
+      "open": "Approve {name}",
+      "title": "Approve {name}?"
+    },
+    "badge": "{count, plural, one {# account} other {# accounts}} waiting",
+    "count": "{count, plural, one {# account} other {# accounts}}",
+    "description": "New accounts stay locked out until you approve them. Choose whether each one is an internal user or a guest.",
+    "done": {
+      "approve": "Approved {name}.",
+      "notNotified": "The email could not be sent.",
+      "reject": "Rejected {name}."
+    },
+    "empty": "No accounts here.",
+    "reasonLabel": "Reason",
+    "reject": {
+      "confirm": "Reject",
+      "label": "Reject",
+      "open": "Reject {name}",
+      "reasonHint": "The person is signed out and receives an email with this reason.",
+      "reasonLabel": "Reason (optional)",
+      "reasonPlaceholder": "Why is this account not approved?",
+      "title": "Reject {name}?"
+    },
+    "rejectedAt": "Rejected {date, date, medium}",
+    "signedUpAt": "Signed up {date, date, medium}",
+    "status": {
+      "label": "Filter by status",
+      "pending": "Waiting",
+      "rejected": "Rejected"
+    },
+    "title": "Approvals",
+    "working": "Saving…"
+  },
   "forbidden": {
     "description": "Only super admins can open the Administration pages.",
     "title": "You don't have access"

@@ -19,6 +19,7 @@ import {
   accessImpactExample,
   addAccessEntriesExample,
   listAccessEntriesExample,
+  listPendingAccountsExample,
   listUsersExample,
   type AdminUser,
 } from "@/server/admin";
@@ -30,6 +31,8 @@ vi.mock("next/navigation", () => ({
 }));
 
 const actions = vi.hoisted(() => ({
+  approveAccount: vi.fn(),
+  rejectAccount: vi.fn(),
   addAccessEntries: vi.fn(),
   previewAccessRemoval: vi.fn(),
   removeAccessEntries: vi.fn(),
@@ -44,6 +47,7 @@ const { AccessEntryList } = await import("./access-entry-list");
 const { AddAccessForm } = await import("./add-access-form");
 const { AdminNav } = await import("./admin-nav");
 const { TestEmailForm } = await import("./test-email-form");
+const { PendingAccountList } = await import("./pending-account-list");
 const { UserList } = await import("./user-list");
 const { UserMenu } = await import("@/components/layout/user-menu");
 
@@ -338,5 +342,73 @@ describe("UserMenu admin entry", () => {
     await user.click(screen.getByRole("button", { name: "Mở menu tài khoản" }));
     await screen.findByRole("menu");
     expect(screen.queryByRole("menuitem", { name: "Quản trị" })).toBeNull();
+  });
+});
+
+describe("PendingAccountList", () => {
+  const [lan] = listPendingAccountsExample.accounts as [
+    (typeof listPendingAccountsExample.accounts)[number],
+  ];
+
+  it("shows an empty state", () => {
+    renderWith(<PendingAccountList accounts={[]} />);
+    expect(screen.getByText("Không có tài khoản nào.")).toBeTruthy();
+  });
+
+  it("requires choosing internal or guest before approving", async () => {
+    const user = userEvent.setup();
+    actions.approveAccount.mockResolvedValue({ ok: true, data: { notified: true } });
+    renderWith(<PendingAccountList accounts={[lan]} />);
+
+    await user.click(screen.getByRole("button", { name: "Duyệt Lan Nguyễn" }));
+    const dialog = await screen.findByRole("dialog", { name: "Duyệt Lan Nguyễn?" });
+    const confirm = within(dialog).getByRole("button", { name: "Duyệt" });
+    expect((confirm as HTMLButtonElement).disabled).toBe(true);
+
+    await user.click(within(dialog).getByRole("radio", { name: /Khách/ }));
+    expect((confirm as HTMLButtonElement).disabled).toBe(false);
+    await user.click(confirm);
+
+    expect(actions.approveAccount).toHaveBeenCalledWith({ userId: lan.id, guest: true });
+    expect(await screen.findByText("Đã duyệt Lan Nguyễn.")).toBeTruthy();
+    expect(router.refresh).toHaveBeenCalled();
+  });
+
+  it("rejects with an optional reason and shows translated errors", async () => {
+    const user = userEvent.setup();
+    actions.rejectAccount.mockResolvedValueOnce({ ok: false, error: "ACCOUNT_NOT_PENDING" });
+    renderWith(<PendingAccountList accounts={[lan]} />);
+
+    await user.click(screen.getByRole("button", { name: "Từ chối Lan Nguyễn" }));
+    const dialog = await screen.findByRole("dialog", { name: "Từ chối Lan Nguyễn?" });
+    await user.type(within(dialog).getByRole("textbox"), "  Không thuộc công ty ");
+    await user.click(within(dialog).getByRole("button", { name: "Từ chối" }));
+
+    expect(actions.rejectAccount).toHaveBeenCalledWith({
+      userId: lan.id,
+      reason: "Không thuộc công ty",
+    });
+    expect((await within(dialog).findByRole("alert")).textContent).toBe(
+      viErrors.ACCOUNT_NOT_PENDING,
+    );
+  });
+
+  it("offers only approval for a rejected account and shows its reason", () => {
+    renderWith(
+      <PendingAccountList
+        accounts={[
+          {
+            ...lan,
+            status: "rejected",
+            rejectReason: "Không thuộc công ty",
+            reviewedAt: "2026-10-13T00:00:00+00:00",
+          },
+        ]}
+      />,
+    );
+    expect(screen.getByText("Đã từ chối")).toBeTruthy();
+    expect(screen.getByText(/Không thuộc công ty/)).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Từ chối Lan Nguyễn" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Duyệt Lan Nguyễn" })).toBeTruthy();
   });
 });

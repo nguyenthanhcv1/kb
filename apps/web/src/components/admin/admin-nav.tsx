@@ -4,15 +4,17 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
 
+import { Badge } from "@/components/ui/badge";
 import { cn } from "@/components/ui/utils";
 
 /** Sections of `/admin` (super admins only). */
 export const ADMIN_SECTIONS = [
   { href: "/admin/access", label: "access.title" },
+  { href: "/admin/approvals", label: "approvals.title" },
   { href: "/admin/users", label: "users.title" },
 ] as const;
 
-export function AdminNav() {
+export function AdminNav({ pendingCount = 0 }: { pendingCount?: number }) {
   const t = useTranslations("admin");
   const pathname = usePathname();
 
@@ -32,6 +34,14 @@ export function AdminNav() {
                 )}
               >
                 {t(section.label)}
+                {section.href === "/admin/approvals" && pendingCount > 0 && (
+                  <Badge
+                    className="ml-1.5 h-5 min-w-5 px-1.5"
+                    aria-label={t("approvals.badge", { count: pendingCount })}
+                  >
+                    {pendingCount}
+                  </Badge>
+                )}
               </Link>
             </li>
           );
