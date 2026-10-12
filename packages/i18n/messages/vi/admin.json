@@ -78,10 +78,13 @@
   "users": {
     "access": {
       "allowlist": "Trong danh sách cho phép",
+      "approved": "Đã được quản trị viên duyệt",
       "deactivated": "Đã khoá",
       "invitation": "Đang có lời mời vào Space",
       "membership": "Chỉ qua thành viên Space",
       "none": "Không còn quyền truy cập",
+      "pending": "Đang chờ duyệt",
+      "rejected": "Đã bị từ chối",
       "super_admin": "Quản trị viên hệ thống"
     },
     "actions": {

@@ -11,6 +11,9 @@ import { updateSession } from "./lib/supabase/middleware";
 /** Screens a signed-out visitor may reach without a session. */
 const PUBLIC_PATHS = ["/login", "/access-denied", "/auth/callback"];
 
+/** The only screen a signed-in account that still waits for approval may see. */
+const PENDING_PATH = "/pending";
+
 /**
  * Need a session, but not `app.has_active_access`: a guest signs up through a pending invitation
  * and only gets a membership once they accept it on `/invite/<token>` (T1.5a). Signed-out
@@ -55,13 +58,28 @@ async function gate(request: NextRequest): Promise<NextResponse> {
   });
 
   const { pathname, search } = request.nextUrl;
-  const { response, user, accessRevoked } = await updateSession(request, {
-    checkAccess: !isPublicPath(pathname, SESSION_ONLY_PATHS),
-  });
+  const { response, user, accessRevoked, accountPending, accountRejected } = await updateSession(
+    request,
+    {
+      checkAccess: !isPublicPath(pathname, SESSION_ONLY_PATHS),
+    },
+  );
+
+  if (accountPending && !isPublicPath(pathname, [PENDING_PATH, "/auth/callback"])) {
+    return NextResponse.redirect(new URL(PENDING_PATH, publicOrigin(request.url)));
+  }
+  if (user && !accountPending && isPublicPath(pathname, [PENDING_PATH])) {
+    return NextResponse.redirect(new URL("/", publicOrigin(request.url)));
+  }
+  if (!user && isPublicPath(pathname, [PENDING_PATH])) {
+    return NextResponse.redirect(new URL("/login", publicOrigin(request.url)));
+  }
 
   if (!user && !isPublicPath(pathname, PUBLIC_PATHS)) {
     const loginUrl = new URL("/login", publicOrigin(request.url));
-    if (accessRevoked) {
+    if (accountRejected) {
+      loginUrl.searchParams.set("error", "AUTH_ACCOUNT_REJECTED");
+    } else if (accessRevoked) {
       loginUrl.searchParams.set("error", "AUTH_ACCESS_REVOKED");
     } else {
       loginUrl.searchParams.set("next", `${pathname}${search}`);

@@ -1,6 +1,7 @@
 {
   "ACCESS_CANNOT_REMOVE_SELF": "Bạn không thể gỡ email của chính mình khỏi danh sách cho phép.",
   "ACCESS_ENTRY_NOT_FOUND": "Không tìm thấy mục trong danh sách cho phép (có thể đã bị gỡ).",
+  "ACCOUNT_NOT_PENDING": "Tài khoản này không ở trạng thái chờ duyệt (có thể đã được xử lý).",
   "ADMIN_ACTION_FAILED": "Không thực hiện được thao tác quản trị. Vui lòng thử lại.",
   "ATTACHMENT_NOT_FOUND": "Không tìm thấy tệp hoặc bạn không có quyền xem.",
   "ATTACHMENT_TOO_LARGE": "Tệp quá lớn (tối đa 25 MB).",

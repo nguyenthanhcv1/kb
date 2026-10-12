@@ -10,6 +10,13 @@ export interface SessionResult {
   user: { id: string; email: string } | null;
   /** `user` is `null` because `app.has_active_access` just revoked an existing session. */
   accessRevoked: boolean;
+  /**
+   * The user is signed in but their account still waits for a super admin (`pending`): the session
+   * stays, but only the "waiting for approval" screen may be shown.
+   */
+  accountPending: boolean;
+  /** `user` is `null` because the account was rejected (the session was ended). */
+  accountRejected: boolean;
 }
 
 /**
@@ -43,15 +50,43 @@ export async function updateSession(
   } = await supabase.auth.getUser();
 
   if (!user || !user.email) {
-    return { response, user: null, accessRevoked: false };
+    return {
+      response,
+      user: null,
+      accessRevoked: false,
+      accountPending: false,
+      accountRejected: false,
+    };
   }
 
   if (options.checkAccess !== false && !(await hasActiveAccess(supabase))) {
+    const status = await accountStatus(supabase);
+    if (status === "pending") {
+      return {
+        response,
+        user: { id: user.id, email: user.email },
+        accessRevoked: false,
+        accountPending: true,
+        accountRejected: false,
+      };
+    }
     await supabase.auth.signOut();
-    return { response, user: null, accessRevoked: true };
+    return {
+      response,
+      user: null,
+      accessRevoked: status !== "rejected",
+      accountPending: false,
+      accountRejected: status === "rejected",
+    };
   }
 
-  return { response, user: { id: user.id, email: user.email }, accessRevoked: false };
+  return {
+    response,
+    user: { id: user.id, email: user.email },
+    accessRevoked: false,
+    accountPending: false,
+    accountRejected: false,
+  };
 }
 
 /**
@@ -70,4 +105,20 @@ async function hasActiveAccess(supabase: ReturnType<typeof createServerClient>):
     return true;
   }
   return data === true;
+}
+
+/**
+ * `pending` | `rejected` | `active` | `deactivated` for the caller (`public.account_status`), used
+ * only after `has_active_access` said no, to tell "waiting for approval" from "access removed".
+ * Anything unexpected (error, no profile) is treated as a revoked session, the previous behavior.
+ */
+async function accountStatus(
+  supabase: ReturnType<typeof createServerClient>,
+): Promise<string | null> {
+  const { data, error } = await supabase.rpc("account_status");
+  if (error) {
+    console.error("[auth] account_status check failed", error);
+    return null;
+  }
+  return typeof data === "string" ? data : null;
 }

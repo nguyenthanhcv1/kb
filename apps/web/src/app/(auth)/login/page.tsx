@@ -25,6 +25,7 @@ type LoginSearchParams = {
 /** Error codes the login page explains; anything else shows the generic message. */
 const LOGIN_ERRORS = [
   "AUTH_ACCESS_REVOKED",
+  "AUTH_ACCOUNT_REJECTED",
   "AUTH_CALLBACK_FAILED",
   "AUTH_SESSION_EXPIRED",
 ] as const;

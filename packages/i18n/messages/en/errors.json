@@ -1,6 +1,7 @@
 {
   "ACCESS_CANNOT_REMOVE_SELF": "You cannot remove your own email from the allowlist.",
   "ACCESS_ENTRY_NOT_FOUND": "Allowlist entry not found (it may have been removed already).",
+  "ACCOUNT_NOT_PENDING": "This account isn't waiting for approval (it may have been reviewed already).",
   "ADMIN_ACTION_FAILED": "The administration action failed. Please try again.",
   "ATTACHMENT_NOT_FOUND": "The file was not found or you don't have access to it.",
   "ATTACHMENT_TOO_LARGE": "The file is too large (maximum 25 MB).",

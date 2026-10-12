@@ -78,10 +78,13 @@
   "users": {
     "access": {
       "allowlist": "On the allowlist",
+      "approved": "Approved by an admin",
       "deactivated": "Deactivated",
       "invitation": "Pending Space invitation",
       "membership": "Space membership only",
       "none": "No access left",
+      "pending": "Waiting for approval",
+      "rejected": "Rejected",
       "super_admin": "Super admin"
     },
     "actions": {

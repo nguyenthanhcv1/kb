@@ -41,6 +41,7 @@ import type { MailMessage, SendMail } from "../mail";
  */
 
 export const ADMIN_ERROR_CODES = [
+  "ACCOUNT_NOT_PENDING",
   "ACCESS_CANNOT_REMOVE_SELF",
   "ACCESS_ENTRY_NOT_FOUND",
   "ADMIN_ACTION_FAILED",
@@ -348,10 +349,13 @@ export type RemoveAccessEntriesOutput = z.infer<typeof removeAccessEntriesOutput
  */
 export const USER_ACCESS_REASONS = [
   "allowlist",
+  "approved",
   "deactivated",
   "invitation",
   "membership",
   "none",
+  "pending",
+  "rejected",
   "super_admin",
 ] as const;
 export type UserAccessReason = (typeof USER_ACCESS_REASONS)[number];
