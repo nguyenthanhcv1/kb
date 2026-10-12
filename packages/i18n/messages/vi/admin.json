@@ -70,6 +70,9 @@
   "approvals": {
     "approve": {
       "confirm": "Duyệt",
+      "groupsHint": "Thành viên của nhóm có mọi quyền truy cập được cấp cho nhóm đó.",
+      "groupsLabel": "Vào nhóm (không bắt buộc)",
+      "groupsNone": "Chưa có nhóm nào.",
       "kind": {
         "guest": "Khách",
         "guestHint": "Chỉ thấy những Space được thêm vào.",
@@ -113,6 +116,60 @@
   "forbidden": {
     "description": "Chỉ quản trị viên hệ thống mới mở được trang Quản trị.",
     "title": "Bạn không có quyền truy cập"
+  },
+  "groups": {
+    "add": {
+      "addLabel": "Thêm {name} vào nhóm",
+      "description": "Tìm người dùng nội bộ theo tên hoặc email. Khách và tài khoản đang chờ duyệt không vào nhóm được.",
+      "noResults": "Không có ai khớp, hoặc họ đã ở trong nhóm.",
+      "results": "Kết quả tìm kiếm",
+      "searchLabel": "Tìm người",
+      "searchPlaceholder": "Tên hoặc email",
+      "searching": "Đang tìm…",
+      "submit": "Thêm",
+      "title": "Thêm thành viên"
+    },
+    "back": "Tất cả nhóm",
+    "count": "{count, plural, other {# nhóm}}",
+    "create": {
+      "created": "Đã tạo nhóm {name}.",
+      "descriptionLabel": "Mô tả (không bắt buộc)",
+      "label": "Nhóm mới",
+      "nameLabel": "Tên",
+      "namePlaceholder": "Ví dụ: KAS",
+      "submit": "Tạo nhóm",
+      "title": "Nhóm mới",
+      "working": "Đang lưu…"
+    },
+    "delete": {
+      "confirm": "Xoá nhóm",
+      "description": "{count, plural, =0 {Chưa có ai trong nhóm này.} other {# thành viên sẽ mất}} quyền truy cập mà nhóm này cấp. Mọi người vẫn giữ tài khoản và quyền được cấp trực tiếp.",
+      "label": "Xoá nhóm",
+      "title": "Xoá {name}?",
+      "working": "Đang xoá…"
+    },
+    "description": "Gom người dùng thành nhóm, ví dụ một team. Cấp quyền cho một nhóm vào Space là cấp cho mọi thành viên, và quyền đó đi theo khi thành viên vào hoặc rời nhóm.",
+    "edit": {
+      "descriptionLabel": "Mô tả (không bắt buộc)",
+      "nameLabel": "Tên",
+      "save": "Lưu thay đổi",
+      "saved": "Đã lưu.",
+      "title": "Thông tin",
+      "working": "Đang lưu…"
+    },
+    "empty": "Chưa có nhóm nào. Hãy tạo nhóm đầu tiên.",
+    "members": "{count, plural, other {# thành viên}}",
+    "membersSection": {
+      "added": "Đã thêm {name}.",
+      "addedAt": "Thêm {date, date, medium}",
+      "empty": "Nhóm này chưa có thành viên.",
+      "remove": "Gỡ",
+      "removeLabel": "Gỡ {name} khỏi nhóm",
+      "removed": "Đã gỡ {name}.",
+      "title": "Thành viên"
+    },
+    "open": "Mở {name}",
+    "title": "Nhóm"
   },
   "nav": {
     "label": "Mục quản trị"

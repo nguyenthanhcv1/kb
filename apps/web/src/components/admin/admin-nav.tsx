@@ -11,6 +11,7 @@ import { cn } from "@/components/ui/utils";
 export const ADMIN_SECTIONS = [
   { href: "/admin/access", label: "access.title" },
   { href: "/admin/approvals", label: "approvals.title" },
+  { href: "/admin/groups", label: "groups.title" },
   { href: "/admin/users", label: "users.title" },
 ] as const;
 

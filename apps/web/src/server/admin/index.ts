@@ -46,6 +46,9 @@ export const ADMIN_ERROR_CODES = [
   "ACCESS_ENTRY_NOT_FOUND",
   "ADMIN_ACTION_FAILED",
   "FORBIDDEN",
+  "GROUP_MEMBER_NOT_INTERNAL",
+  "GROUP_NAME_TAKEN",
+  "GROUP_NOT_FOUND",
   "LAST_SUPER_ADMIN",
   "MAIL_NOT_CONFIGURED",
   "MAIL_SEND_FAILED",
@@ -523,6 +526,8 @@ export const approveAccountInputSchema = z.object({
   userId: z.guid(),
   /** The admin's choice: `false` = internal user (sees `internal` Spaces), `true` = guest. */
   guest: z.boolean(),
+  /** Groups an internal user joins on approval (a guest cannot join groups). */
+  groupIds: z.array(z.guid()).max(50).default([]),
 });
 export type ApproveAccountInput = z.input<typeof approveAccountInputSchema>;
 
@@ -588,7 +593,7 @@ export interface AdminDb {
 
 const DB_CODES = new Set<string>(ADMIN_ERROR_CODES);
 
-function dbError(error: DbError | null | undefined): AdminError {
+export function dbError(error: DbError | null | undefined): AdminError {
   const message = error?.message ?? "";
   if (DB_CODES.has(message)) return new AdminError(message as AdminErrorCode, { cause: error });
   if (error?.code === "42501") return new AdminError("FORBIDDEN", { cause: error });
@@ -597,13 +602,13 @@ function dbError(error: DbError | null | undefined): AdminError {
   return new AdminError("ADMIN_ACTION_FAILED", { cause: error });
 }
 
-function parseInput<T extends z.ZodType>(schema: T, input: unknown): z.output<T> {
+export function parseInput<T extends z.ZodType>(schema: T, input: unknown): z.output<T> {
   const parsed = schema.safeParse(input);
   if (!parsed.success) throw new AdminError("VALIDATION_FAILED", { cause: parsed.error });
   return parsed.data;
 }
 
-interface Caller {
+export interface Caller {
   id: string;
   email: string;
   locale: "vi" | "en";
@@ -618,7 +623,7 @@ const callerProfileSchema = z.object({
 });
 
 /** Signed-in, active super admin — else `FORBIDDEN` (the DB re-checks on every call anyway). */
-async function requireSuperAdmin(db: AdminDb): Promise<Caller> {
+export async function requireSuperAdmin(db: AdminDb): Promise<Caller> {
   const {
     data: { user },
   } = await db.auth.getUser();
@@ -1026,18 +1031,20 @@ async function decideAccount(
  * emails them. Audited as `user.approve`.
  *
  * @throws {AdminError} `VALIDATION_FAILED`, `FORBIDDEN`, `USER_NOT_FOUND`, `ACCOUNT_NOT_PENDING`
- *   (already active), `ADMIN_ACTION_FAILED`.
+ *   (already active), `GROUP_NOT_FOUND`, `GROUP_MEMBER_NOT_INTERNAL` (groups for a guest),
+ *   `ADMIN_ACTION_FAILED`.
  */
 export async function approveAccount(
   db: AdminDb,
   input: ApproveAccountInput,
   deps: AccountDecisionDeps,
 ): Promise<AccountDecisionOutput> {
-  const { userId, guest } = parseInput(approveAccountInputSchema, input);
+  const { userId, guest, groupIds } = parseInput(approveAccountInputSchema, input);
   await requireSuperAdmin(db);
   const row = await decideAccount(db, "admin_approve_account", {
     p_user_id: userId,
     p_is_guest: guest,
+    p_group_ids: groupIds,
   });
   return { notified: await notifyDecision(deps, row, "approved") };
 }

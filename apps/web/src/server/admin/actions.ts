@@ -43,6 +43,28 @@ import {
   type SetUserDeactivatedInput,
   type SetUserSuperAdminInput,
 } from "./index";
+import {
+  addGroupMembers as addGroupMembersCore,
+  createGroup as createGroupCore,
+  deleteGroup as deleteGroupCore,
+  getGroup as getGroupCore,
+  listGroups as listGroupsCore,
+  removeGroupMember as removeGroupMemberCore,
+  searchGroupCandidates as searchGroupCandidatesCore,
+  updateGroup as updateGroupCore,
+  type AddGroupMembersInput,
+  type AddGroupMembersOutput,
+  type CreateGroupInput,
+  type CreateGroupOutput,
+  type DeleteGroupOutput,
+  type GetGroupOutput,
+  type GroupIdInput,
+  type ListGroupsOutput,
+  type RemoveGroupMemberInput,
+  type SearchGroupCandidatesInput,
+  type SearchGroupCandidatesOutput,
+  type UpdateGroupInput,
+} from "./groups";
 
 /**
  * Server Actions of the T1.7a access administration contract (`./index.ts`) for `/admin/access`
@@ -144,4 +166,52 @@ export async function rejectAccount(
   input: RejectAccountInput,
 ): Promise<AdminActionResult<AccountDecisionOutput>> {
   return run(async (db) => rejectAccountCore(db, input, await accountDecisionDeps()));
+}
+
+export async function listGroups(): Promise<AdminActionResult<ListGroupsOutput>> {
+  return run((db) => listGroupsCore(db));
+}
+
+export async function getGroup(input: GroupIdInput): Promise<AdminActionResult<GetGroupOutput>> {
+  return run((db) => getGroupCore(db, input));
+}
+
+export async function createGroup(
+  input: CreateGroupInput,
+): Promise<AdminActionResult<CreateGroupOutput>> {
+  return run((db) => createGroupCore(db, input));
+}
+
+export async function updateGroup(input: UpdateGroupInput): Promise<AdminActionResult<null>> {
+  return run(async (db) => {
+    await updateGroupCore(db, input);
+    return null;
+  });
+}
+
+export async function deleteGroup(
+  input: GroupIdInput,
+): Promise<AdminActionResult<DeleteGroupOutput>> {
+  return run((db) => deleteGroupCore(db, input));
+}
+
+export async function addGroupMembers(
+  input: AddGroupMembersInput,
+): Promise<AdminActionResult<AddGroupMembersOutput>> {
+  return run((db) => addGroupMembersCore(db, input));
+}
+
+export async function removeGroupMember(
+  input: RemoveGroupMemberInput,
+): Promise<AdminActionResult<null>> {
+  return run(async (db) => {
+    await removeGroupMemberCore(db, input);
+    return null;
+  });
+}
+
+export async function searchGroupCandidates(
+  input: SearchGroupCandidatesInput,
+): Promise<AdminActionResult<SearchGroupCandidatesOutput>> {
+  return run((db) => searchGroupCandidatesCore(db, input));
 }

@@ -9,7 +9,7 @@ import {
   parseApprovalsSearchParams,
 } from "@/components/admin/approvals-query";
 import { PendingAccountList } from "@/components/admin/pending-account-list";
-import { listPendingAccounts } from "@/server/admin/actions";
+import { listGroups, listPendingAccounts } from "@/server/admin/actions";
 
 import { requireUser } from "../../_lib/data";
 
@@ -28,13 +28,14 @@ export default async function AdminApprovalsPage({ searchParams }: Props) {
   // The layout renders the "no access" state.
   if (!user.isSuperAdmin) return null;
   const query = parseApprovalsSearchParams(await searchParams);
-  const [t, result] = await Promise.all([
+  const [t, result, groupsResult] = await Promise.all([
     getTranslations("admin"),
     listPendingAccounts({
       status: query.status,
       limit: APPROVALS_PAGE_SIZE,
       offset: query.offset,
     }),
+    listGroups(),
   ]);
   if (!result.ok) {
     if (result.error === "FORBIDDEN") return <AdminForbidden />;
@@ -47,7 +48,10 @@ export default async function AdminApprovalsPage({ searchParams }: Props) {
       <p className="text-muted-foreground">{t("approvals.description")}</p>
       <ApprovalFilters query={query} />
       <p className="text-sm text-muted-foreground">{t("approvals.count", { count: total })}</p>
-      <PendingAccountList accounts={accounts} />
+      <PendingAccountList
+        accounts={accounts}
+        groups={groupsResult.ok ? groupsResult.data.groups : []}
+      />
       <ApprovalPagination query={query} shown={accounts.length} total={total} />
     </div>
   );

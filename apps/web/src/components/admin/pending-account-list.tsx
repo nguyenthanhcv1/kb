@@ -9,6 +9,7 @@ import { initials } from "@/components/layout/user-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -21,6 +22,7 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Textarea } from "@/components/ui/textarea";
 import { REJECT_REASON_MAX, type PendingAccount } from "@/server/admin";
+import type { Group } from "@/server/admin/groups";
 import { approveAccount, rejectAccount } from "@/server/admin/actions";
 
 import { adminErrorKey } from "./errors";
@@ -33,7 +35,14 @@ type Kind = "internal" | "guest";
  * internal user or guest — no default, it decides which Spaces they see) and "Reject" (optional
  * reason, emailed to the person). A rejected account can still be approved later.
  */
-export function PendingAccountList({ accounts }: { accounts: PendingAccount[] }) {
+export function PendingAccountList({
+  accounts,
+  groups = [],
+}: {
+  accounts: PendingAccount[];
+  /** Groups an approved internal user can join right away. */
+  groups?: Group[];
+}) {
   const t = useTranslations("admin.approvals");
   const tc = useTranslations();
   const router = useRouter();
@@ -41,6 +50,7 @@ export function PendingAccountList({ accounts }: { accounts: PendingAccount[] })
   const [review, setReview] = useState<Review | null>(null);
   const [kind, setKind] = useState<Kind | "">("");
   const [reason, setReason] = useState("");
+  const [groupIds, setGroupIds] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -51,6 +61,7 @@ export function PendingAccountList({ accounts }: { accounts: PendingAccount[] })
     setError(null);
     setKind("");
     setReason("");
+    setGroupIds([]);
     setReview(next);
   }
 
@@ -62,7 +73,11 @@ export function PendingAccountList({ accounts }: { accounts: PendingAccount[] })
     startTransition(async () => {
       const result =
         action === "approve"
-          ? await approveAccount({ userId: account.id, guest: kind === "guest" })
+          ? await approveAccount({
+              userId: account.id,
+              guest: kind === "guest",
+              groupIds: kind === "guest" ? [] : groupIds,
+            })
           : await rejectAccount({ userId: account.id, reason: reason.trim() || undefined });
       if (!result.ok) {
         setError(tc(adminErrorKey(result.error)));
@@ -189,6 +204,42 @@ export function PendingAccountList({ accounts }: { accounts: PendingAccount[] })
                     </div>
                   ))}
                 </RadioGroup>
+                {kind === "internal" && (
+                  <div className="grid gap-2 border-t pt-3">
+                    <p className="text-sm font-medium">{t("approve.groupsLabel")}</p>
+                    {groups.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">{t("approve.groupsNone")}</p>
+                    ) : (
+                      <>
+                        <p className="text-xs text-muted-foreground">{t("approve.groupsHint")}</p>
+                        <ul className="grid max-h-48 gap-2 overflow-y-auto">
+                          {groups.map((group) => (
+                            <li key={group.id} className="flex items-center gap-2">
+                              <Checkbox
+                                id={`${id}-group-${group.id}`}
+                                checked={groupIds.includes(group.id)}
+                                disabled={pending}
+                                onCheckedChange={(checked) =>
+                                  setGroupIds((current) =>
+                                    checked === true
+                                      ? [...current, group.id]
+                                      : current.filter((value) => value !== group.id),
+                                  )
+                                }
+                              />
+                              <Label
+                                htmlFor={`${id}-group-${group.id}`}
+                                className="font-normal break-words"
+                              >
+                                {group.name}
+                              </Label>
+                            </li>
+                          ))}
+                        </ul>
+                      </>
+                    )}
+                  </div>
+                )}
               </fieldset>
             ) : (
               <div className="grid gap-2">

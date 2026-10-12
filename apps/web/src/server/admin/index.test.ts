@@ -629,7 +629,10 @@ describe("account approval", () => {
       notified: true,
     });
     expect(db.calls).toEqual([
-      { op: "rpc:admin_approve_account", args: { p_user_id: PENDING, p_is_guest: true } },
+      {
+        op: "rpc:admin_approve_account",
+        args: { p_user_id: PENDING, p_is_guest: true, p_group_ids: [] },
+      },
     ]);
     expect(d.buildAccountDecisionEmail).toHaveBeenCalledWith({
       locale: "vi",
