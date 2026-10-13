@@ -1,36 +1,70 @@
 "use server";
 
+import { headers } from "next/headers";
+
+import { webEnv } from "@/lib/env";
 import { createClient } from "@/lib/supabase/server";
 
 import { sendMail } from "../mail";
-import { buildTestEmail } from "../mail/templates";
+import { buildAccountDecisionEmail, buildTestEmail } from "../mail/templates";
 
 import {
   AdminError,
   addAccessEntries as addAccessEntriesCore,
+  approveAccount as approveAccountCore,
   listAccessEntries as listAccessEntriesCore,
+  listPendingAccounts as listPendingAccountsCore,
   listUsers as listUsersCore,
   previewAccessRemoval as previewAccessRemovalCore,
+  rejectAccount as rejectAccountCore,
   removeAccessEntries as removeAccessEntriesCore,
   sendTestEmail as sendTestEmailCore,
   setUserDeactivated as setUserDeactivatedCore,
   setUserSuperAdmin as setUserSuperAdminCore,
   type AccessEntryIdsInput,
   type AccessImpact,
+  type AccountDecisionDeps,
+  type AccountDecisionOutput,
   type AddAccessEntriesInput,
   type AddAccessEntriesOutput,
+  type ApproveAccountInput,
   type AdminDb,
   type AdminErrorCode,
   type AdminUser,
   type ListAccessEntriesOutput,
+  type ListPendingAccountsInput,
+  type ListPendingAccountsOutput,
   type ListUsersInput,
   type ListUsersOutput,
+  type RejectAccountInput,
   type RemoveAccessEntriesOutput,
   type SendTestEmailInput,
   type SendTestEmailOutput,
   type SetUserDeactivatedInput,
   type SetUserSuperAdminInput,
 } from "./index";
+import {
+  addGroupMembers as addGroupMembersCore,
+  createGroup as createGroupCore,
+  deleteGroup as deleteGroupCore,
+  getGroup as getGroupCore,
+  listGroups as listGroupsCore,
+  removeGroupMember as removeGroupMemberCore,
+  searchGroupCandidates as searchGroupCandidatesCore,
+  updateGroup as updateGroupCore,
+  type AddGroupMembersInput,
+  type AddGroupMembersOutput,
+  type CreateGroupInput,
+  type CreateGroupOutput,
+  type DeleteGroupOutput,
+  type GetGroupOutput,
+  type GroupIdInput,
+  type ListGroupsOutput,
+  type RemoveGroupMemberInput,
+  type SearchGroupCandidatesInput,
+  type SearchGroupCandidatesOutput,
+  type UpdateGroupInput,
+} from "./groups";
 
 /**
  * Server Actions of the T1.7a access administration contract (`./index.ts`) for `/admin/access`
@@ -102,4 +136,82 @@ export async function sendTestEmail(
   input: SendTestEmailInput = {},
 ): Promise<AdminActionResult<SendTestEmailOutput>> {
   return run((db) => sendTestEmailCore(db, input, { sendMail, buildTestEmail }));
+}
+
+export async function listPendingAccounts(
+  input?: ListPendingAccountsInput,
+): Promise<AdminActionResult<ListPendingAccountsOutput>> {
+  return run((db) => listPendingAccountsCore(db, input));
+}
+
+/** `APP_URL` (required when deployed), else the request origin (local dev). */
+async function accountDecisionDeps(): Promise<AccountDecisionDeps> {
+  let appUrl = webEnv().APP_URL;
+  if (!appUrl) {
+    const h = await headers();
+    const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3000";
+    const proto = h.get("x-forwarded-proto") ?? "http";
+    appUrl = h.get("origin") ?? `${proto}://${host}`;
+  }
+  return { sendMail, buildAccountDecisionEmail, appUrl };
+}
+
+export async function approveAccount(
+  input: ApproveAccountInput,
+): Promise<AdminActionResult<AccountDecisionOutput>> {
+  return run(async (db) => approveAccountCore(db, input, await accountDecisionDeps()));
+}
+
+export async function rejectAccount(
+  input: RejectAccountInput,
+): Promise<AdminActionResult<AccountDecisionOutput>> {
+  return run(async (db) => rejectAccountCore(db, input, await accountDecisionDeps()));
+}
+
+export async function listGroups(): Promise<AdminActionResult<ListGroupsOutput>> {
+  return run((db) => listGroupsCore(db));
+}
+
+export async function getGroup(input: GroupIdInput): Promise<AdminActionResult<GetGroupOutput>> {
+  return run((db) => getGroupCore(db, input));
+}
+
+export async function createGroup(
+  input: CreateGroupInput,
+): Promise<AdminActionResult<CreateGroupOutput>> {
+  return run((db) => createGroupCore(db, input));
+}
+
+export async function updateGroup(input: UpdateGroupInput): Promise<AdminActionResult<null>> {
+  return run(async (db) => {
+    await updateGroupCore(db, input);
+    return null;
+  });
+}
+
+export async function deleteGroup(
+  input: GroupIdInput,
+): Promise<AdminActionResult<DeleteGroupOutput>> {
+  return run((db) => deleteGroupCore(db, input));
+}
+
+export async function addGroupMembers(
+  input: AddGroupMembersInput,
+): Promise<AdminActionResult<AddGroupMembersOutput>> {
+  return run((db) => addGroupMembersCore(db, input));
+}
+
+export async function removeGroupMember(
+  input: RemoveGroupMemberInput,
+): Promise<AdminActionResult<null>> {
+  return run(async (db) => {
+    await removeGroupMemberCore(db, input);
+    return null;
+  });
+}
+
+export async function searchGroupCandidates(
+  input: SearchGroupCandidatesInput,
+): Promise<AdminActionResult<SearchGroupCandidatesOutput>> {
+  return run((db) => searchGroupCandidatesCore(db, input));
 }

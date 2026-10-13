@@ -3,15 +3,19 @@ import { describe, expect, it, vi } from "vitest";
 import {
   AdminError,
   addAccessEntries,
+  approveAccount,
   isPublicEmailDomain,
   listAccessEntries,
+  listPendingAccounts,
   listUsers,
   parseAccessEntries,
   previewAccessRemoval,
+  rejectAccount,
   removeAccessEntries,
   sendTestEmail,
   setUserDeactivated,
   setUserSuperAdmin,
+  type AccountDecisionDeps,
   type AdminDb,
   type AdminQuery,
 } from "./index";
@@ -550,5 +554,144 @@ describe("sendTestEmail", () => {
       "FORBIDDEN",
     );
     expect(sendMail).not.toHaveBeenCalled();
+  });
+});
+
+describe("account approval", () => {
+  const PENDING = "10000000-0000-4000-8000-000000000009";
+
+  function deps(overrides: Partial<AccountDecisionDeps> = {}): AccountDecisionDeps {
+    return {
+      sendMail: vi.fn(async () => {}),
+      buildAccountDecisionEmail: vi.fn(async () => ({ subject: "s", text: "t", html: "<p>t</p>" })),
+      appUrl: "https://kb.example",
+      ...overrides,
+    };
+  }
+
+  it("lists pending accounts with defaults", async () => {
+    const db = new FakeAdminDb(profiles);
+    db.rpcResults.admin_list_pending_accounts = {
+      data: [
+        {
+          id: PENDING,
+          email: "lan@kas.example",
+          full_name: null,
+          avatar_url: null,
+          status: "pending",
+          reject_reason: null,
+          created_at: "2026-10-12T02:00:00+00:00",
+          reviewed_at: null,
+          total_count: 3,
+        },
+      ],
+      error: null,
+    };
+    const result = await listPendingAccounts(db);
+    expect(result.total).toBe(3);
+    expect(result.accounts[0]).toMatchObject({
+      id: PENDING,
+      status: "pending",
+      rejectReason: null,
+    });
+    expect(db.calls).toEqual([
+      {
+        op: "rpc:admin_list_pending_accounts",
+        args: { p_status: "pending", p_limit: 50, p_offset: 0 },
+      },
+    ]);
+  });
+
+  it("is super admin only and validates input", async () => {
+    await expectCode(listPendingAccounts(new FakeAdminDb(profiles, OTHER)), "FORBIDDEN");
+    await expectCode(
+      approveAccount(new FakeAdminDb(profiles), { userId: "nope", guest: false }, deps()),
+      "VALIDATION_FAILED",
+    );
+    await expectCode(
+      rejectAccount(
+        new FakeAdminDb(profiles),
+        { userId: PENDING, reason: "x".repeat(501) },
+        deps(),
+      ),
+      "VALIDATION_FAILED",
+    );
+  });
+
+  it("approves as internal or guest and emails the person in their locale", async () => {
+    const db = new FakeAdminDb(profiles);
+    db.rpcResults.admin_approve_account = {
+      data: [{ email: "lan@kas.example", locale: "vi" }],
+      error: null,
+    };
+    const d = deps();
+    await expect(approveAccount(db, { userId: PENDING, guest: true }, d)).resolves.toEqual({
+      notified: true,
+    });
+    expect(db.calls).toEqual([
+      {
+        op: "rpc:admin_approve_account",
+        args: { p_user_id: PENDING, p_is_guest: true, p_group_ids: [] },
+      },
+    ]);
+    expect(d.buildAccountDecisionEmail).toHaveBeenCalledWith({
+      locale: "vi",
+      decision: "approved",
+      reason: undefined,
+      appUrl: "https://kb.example",
+    });
+    expect(d.sendMail).toHaveBeenCalledWith({
+      to: "lan@kas.example",
+      subject: "s",
+      text: "t",
+      html: "<p>t</p>",
+    });
+  });
+
+  it("rejects with a trimmed reason, or none", async () => {
+    const db = new FakeAdminDb(profiles);
+    db.rpcResults.admin_reject_account = {
+      data: [{ email: "lan@kas.example", locale: "en" }],
+      error: null,
+    };
+    const d = deps();
+    await rejectAccount(db, { userId: PENDING, reason: "  Not ours  " }, d);
+    await rejectAccount(db, { userId: PENDING }, d);
+    expect(db.calls).toEqual([
+      { op: "rpc:admin_reject_account", args: { p_user_id: PENDING, p_reason: "Not ours" } },
+      { op: "rpc:admin_reject_account", args: { p_user_id: PENDING, p_reason: null } },
+    ]);
+    expect(d.buildAccountDecisionEmail).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({ decision: "rejected", reason: "Not ours" }),
+    );
+  });
+
+  it("keeps the decision when the email cannot be sent, and says so", async () => {
+    const db = new FakeAdminDb(profiles);
+    db.rpcResults.admin_approve_account = {
+      data: [{ email: "lan@kas.example", locale: "en" }],
+      error: null,
+    };
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const result = await approveAccount(
+      db,
+      { userId: PENDING, guest: false },
+      deps({ sendMail: vi.fn(async () => Promise.reject(new Error("smtp down"))) }),
+    );
+    spy.mockRestore();
+    expect(result).toEqual({ notified: false });
+  });
+
+  it("maps DB errors to codes", async () => {
+    const db = new FakeAdminDb(profiles);
+    db.rpcResults.admin_approve_account = {
+      data: null,
+      error: { code: "23514", message: "ACCOUNT_NOT_PENDING" },
+    };
+    await expectCode(
+      approveAccount(db, { userId: PENDING, guest: false }, deps()),
+      "ACCOUNT_NOT_PENDING",
+    );
   });
 });

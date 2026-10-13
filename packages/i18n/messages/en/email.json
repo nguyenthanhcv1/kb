@@ -1,4 +1,13 @@
 {
+  "accountApproved": {
+    "body": "Your {app} account has been approved. You can sign in with Google now:\n\n{url}",
+    "subject": "Your {app} account has been approved"
+  },
+  "accountRejected": {
+    "body": "Your request for a {app} account was not approved.\n\nIf you think this is a mistake, contact an administrator.",
+    "bodyWithReason": "Your request for a {app} account was not approved.\n\nReason: {reason}\n\nIf you think this is a mistake, contact an administrator.",
+    "subject": "Your {app} account request"
+  },
   "invitation": {
     "accept": "Accept invitation",
     "body": "{inviter} invited you to join the {space} space. Your access: {role}.",

@@ -19,9 +19,11 @@ import {
   accessImpactExample,
   addAccessEntriesExample,
   listAccessEntriesExample,
+  listPendingAccountsExample,
   listUsersExample,
   type AdminUser,
 } from "@/server/admin";
+import { listGroupsExample, type GroupMember } from "@/server/admin/groups";
 
 const router = { push: vi.fn(), replace: vi.fn(), refresh: vi.fn() };
 vi.mock("next/navigation", () => ({
@@ -30,6 +32,14 @@ vi.mock("next/navigation", () => ({
 }));
 
 const actions = vi.hoisted(() => ({
+  addGroupMembers: vi.fn(),
+  createGroup: vi.fn(),
+  deleteGroup: vi.fn(),
+  removeGroupMember: vi.fn(),
+  searchGroupCandidates: vi.fn(),
+  updateGroup: vi.fn(),
+  approveAccount: vi.fn(),
+  rejectAccount: vi.fn(),
   addAccessEntries: vi.fn(),
   previewAccessRemoval: vi.fn(),
   removeAccessEntries: vi.fn(),
@@ -44,6 +54,9 @@ const { AccessEntryList } = await import("./access-entry-list");
 const { AddAccessForm } = await import("./add-access-form");
 const { AdminNav } = await import("./admin-nav");
 const { TestEmailForm } = await import("./test-email-form");
+const { GroupDetail } = await import("./group-detail");
+const { GroupList } = await import("./group-list");
+const { PendingAccountList } = await import("./pending-account-list");
 const { UserList } = await import("./user-list");
 const { UserMenu } = await import("@/components/layout/user-menu");
 
@@ -338,5 +351,253 @@ describe("UserMenu admin entry", () => {
     await user.click(screen.getByRole("button", { name: "Mở menu tài khoản" }));
     await screen.findByRole("menu");
     expect(screen.queryByRole("menuitem", { name: "Quản trị" })).toBeNull();
+  });
+});
+
+describe("PendingAccountList", () => {
+  const [lan] = listPendingAccountsExample.accounts as [
+    (typeof listPendingAccountsExample.accounts)[number],
+  ];
+
+  it("shows an empty state", () => {
+    renderWith(<PendingAccountList accounts={[]} />);
+    expect(screen.getByText("Không có tài khoản nào.")).toBeTruthy();
+  });
+
+  it("requires choosing internal or guest before approving", async () => {
+    const user = userEvent.setup();
+    actions.approveAccount.mockResolvedValue({ ok: true, data: { notified: true } });
+    renderWith(<PendingAccountList accounts={[lan]} />);
+
+    await user.click(screen.getByRole("button", { name: "Duyệt Lan Nguyễn" }));
+    const dialog = await screen.findByRole("dialog", { name: "Duyệt Lan Nguyễn?" });
+    const confirm = within(dialog).getByRole("button", { name: "Duyệt" });
+    expect((confirm as HTMLButtonElement).disabled).toBe(true);
+
+    await user.click(within(dialog).getByRole("radio", { name: /Khách/ }));
+    expect((confirm as HTMLButtonElement).disabled).toBe(false);
+    await user.click(confirm);
+
+    expect(actions.approveAccount).toHaveBeenCalledWith({
+      userId: lan.id,
+      guest: true,
+      groupIds: [],
+    });
+    expect(await screen.findByText("Đã duyệt Lan Nguyễn.")).toBeTruthy();
+    expect(router.refresh).toHaveBeenCalled();
+  });
+
+  it("rejects with an optional reason and shows translated errors", async () => {
+    const user = userEvent.setup();
+    actions.rejectAccount.mockResolvedValueOnce({ ok: false, error: "ACCOUNT_NOT_PENDING" });
+    renderWith(<PendingAccountList accounts={[lan]} />);
+
+    await user.click(screen.getByRole("button", { name: "Từ chối Lan Nguyễn" }));
+    const dialog = await screen.findByRole("dialog", { name: "Từ chối Lan Nguyễn?" });
+    await user.type(within(dialog).getByRole("textbox"), "  Không thuộc công ty ");
+    await user.click(within(dialog).getByRole("button", { name: "Từ chối" }));
+
+    expect(actions.rejectAccount).toHaveBeenCalledWith({
+      userId: lan.id,
+      reason: "Không thuộc công ty",
+    });
+    expect((await within(dialog).findByRole("alert")).textContent).toBe(
+      viErrors.ACCOUNT_NOT_PENDING,
+    );
+  });
+
+  it("offers only approval for a rejected account and shows its reason", () => {
+    renderWith(
+      <PendingAccountList
+        accounts={[
+          {
+            ...lan,
+            status: "rejected",
+            rejectReason: "Không thuộc công ty",
+            reviewedAt: "2026-10-13T00:00:00+00:00",
+          },
+        ]}
+      />,
+    );
+    expect(screen.getByText("Đã từ chối")).toBeTruthy();
+    expect(screen.getByText(/Không thuộc công ty/)).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Từ chối Lan Nguyễn" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Duyệt Lan Nguyễn" })).toBeTruthy();
+  });
+});
+
+describe("PendingAccountList with groups", () => {
+  const [lan] = listPendingAccountsExample.accounts as [
+    (typeof listPendingAccountsExample.accounts)[number],
+  ];
+  const groups = listGroupsExample.groups;
+
+  it("lets the admin pick groups for an internal user, and sends none for a guest", async () => {
+    const user = userEvent.setup();
+    actions.approveAccount.mockResolvedValue({ ok: true, data: { notified: true } });
+    renderWith(<PendingAccountList accounts={[lan]} groups={groups} />);
+
+    await user.click(screen.getByRole("button", { name: "Duyệt Lan Nguyễn" }));
+    const dialog = await screen.findByRole("dialog", { name: "Duyệt Lan Nguyễn?" });
+    expect(within(dialog).queryByRole("checkbox")).toBeNull();
+
+    await user.click(within(dialog).getByRole("radio", { name: /Người dùng nội bộ/ }));
+    await user.click(within(dialog).getByRole("checkbox", { name: "KAS" }));
+    await user.click(within(dialog).getByRole("button", { name: "Duyệt" }));
+    expect(actions.approveAccount).toHaveBeenLastCalledWith({
+      userId: lan.id,
+      guest: false,
+      groupIds: [groups[0]!.id],
+    });
+  });
+
+  it("drops the selected groups when switching to guest", async () => {
+    const user = userEvent.setup();
+    actions.approveAccount.mockClear();
+    actions.approveAccount.mockResolvedValue({ ok: true, data: { notified: true } });
+    renderWith(<PendingAccountList accounts={[lan]} groups={groups} />);
+
+    await user.click(screen.getByRole("button", { name: "Duyệt Lan Nguyễn" }));
+    const dialog = await screen.findByRole("dialog", { name: "Duyệt Lan Nguyễn?" });
+    await user.click(within(dialog).getByRole("radio", { name: /Người dùng nội bộ/ }));
+    await user.click(within(dialog).getByRole("checkbox", { name: "KAS" }));
+    await user.click(within(dialog).getByRole("radio", { name: /Khách/ }));
+    await user.click(within(dialog).getByRole("button", { name: "Duyệt" }));
+    expect(actions.approveAccount).toHaveBeenCalledWith({
+      userId: lan.id,
+      guest: true,
+      groupIds: [],
+    });
+  });
+});
+
+describe("GroupList", () => {
+  const groups = listGroupsExample.groups;
+
+  it("shows groups with their member count, linking to each", () => {
+    renderWith(<GroupList groups={groups} />);
+    const link = screen.getByRole("link", { name: "Mở KAS" });
+    expect(link.getAttribute("href")).toBe(`/admin/groups/${groups[0]!.id}`);
+    expect(screen.getByText("12 thành viên")).toBeTruthy();
+  });
+
+  it("shows an empty state", () => {
+    renderWith(<GroupList groups={[]} />);
+    expect(screen.getByText("Chưa có nhóm nào. Hãy tạo nhóm đầu tiên.")).toBeTruthy();
+  });
+
+  it("creates a group, and shows a translated error when the name is taken", async () => {
+    const user = userEvent.setup();
+    actions.createGroup.mockResolvedValueOnce({ ok: false, error: "GROUP_NAME_TAKEN" });
+    actions.createGroup.mockResolvedValueOnce({ ok: true, data: { groupId: groups[0]!.id } });
+    renderWith(<GroupList groups={groups} />);
+
+    await user.click(screen.getByRole("button", { name: "Nhóm mới" }));
+    const dialog = await screen.findByRole("dialog", { name: "Nhóm mới" });
+    const create = within(dialog).getByRole("button", { name: "Tạo nhóm" });
+    expect((create as HTMLButtonElement).disabled).toBe(true);
+
+    await user.type(within(dialog).getByLabelText("Tên"), " KAS ");
+    await user.click(create);
+    expect((await within(dialog).findByRole("alert")).textContent).toBe(viErrors.GROUP_NAME_TAKEN);
+    expect(actions.createGroup).toHaveBeenLastCalledWith({ name: "KAS", description: undefined });
+
+    // The submit button shows "Saving…" until the failed request settles.
+    await user.click(await within(dialog).findByRole("button", { name: "Tạo nhóm" }));
+    expect(await screen.findByText("Đã tạo nhóm KAS.")).toBeTruthy();
+    expect(router.refresh).toHaveBeenCalled();
+  });
+});
+
+describe("GroupDetail", () => {
+  const [group] = listGroupsExample.groups as [(typeof listGroupsExample.groups)[number]];
+  const member: GroupMember = {
+    userId: "5d2f0000-0000-4000-8000-0000000000a1",
+    email: "an@corp.example",
+    fullName: "An Nguyễn",
+    avatarUrl: null,
+    addedAt: "2026-10-12T03:00:00+00:00",
+  };
+
+  it("saves edits only when something changed", async () => {
+    const user = userEvent.setup();
+    actions.updateGroup.mockResolvedValue({ ok: true, data: null });
+    renderWith(<GroupDetail group={group} members={[member]} />);
+
+    const save = screen.getByRole("button", { name: "Lưu thay đổi" });
+    expect((save as HTMLButtonElement).disabled).toBe(true);
+    const name = screen.getByLabelText("Tên");
+    await user.clear(name);
+    await user.type(name, "KAS team");
+    await user.click(save);
+
+    expect(actions.updateGroup).toHaveBeenCalledWith({
+      groupId: group.id,
+      name: "KAS team",
+      description: "Key account sales",
+    });
+    expect(await screen.findByText("Đã lưu.")).toBeTruthy();
+  });
+
+  it("removes a member", async () => {
+    const user = userEvent.setup();
+    actions.removeGroupMember.mockResolvedValue({ ok: true, data: null });
+    renderWith(<GroupDetail group={group} members={[member]} />);
+
+    await user.click(screen.getByRole("button", { name: "Gỡ An Nguyễn khỏi nhóm" }));
+    expect(actions.removeGroupMember).toHaveBeenCalledWith({
+      groupId: group.id,
+      userId: member.userId,
+    });
+    expect(await screen.findByText("Đã gỡ An Nguyễn.")).toBeTruthy();
+  });
+
+  it("searches people, adds one and removes them from the results", async () => {
+    const user = userEvent.setup();
+    actions.searchGroupCandidates.mockResolvedValue({
+      ok: true,
+      data: {
+        candidates: [
+          {
+            userId: "5d2f0000-0000-4000-8000-0000000000b1",
+            email: "binh@corp.example",
+            fullName: "Bình",
+            avatarUrl: null,
+          },
+        ],
+      },
+    });
+    actions.addGroupMembers.mockResolvedValue({ ok: true, data: { added: 1 } });
+    renderWith(<GroupDetail group={group} members={[]} />);
+
+    expect(screen.getByText("Nhóm này chưa có thành viên.")).toBeTruthy();
+    await user.type(screen.getByLabelText("Tìm người"), "binh");
+    const add = await screen.findByRole("button", { name: "Thêm Bình vào nhóm" });
+    expect(actions.searchGroupCandidates).toHaveBeenCalledWith({
+      groupId: group.id,
+      query: "binh",
+    });
+    await user.click(add);
+
+    expect(actions.addGroupMembers).toHaveBeenCalledWith({
+      groupId: group.id,
+      userIds: ["5d2f0000-0000-4000-8000-0000000000b1"],
+    });
+    expect(await screen.findByText("Đã thêm Bình.")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Thêm Bình vào nhóm" })).toBeNull();
+  });
+
+  it("deletes after confirmation and tells how many members lose access", async () => {
+    const user = userEvent.setup();
+    actions.deleteGroup.mockResolvedValue({ ok: true, data: { removedMembers: 1 } });
+    renderWith(<GroupDetail group={group} members={[member]} />);
+
+    await user.click(screen.getByRole("button", { name: "Xoá nhóm" }));
+    const dialog = await screen.findByRole("alertdialog", { name: "Xoá KAS?" });
+    expect(within(dialog).getByText(/1 thành viên sẽ mất/)).toBeTruthy();
+    await user.click(within(dialog).getByRole("button", { name: "Xoá nhóm" }));
+
+    expect(actions.deleteGroup).toHaveBeenCalledWith({ groupId: group.id });
+    await vi.waitFor(() => expect(router.push).toHaveBeenCalledWith("/admin/groups"));
   });
 });

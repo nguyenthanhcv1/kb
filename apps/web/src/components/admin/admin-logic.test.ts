@@ -129,3 +129,22 @@ describe("users search params", () => {
     );
   });
 });
+
+describe("approvals query", () => {
+  it("falls back to pending and offset 0, and leaves defaults out of the URL", async () => {
+    const { approvalsHref, parseApprovalsSearchParams } = await import("./approvals-query");
+    expect(parseApprovalsSearchParams({})).toEqual({ status: "pending", offset: 0 });
+    expect(parseApprovalsSearchParams({ status: "bogus", offset: "-3" })).toEqual({
+      status: "pending",
+      offset: 0,
+    });
+    expect(parseApprovalsSearchParams({ status: ["rejected"], offset: "50" })).toEqual({
+      status: "rejected",
+      offset: 50,
+    });
+    expect(approvalsHref({ status: "pending", offset: 0 })).toBe("/admin/approvals");
+    expect(approvalsHref({ status: "rejected", offset: 50 })).toBe(
+      "/admin/approvals?status=rejected&offset=50",
+    );
+  });
+});

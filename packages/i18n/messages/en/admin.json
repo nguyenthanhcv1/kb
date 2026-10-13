@@ -67,9 +67,109 @@
     },
     "title": "Access"
   },
+  "approvals": {
+    "approve": {
+      "confirm": "Approve",
+      "groupsHint": "Members of a group get every access granted to it.",
+      "groupsLabel": "Join groups (optional)",
+      "groupsNone": "No groups yet.",
+      "kind": {
+        "guest": "Guest",
+        "guestHint": "Only sees the Spaces they are added to.",
+        "internal": "Internal user",
+        "internalHint": "Sees every internal Space and can be added to others."
+      },
+      "kindLabel": "Account type",
+      "label": "Approve",
+      "open": "Approve {name}",
+      "title": "Approve {name}?"
+    },
+    "badge": "{count, plural, one {# account} other {# accounts}} waiting",
+    "count": "{count, plural, one {# account} other {# accounts}}",
+    "description": "New accounts stay locked out until you approve them. Choose whether each one is an internal user or a guest.",
+    "done": {
+      "approve": "Approved {name}.",
+      "notNotified": "The email could not be sent.",
+      "reject": "Rejected {name}."
+    },
+    "empty": "No accounts here.",
+    "reasonLabel": "Reason",
+    "reject": {
+      "confirm": "Reject",
+      "label": "Reject",
+      "open": "Reject {name}",
+      "reasonHint": "The person is signed out and receives an email with this reason.",
+      "reasonLabel": "Reason (optional)",
+      "reasonPlaceholder": "Why is this account not approved?",
+      "title": "Reject {name}?"
+    },
+    "rejectedAt": "Rejected {date, date, medium}",
+    "signedUpAt": "Signed up {date, date, medium}",
+    "status": {
+      "label": "Filter by status",
+      "pending": "Waiting",
+      "rejected": "Rejected"
+    },
+    "title": "Approvals",
+    "working": "Saving…"
+  },
   "forbidden": {
     "description": "Only super admins can open the Administration pages.",
     "title": "You don't have access"
+  },
+  "groups": {
+    "add": {
+      "addLabel": "Add {name} to the group",
+      "description": "Search internal users by name or email. Guests and accounts waiting for approval cannot join groups.",
+      "noResults": "Nobody matches, or they are already in the group.",
+      "results": "Search results",
+      "searchLabel": "Search people",
+      "searchPlaceholder": "Name or email",
+      "searching": "Searching…",
+      "submit": "Add",
+      "title": "Add members"
+    },
+    "back": "All groups",
+    "count": "{count, plural, one {# group} other {# groups}}",
+    "create": {
+      "created": "Created group {name}.",
+      "descriptionLabel": "Description (optional)",
+      "label": "New group",
+      "nameLabel": "Name",
+      "namePlaceholder": "e.g. KAS",
+      "submit": "Create group",
+      "title": "New group",
+      "working": "Saving…"
+    },
+    "delete": {
+      "confirm": "Delete group",
+      "description": "{count, plural, =0 {Nobody is in this group.} one {# member loses} other {# members lose}} the access this group grants. People keep their accounts and any access they were given directly.",
+      "label": "Delete group",
+      "title": "Delete {name}?",
+      "working": "Deleting…"
+    },
+    "description": "Put people into groups such as a team. Granting a group access to a Space gives every member that access, and it follows them as members join or leave.",
+    "edit": {
+      "descriptionLabel": "Description (optional)",
+      "nameLabel": "Name",
+      "save": "Save changes",
+      "saved": "Saved.",
+      "title": "Details",
+      "working": "Saving…"
+    },
+    "empty": "No groups yet. Create the first one.",
+    "members": "{count, plural, one {# member} other {# members}}",
+    "membersSection": {
+      "added": "Added {name}.",
+      "addedAt": "Added {date, date, medium}",
+      "empty": "This group has no members yet.",
+      "remove": "Remove",
+      "removeLabel": "Remove {name} from the group",
+      "removed": "Removed {name}.",
+      "title": "Members"
+    },
+    "open": "Open {name}",
+    "title": "Groups"
   },
   "nav": {
     "label": "Administration sections"
@@ -78,10 +178,13 @@
   "users": {
     "access": {
       "allowlist": "On the allowlist",
+      "approved": "Approved by an admin",
       "deactivated": "Deactivated",
       "invitation": "Pending Space invitation",
       "membership": "Space membership only",
       "none": "No access left",
+      "pending": "Waiting for approval",
+      "rejected": "Rejected",
       "super_admin": "Super admin"
     },
     "actions": {

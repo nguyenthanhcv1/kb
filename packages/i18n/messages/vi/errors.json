@@ -1,6 +1,7 @@
 {
   "ACCESS_CANNOT_REMOVE_SELF": "Bạn không thể gỡ email của chính mình khỏi danh sách cho phép.",
   "ACCESS_ENTRY_NOT_FOUND": "Không tìm thấy mục trong danh sách cho phép (có thể đã bị gỡ).",
+  "ACCOUNT_NOT_PENDING": "Tài khoản này không ở trạng thái chờ duyệt (có thể đã được xử lý).",
   "ADMIN_ACTION_FAILED": "Không thực hiện được thao tác quản trị. Vui lòng thử lại.",
   "ATTACHMENT_NOT_FOUND": "Không tìm thấy tệp hoặc bạn không có quyền xem.",
   "ATTACHMENT_TOO_LARGE": "Tệp quá lớn (tối đa 25 MB).",
@@ -10,6 +11,9 @@
   "AUDIT_QUERY_FAILED": "Không tải được nhật ký hoạt động. Vui lòng thử lại.",
   "CLIENT_OUTDATED": "Ứng dụng đã có phiên bản mới. Vui lòng tải lại trang.",
   "FORBIDDEN": "Bạn không có quyền thực hiện thao tác này.",
+  "GROUP_MEMBER_NOT_INTERNAL": "Chỉ người dùng nội bộ đang hoạt động mới vào nhóm được (không gồm khách hoặc tài khoản đang chờ duyệt).",
+  "GROUP_NAME_TAKEN": "Đã có nhóm trùng tên này.",
+  "GROUP_NOT_FOUND": "Không tìm thấy nhóm (có thể đã bị xoá).",
   "GUEST_CANNOT_BE_SPACE_ADMIN": "Khách không thể là quản trị viên của Space.",
   "INVITATION_ALREADY_PENDING": "Email này đã có lời mời đang chờ trong Space. Hãy gửi lại lời mời đó.",
   "INVITATION_ALREADY_USED": "Lời mời này đã được sử dụng.",

@@ -1,6 +1,7 @@
 {
   "ACCESS_CANNOT_REMOVE_SELF": "You cannot remove your own email from the allowlist.",
   "ACCESS_ENTRY_NOT_FOUND": "Allowlist entry not found (it may have been removed already).",
+  "ACCOUNT_NOT_PENDING": "This account isn't waiting for approval (it may have been reviewed already).",
   "ADMIN_ACTION_FAILED": "The administration action failed. Please try again.",
   "ATTACHMENT_NOT_FOUND": "The file was not found or you don't have access to it.",
   "ATTACHMENT_TOO_LARGE": "The file is too large (maximum 25 MB).",
@@ -10,6 +11,9 @@
   "AUDIT_QUERY_FAILED": "Could not load the activity log. Please try again.",
   "CLIENT_OUTDATED": "A new version of the app is available. Please reload the page.",
   "FORBIDDEN": "You do not have permission to do this.",
+  "GROUP_MEMBER_NOT_INTERNAL": "Only active internal users can be in a group (not guests or accounts waiting for approval).",
+  "GROUP_NAME_TAKEN": "A group with this name already exists.",
+  "GROUP_NOT_FOUND": "Group not found (it may have been deleted).",
   "GUEST_CANNOT_BE_SPACE_ADMIN": "Guests cannot be Space admins.",
   "INVITATION_ALREADY_PENDING": "This email already has a pending invitation to the Space. Resend that invitation instead.",
   "INVITATION_ALREADY_USED": "This invitation has already been used.",

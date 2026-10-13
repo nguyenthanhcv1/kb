@@ -26,10 +26,18 @@ export const AUDIT_ACTIONS = [
   "access.add",
   "access.remove",
   "access.update",
+  "group.create",
+  "group.delete",
+  "group.member_add",
+  "group.member_remove",
+  "group.update",
   "invitation.accept",
   "invitation.create",
   "invitation.revoke",
   "member.add",
+  "member.group_add",
+  "member.group_remove",
+  "member.group_role_change",
   "member.remove",
   "member.role_change",
   "page.create",
@@ -44,8 +52,10 @@ export const AUDIT_ACTIONS = [
   "space.create",
   "space.unarchive",
   "space.update",
+  "user.approve",
   "user.deactivate",
   "user.reactivate",
+  "user.reject",
   "user.super_admin_grant",
   "user.super_admin_revoke",
   "version.restore",
@@ -54,6 +64,7 @@ export type AuditAction = (typeof AUDIT_ACTIONS)[number];
 
 export const AUDIT_ENTITY_TYPES = [
   "access_entry",
+  "group",
   "invitation",
   "member",
   "page",
@@ -69,10 +80,18 @@ export const AUDIT_ACTION_ENTITY_TYPE: Record<AuditAction, AuditEntityType> = {
   "access.add": "access_entry",
   "access.remove": "access_entry",
   "access.update": "access_entry",
+  "group.create": "group",
+  "group.delete": "group",
+  "group.member_add": "group",
+  "group.member_remove": "group",
+  "group.update": "group",
   "invitation.accept": "invitation",
   "invitation.create": "invitation",
   "invitation.revoke": "invitation",
   "member.add": "member",
+  "member.group_add": "member",
+  "member.group_remove": "member",
+  "member.group_role_change": "member",
   "member.remove": "member",
   "member.role_change": "member",
   "page.create": "page",
@@ -87,8 +106,10 @@ export const AUDIT_ACTION_ENTITY_TYPE: Record<AuditAction, AuditEntityType> = {
   "space.create": "space",
   "space.unarchive": "space",
   "space.update": "space",
+  "user.approve": "user",
   "user.deactivate": "user",
   "user.reactivate": "user",
+  "user.reject": "user",
   "user.super_admin_grant": "user",
   "user.super_admin_revoke": "user",
   "version.restore": "version",
@@ -174,9 +195,13 @@ export const auditLogEntrySchema = z.object({
    * - `space.archive` / `space.unarchive`: `{ name }`
    * - `member.add`: `{ user_id, role }` · `member.role_change`: `{ user_id, from_role, to_role }`
    * - `member.remove`: `{ user_id, role, self }` (`self` = the member left by themselves)
+   * - `member.group_add` / `member.group_remove`: `{ group_id, name, role }` · `member.group_role_change`: `{ group_id, name, from_role, to_role }`
+   * - `group.delete` also has `space_count` (Spaces the group reached)
    * - `invitation.create`: `{ email, role, expires_at }` · `invitation.revoke`: `{ email, role }`
    * - `invitation.accept`: `{ email, role, user_id }`
    * - `access.add` / `access.remove`: `{ kind, value, note }` · `access.update`: `{ kind, value, changes }`
+   * - `group.create`: `{ name }` · `group.update`: `{ name, name?: {from,to}, description?: {from,to} }`
+   * - `group.delete`: `{ name, member_count }` · `group.member_add` / `group.member_remove`: `{ name, user_id, email }`
    */
   metadata: z.record(z.string(), z.unknown()),
   /** `null` for system writes without an actor (migrations, jobs that set no `app.actor_id`). */

@@ -67,9 +67,109 @@
     },
     "title": "Truy cập"
   },
+  "approvals": {
+    "approve": {
+      "confirm": "Duyệt",
+      "groupsHint": "Thành viên của nhóm có mọi quyền truy cập được cấp cho nhóm đó.",
+      "groupsLabel": "Vào nhóm (không bắt buộc)",
+      "groupsNone": "Chưa có nhóm nào.",
+      "kind": {
+        "guest": "Khách",
+        "guestHint": "Chỉ thấy những Space được thêm vào.",
+        "internal": "Người dùng nội bộ",
+        "internalHint": "Thấy mọi Space nội bộ và có thể được thêm vào các Space khác."
+      },
+      "kindLabel": "Loại tài khoản",
+      "label": "Duyệt",
+      "open": "Duyệt {name}",
+      "title": "Duyệt {name}?"
+    },
+    "badge": "{count, plural, other {# tài khoản}} đang chờ",
+    "count": "{count, plural, other {# tài khoản}}",
+    "description": "Tài khoản mới chưa vào được cho đến khi bạn duyệt. Hãy chọn mỗi người là người dùng nội bộ hay khách.",
+    "done": {
+      "approve": "Đã duyệt {name}.",
+      "notNotified": "Không gửi được email thông báo.",
+      "reject": "Đã từ chối {name}."
+    },
+    "empty": "Không có tài khoản nào.",
+    "reasonLabel": "Lý do",
+    "reject": {
+      "confirm": "Từ chối",
+      "label": "Từ chối",
+      "open": "Từ chối {name}",
+      "reasonHint": "Người này bị đăng xuất và nhận email kèm lý do này.",
+      "reasonLabel": "Lý do (không bắt buộc)",
+      "reasonPlaceholder": "Vì sao tài khoản này chưa được duyệt?",
+      "title": "Từ chối {name}?"
+    },
+    "rejectedAt": "Từ chối {date, date, medium}",
+    "signedUpAt": "Đăng ký {date, date, medium}",
+    "status": {
+      "label": "Lọc theo trạng thái",
+      "pending": "Đang chờ",
+      "rejected": "Đã từ chối"
+    },
+    "title": "Chờ duyệt",
+    "working": "Đang lưu…"
+  },
   "forbidden": {
     "description": "Chỉ quản trị viên hệ thống mới mở được trang Quản trị.",
     "title": "Bạn không có quyền truy cập"
+  },
+  "groups": {
+    "add": {
+      "addLabel": "Thêm {name} vào nhóm",
+      "description": "Tìm người dùng nội bộ theo tên hoặc email. Khách và tài khoản đang chờ duyệt không vào nhóm được.",
+      "noResults": "Không có ai khớp, hoặc họ đã ở trong nhóm.",
+      "results": "Kết quả tìm kiếm",
+      "searchLabel": "Tìm người",
+      "searchPlaceholder": "Tên hoặc email",
+      "searching": "Đang tìm…",
+      "submit": "Thêm",
+      "title": "Thêm thành viên"
+    },
+    "back": "Tất cả nhóm",
+    "count": "{count, plural, other {# nhóm}}",
+    "create": {
+      "created": "Đã tạo nhóm {name}.",
+      "descriptionLabel": "Mô tả (không bắt buộc)",
+      "label": "Nhóm mới",
+      "nameLabel": "Tên",
+      "namePlaceholder": "Ví dụ: KAS",
+      "submit": "Tạo nhóm",
+      "title": "Nhóm mới",
+      "working": "Đang lưu…"
+    },
+    "delete": {
+      "confirm": "Xoá nhóm",
+      "description": "{count, plural, =0 {Chưa có ai trong nhóm này.} other {# thành viên sẽ mất}} quyền truy cập mà nhóm này cấp. Mọi người vẫn giữ tài khoản và quyền được cấp trực tiếp.",
+      "label": "Xoá nhóm",
+      "title": "Xoá {name}?",
+      "working": "Đang xoá…"
+    },
+    "description": "Gom người dùng thành nhóm, ví dụ một team. Cấp quyền cho một nhóm vào Space là cấp cho mọi thành viên, và quyền đó đi theo khi thành viên vào hoặc rời nhóm.",
+    "edit": {
+      "descriptionLabel": "Mô tả (không bắt buộc)",
+      "nameLabel": "Tên",
+      "save": "Lưu thay đổi",
+      "saved": "Đã lưu.",
+      "title": "Thông tin",
+      "working": "Đang lưu…"
+    },
+    "empty": "Chưa có nhóm nào. Hãy tạo nhóm đầu tiên.",
+    "members": "{count, plural, other {# thành viên}}",
+    "membersSection": {
+      "added": "Đã thêm {name}.",
+      "addedAt": "Thêm {date, date, medium}",
+      "empty": "Nhóm này chưa có thành viên.",
+      "remove": "Gỡ",
+      "removeLabel": "Gỡ {name} khỏi nhóm",
+      "removed": "Đã gỡ {name}.",
+      "title": "Thành viên"
+    },
+    "open": "Mở {name}",
+    "title": "Nhóm"
   },
   "nav": {
     "label": "Mục quản trị"
@@ -78,10 +178,13 @@
   "users": {
     "access": {
       "allowlist": "Trong danh sách cho phép",
+      "approved": "Đã được quản trị viên duyệt",
       "deactivated": "Đã khoá",
       "invitation": "Đang có lời mời vào Space",
       "membership": "Chỉ qua thành viên Space",
       "none": "Không còn quyền truy cập",
+      "pending": "Đang chờ duyệt",
+      "rejected": "Đã bị từ chối",
       "super_admin": "Quản trị viên hệ thống"
     },
     "actions": {
