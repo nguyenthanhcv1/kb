@@ -502,7 +502,8 @@ describe("GroupList", () => {
     expect((await within(dialog).findByRole("alert")).textContent).toBe(viErrors.GROUP_NAME_TAKEN);
     expect(actions.createGroup).toHaveBeenLastCalledWith({ name: "KAS", description: undefined });
 
-    await user.click(within(dialog).getByRole("button", { name: "Tạo nhóm" }));
+    // The submit button shows "Saving…" until the failed request settles.
+    await user.click(await within(dialog).findByRole("button", { name: "Tạo nhóm" }));
     expect(await screen.findByText("Đã tạo nhóm KAS.")).toBeTruthy();
     expect(router.refresh).toHaveBeenCalled();
   });
