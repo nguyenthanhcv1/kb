@@ -4,11 +4,13 @@ import enAuth from "@kb/i18n/messages/en/auth.json";
 import enCommon from "@kb/i18n/messages/en/common.json";
 import enErrors from "@kb/i18n/messages/en/errors.json";
 import enNav from "@kb/i18n/messages/en/nav.json";
+import enSpace from "@kb/i18n/messages/en/space.json";
 import viAdmin from "@kb/i18n/messages/vi/admin.json";
 import viAuth from "@kb/i18n/messages/vi/auth.json";
 import viCommon from "@kb/i18n/messages/vi/common.json";
 import viErrors from "@kb/i18n/messages/vi/errors.json";
 import viNav from "@kb/i18n/messages/vi/nav.json";
+import viSpace from "@kb/i18n/messages/vi/space.json";
 import { cleanup, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { NextIntlClientProvider } from "next-intl";
@@ -23,7 +25,7 @@ import {
   listUsersExample,
   type AdminUser,
 } from "@/server/admin";
-import { listGroupsExample, type GroupMember } from "@/server/admin/groups";
+import { listGroupsExample, type GroupMember, type GroupSpace } from "@/server/admin/groups";
 
 const router = { push: vi.fn(), replace: vi.fn(), refresh: vi.fn() };
 vi.mock("next/navigation", () => ({
@@ -61,8 +63,22 @@ const { UserList } = await import("./user-list");
 const { UserMenu } = await import("@/components/layout/user-menu");
 
 const messages = {
-  vi: { admin: viAdmin, auth: viAuth, common: viCommon, errors: viErrors, nav: viNav },
-  en: { admin: enAdmin, auth: enAuth, common: enCommon, errors: enErrors, nav: enNav },
+  vi: {
+    admin: viAdmin,
+    auth: viAuth,
+    common: viCommon,
+    errors: viErrors,
+    nav: viNav,
+    space: viSpace,
+  },
+  en: {
+    admin: enAdmin,
+    auth: enAuth,
+    common: enCommon,
+    errors: enErrors,
+    nav: enNav,
+    space: enSpace,
+  },
 };
 
 function renderWith(ui: ReactNode, locale: "vi" | "en" = "vi") {
@@ -479,6 +495,7 @@ describe("GroupList", () => {
     const link = screen.getByRole("link", { name: "Mở KAS" });
     expect(link.getAttribute("href")).toBe(`/admin/groups/${groups[0]!.id}`);
     expect(screen.getByText("12 thành viên")).toBeTruthy();
+    expect(screen.getByText("3 Space")).toBeTruthy();
   });
 
   it("shows an empty state", () => {
@@ -518,11 +535,17 @@ describe("GroupDetail", () => {
     avatarUrl: null,
     addedAt: "2026-10-12T03:00:00+00:00",
   };
+  const space: GroupSpace = {
+    spaceId: "0b9a0000-0000-4000-8000-000000000001",
+    slug: "sales",
+    name: "Sales",
+    role: "editor",
+  };
 
   it("saves edits only when something changed", async () => {
     const user = userEvent.setup();
     actions.updateGroup.mockResolvedValue({ ok: true, data: null });
-    renderWith(<GroupDetail group={group} members={[member]} />);
+    renderWith(<GroupDetail group={group} members={[member]} spaces={[space]} />);
 
     const save = screen.getByRole("button", { name: "Lưu thay đổi" });
     expect((save as HTMLButtonElement).disabled).toBe(true);
@@ -542,7 +565,7 @@ describe("GroupDetail", () => {
   it("removes a member", async () => {
     const user = userEvent.setup();
     actions.removeGroupMember.mockResolvedValue({ ok: true, data: null });
-    renderWith(<GroupDetail group={group} members={[member]} />);
+    renderWith(<GroupDetail group={group} members={[member]} spaces={[space]} />);
 
     await user.click(screen.getByRole("button", { name: "Gỡ An Nguyễn khỏi nhóm" }));
     expect(actions.removeGroupMember).toHaveBeenCalledWith({
@@ -568,7 +591,7 @@ describe("GroupDetail", () => {
       },
     });
     actions.addGroupMembers.mockResolvedValue({ ok: true, data: { added: 1 } });
-    renderWith(<GroupDetail group={group} members={[]} />);
+    renderWith(<GroupDetail group={group} members={[]} spaces={[]} />);
 
     expect(screen.getByText("Nhóm này chưa có thành viên.")).toBeTruthy();
     await user.type(screen.getByLabelText("Tìm người"), "binh");
@@ -590,14 +613,28 @@ describe("GroupDetail", () => {
   it("deletes after confirmation and tells how many members lose access", async () => {
     const user = userEvent.setup();
     actions.deleteGroup.mockResolvedValue({ ok: true, data: { removedMembers: 1 } });
-    renderWith(<GroupDetail group={group} members={[member]} />);
+    renderWith(<GroupDetail group={group} members={[member]} spaces={[space]} />);
 
     await user.click(screen.getByRole("button", { name: "Xoá nhóm" }));
     const dialog = await screen.findByRole("alertdialog", { name: "Xoá KAS?" });
     expect(within(dialog).getByText(/1 thành viên sẽ mất/)).toBeTruthy();
+    expect(within(dialog).getByText("Quyền của nhóm sẽ bị gỡ khỏi 1 Space:")).toBeTruthy();
+    expect(within(dialog).getByText("Sales")).toBeTruthy();
     await user.click(within(dialog).getByRole("button", { name: "Xoá nhóm" }));
 
     expect(actions.deleteGroup).toHaveBeenCalledWith({ groupId: group.id });
     await vi.waitFor(() => expect(router.push).toHaveBeenCalledWith("/admin/groups"));
+  });
+
+  it("lists the Spaces the group reaches, linking to their members settings", () => {
+    renderWith(<GroupDetail group={group} members={[]} spaces={[space]} />);
+    const link = screen.getByRole("link", { name: "Mở phần thành viên của Sales" });
+    expect(link.getAttribute("href")).toBe("/s/sales/settings/members");
+    expect(link.textContent).toContain(viSpace.roles.editor);
+  });
+
+  it("says when the group reaches no Space", () => {
+    renderWith(<GroupDetail group={group} members={[]} spaces={[]} />, "en");
+    expect(screen.getByText(enAdmin.groups.spacesSection.empty)).toBeTruthy();
   });
 });

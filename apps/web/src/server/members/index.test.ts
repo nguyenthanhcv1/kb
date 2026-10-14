@@ -6,7 +6,9 @@ import {
   MemberError,
   acceptInvitation,
   addMember,
+  addSpaceGroup,
   changeMemberRole,
+  changeSpaceGroupRole,
   createInvitation,
   createInvitationInputSchema,
   generateInvitationToken,
@@ -16,9 +18,12 @@ import {
   leaveSpace,
   listInvitations,
   listMembers,
+  listSpaceGroups,
   removeMember,
+  removeSpaceGroup,
   resendInvitation,
   revokeInvitation,
+  searchGrantableGroups,
   searchMemberCandidates,
   toMemberError,
   type MemberErrorCode,
@@ -327,6 +332,146 @@ describe("changeMemberRole / removeMember", () => {
         : ok(call.target === "spaces" ? { id: SPACE } : { user_id: OTHER }),
     );
     await expectCode(removeMember(hidden, { spaceId: SPACE, userId: OTHER }), "FORBIDDEN");
+  });
+});
+
+describe("group access", () => {
+  const GROUP = "7a0f0000-0000-4000-8000-000000000001";
+  const groupRow = (overrides: Record<string, unknown> = {}) => ({
+    group_id: GROUP,
+    name: "KAS",
+    description: null,
+    role: "editor",
+    member_count: 3,
+    added_at: "2026-10-12T00:00:00+00:00",
+    ...overrides,
+  });
+
+  it("lists the groups of a visible Space", async () => {
+    const db = new ScriptedMembersDb((call) =>
+      call.target === "spaces" ? ok({ id: SPACE }) : ok([groupRow()]),
+    );
+    await expect(listSpaceGroups(db, { spaceId: SPACE })).resolves.toEqual({
+      groups: [
+        {
+          groupId: GROUP,
+          name: "KAS",
+          description: null,
+          role: "editor",
+          memberCount: 3,
+          addedAt: "2026-10-12T00:00:00+00:00",
+        },
+      ],
+    });
+    expect(db.callsTo("list_space_groups")[0]?.args).toEqual({ p_space_id: SPACE });
+
+    const hidden = new ScriptedMembersDb(() => ok(null));
+    await expectCode(listSpaceGroups(hidden, { spaceId: SPACE }), "SPACE_NOT_FOUND");
+    expect(hidden.callsTo("list_space_groups")).toHaveLength(0);
+  });
+
+  it("searches grantable groups, and passes FORBIDDEN through for non-admins", async () => {
+    const db = new ScriptedMembersDb(() =>
+      ok([{ group_id: GROUP, name: "Kế toán", description: "x", member_count: 4 }]),
+    );
+    await expect(
+      searchGrantableGroups(db, { spaceId: SPACE, query: "  ke toan " }),
+    ).resolves.toEqual({
+      groups: [{ groupId: GROUP, name: "Kế toán", description: "x", memberCount: 4 }],
+    });
+    expect(db.callsTo("search_grantable_groups")[0]?.args).toEqual({
+      p_space_id: SPACE,
+      p_query: "ke toan",
+      p_limit: 10,
+    });
+    await expectCode(
+      searchGrantableGroups(new ScriptedMembersDb(() => fail("42501", "FORBIDDEN")), {
+        spaceId: SPACE,
+        query: "x",
+      }),
+      "FORBIDDEN",
+    );
+  });
+
+  it("never grants a group the admin role", async () => {
+    const db = new ScriptedMembersDb(() => ok(null));
+    await expectCode(
+      addSpaceGroup(db, { spaceId: SPACE, groupId: GROUP, role: "admin" as "editor" }),
+      "VALIDATION_FAILED",
+    );
+    expect(db.calls).toHaveLength(0);
+  });
+
+  it("grants access and returns the grant", async () => {
+    const db = new ScriptedMembersDb((call) =>
+      call.action === "insert" ? ok({ group_id: GROUP }) : ok([groupRow({ role: "viewer" })]),
+    );
+    await expect(
+      addSpaceGroup(db, { spaceId: SPACE, groupId: GROUP, role: "viewer" }),
+    ).resolves.toMatchObject({ groupId: GROUP, role: "viewer" });
+    expect(db.callsTo("space_groups", "insert")[0]?.payload).toEqual({
+      space_id: SPACE,
+      group_id: GROUP,
+      role: "viewer",
+    });
+  });
+
+  it("maps insert failures", async () => {
+    const input = { spaceId: SPACE, groupId: GROUP, role: "viewer" } as const;
+    const failing = (error: ReturnType<typeof fail>, spaceVisible = true) =>
+      new ScriptedMembersDb((call) =>
+        call.target === "space_groups" ? error : ok(spaceVisible ? { id: SPACE } : null),
+      );
+    await expectCode(addSpaceGroup(failing(fail("23505")), input), "SPACE_GROUP_ALREADY_EXISTS");
+    await expectCode(addSpaceGroup(failing(fail("23503")), input), "GROUP_NOT_FOUND");
+    await expectCode(addSpaceGroup(failing(fail("42501")), input), "FORBIDDEN");
+    await expectCode(addSpaceGroup(failing(fail("42501"), false), input), "SPACE_NOT_FOUND");
+  });
+
+  it("changes the role, and diagnoses an update that matched nothing", async () => {
+    const input = { spaceId: SPACE, groupId: GROUP, role: "viewer" } as const;
+    const db = new ScriptedMembersDb((call) =>
+      call.action === "update" ? ok({ group_id: GROUP }) : ok([groupRow({ role: "viewer" })]),
+    );
+    await expect(changeSpaceGroupRole(db, input)).resolves.toMatchObject({ role: "viewer" });
+    expect(db.callsTo("space_groups", "update")[0]?.payload).toEqual({ role: "viewer" });
+
+    const scenario = (space: unknown, grant: unknown) => (call: RecordedCall) => {
+      if (call.action === "update") return ok(null);
+      if (call.target === "spaces") return ok(space);
+      return ok(grant);
+    };
+    await expectCode(
+      changeSpaceGroupRole(new ScriptedMembersDb(scenario(null, null)), input),
+      "SPACE_NOT_FOUND",
+    );
+    await expectCode(
+      changeSpaceGroupRole(new ScriptedMembersDb(scenario({ id: SPACE }, null)), input),
+      "SPACE_GROUP_NOT_FOUND",
+    );
+    await expectCode(
+      changeSpaceGroupRole(
+        new ScriptedMembersDb(scenario({ id: SPACE }, { group_id: GROUP })),
+        input,
+      ),
+      "FORBIDDEN",
+    );
+  });
+
+  it("removes access, and reports a grant that is already gone", async () => {
+    const removed = new ScriptedMembersDb(() => ok([{ group_id: GROUP }]));
+    await expect(
+      removeSpaceGroup(removed, { spaceId: SPACE, groupId: GROUP }),
+    ).resolves.toBeUndefined();
+    expect(filterValue(removed.callsTo("space_groups", "delete")[0]!, "group_id")).toBe(GROUP);
+
+    const gone = new ScriptedMembersDb((call) =>
+      call.action === "delete" ? ok([]) : ok(call.target === "spaces" ? { id: SPACE } : null),
+    );
+    await expectCode(
+      removeSpaceGroup(gone, { spaceId: SPACE, groupId: GROUP }),
+      "SPACE_GROUP_NOT_FOUND",
+    );
   });
 });
 

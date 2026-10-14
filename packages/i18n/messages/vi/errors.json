@@ -45,6 +45,8 @@
   "PROFILE_UPDATE_FAILED": "Không lưu được cài đặt cá nhân. Bạn thử lại nhé.",
   "RATE_LIMITED": "Bạn thao tác quá nhiều lần. Vui lòng đợi một lúc rồi thử lại.",
   "SEARCH_FAILED": "Không thể tìm kiếm. Vui lòng thử lại.",
+  "SPACE_GROUP_ALREADY_EXISTS": "Nhóm này đã có quyền truy cập Space.",
+  "SPACE_GROUP_NOT_FOUND": "Nhóm này không còn quyền truy cập Space (có thể đã bị gỡ).",
   "SPACE_NOT_FOUND": "Không gian này không tồn tại hoặc bạn không có quyền truy cập.",
   "SPACE_REQUIRES_ADMIN": "Không gian phải còn ít nhất một quản trị viên.",
   "SPACE_SLUG_TAKEN": "Đường dẫn này đã được không gian khác sử dụng.",

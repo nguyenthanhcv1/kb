@@ -145,6 +145,7 @@
       "confirm": "Delete group",
       "description": "{count, plural, =0 {Nobody is in this group.} one {# member loses} other {# members lose}} the access this group grants. People keep their accounts and any access they were given directly.",
       "label": "Delete group",
+      "spaces": "{count, plural, =0 {The group has no access to any Space.} one {The group's access is removed from # Space:} other {The group's access is removed from # Spaces:}}",
       "title": "Delete {name}?",
       "working": "Deleting…"
     },
@@ -169,6 +170,13 @@
       "title": "Members"
     },
     "open": "Open {name}",
+    "spaces": "{count, plural, one {# Space} other {# Spaces}}",
+    "spacesSection": {
+      "description": "A group's access is granted and changed in the Members settings of each Space.",
+      "empty": "This group has no access to any Space yet.",
+      "open": "Open the members of {name}",
+      "title": "Spaces with access"
+    },
     "title": "Groups"
   },
   "nav": {

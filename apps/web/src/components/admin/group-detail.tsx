@@ -1,6 +1,7 @@
 "use client";
 
-import { SearchIcon, Trash2Icon, UserMinusIcon, UserPlusIcon } from "lucide-react";
+import { LayersIcon, SearchIcon, Trash2Icon, UserMinusIcon, UserPlusIcon } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useEffect, useId, useState, useTransition } from "react";
@@ -33,6 +34,7 @@ import {
   type Group,
   type GroupCandidate,
   type GroupMember,
+  type GroupSpace,
 } from "@/server/admin/groups";
 
 import { adminErrorKey } from "./errors";
@@ -61,10 +63,19 @@ type SearchResult =
 
 /**
  * One group of `/admin/groups/<id>`: edit its name and description, delete it (the dialog says
- * how many people lose access), list its members with "Remove", and add internal users found by
- * an accent-insensitive search.
+ * how many people and which Spaces lose access), list its members with "Remove", add internal
+ * users found by an accent-insensitive search, and list the Spaces it has access to (granted in
+ * each Space's member settings).
  */
-export function GroupDetail({ group, members }: { group: Group; members: GroupMember[] }) {
+export function GroupDetail({
+  group,
+  members,
+  spaces,
+}: {
+  group: Group;
+  members: GroupMember[];
+  spaces: GroupSpace[];
+}) {
   const t = useTranslations("admin.groups");
   const tc = useTranslations();
   const router = useRouter();
@@ -345,6 +356,38 @@ export function GroupDetail({ group, members }: { group: Group; members: GroupMe
         </div>
       </section>
 
+      <section aria-labelledby={`${id}-spaces`} className="grid gap-3">
+        <div className="grid gap-1">
+          <h2 id={`${id}-spaces`} className="font-semibold">
+            {t("spacesSection.title")} · {t("spaces", { count: spaces.length })}
+          </h2>
+          <p className="text-sm text-muted-foreground">{t("spacesSection.description")}</p>
+        </div>
+        {spaces.length === 0 ? (
+          <p className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
+            {t("spacesSection.empty")}
+          </p>
+        ) : (
+          <ul className="divide-y rounded-lg border">
+            {spaces.map((space) => (
+              <li key={space.spaceId}>
+                <Link
+                  href={`/s/${space.slug}/settings/members`}
+                  aria-label={t("spacesSection.open", { name: space.name })}
+                  className="flex items-center gap-3 p-3 outline-none hover:bg-muted/50 focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                >
+                  <LayersIcon className="size-5 shrink-0 text-muted-foreground" aria-hidden />
+                  <span className="min-w-0 flex-1 font-medium break-words">{space.name}</span>
+                  <span className="text-sm whitespace-nowrap text-muted-foreground">
+                    {tc(`space.roles.${space.role}`)}
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
       <AlertDialog
         open={confirmingDelete}
         onOpenChange={(open) => {
@@ -360,6 +403,18 @@ export function GroupDetail({ group, members }: { group: Group; members: GroupMe
               {t("delete.description", { count: members.length })}
             </AlertDialogDescription>
           </AlertDialogHeader>
+          <div className="grid gap-2 text-sm text-muted-foreground">
+            <p>{t("delete.spaces", { count: spaces.length })}</p>
+            {spaces.length > 0 && (
+              <ul className="max-h-40 list-disc overflow-y-auto pl-5">
+                {spaces.map((space) => (
+                  <li key={space.spaceId} className="break-words">
+                    {space.name}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
           {deleteError && (
             <p role="alert" className="text-sm text-destructive">
               {deleteError}
