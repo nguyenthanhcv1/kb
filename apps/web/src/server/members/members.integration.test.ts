@@ -25,15 +25,20 @@ import {
   MemberError,
   acceptInvitation,
   addMember,
+  addSpaceGroup,
   changeMemberRole,
+  changeSpaceGroupRole,
   createInvitation,
   getInvitation,
   leaveSpace,
   listInvitations,
   listMembers,
+  listSpaceGroups,
   removeMember,
+  removeSpaceGroup,
   resendInvitation,
   revokeInvitation,
+  searchGrantableGroups,
   searchMemberCandidates,
   type InvitationDeps,
   type MemberErrorCode,
@@ -56,9 +61,12 @@ const ids = {
   candidate: randomUUID(),
   invitee: randomUUID(),
   otherGuest: randomUUID(),
+  grouped: randomUUID(),
   space: randomUUID(),
+  group: randomUUID(),
 };
-type Who = Exclude<keyof typeof ids, "space">;
+type Who = Exclude<keyof typeof ids, "space" | "group">;
+const people = Object.keys(ids).filter((k) => k !== "space" && k !== "group") as Who[];
 const email = (who: Who) =>
   who === "invitee" || who === "otherGuest"
     ? `members-${run}-${who.toLowerCase()}@partner.test`
@@ -126,12 +134,11 @@ describe.skipIf(!URL || !SECRET || !ADMIN_URL)("members and invitations through 
   beforeAll(async () => {
     db = new pg.Client({ connectionString: ADMIN_URL });
     await db.connect();
-    const internal = [ids.admin, ids.editor, ids.viewer, ids.outsider, ids.candidate];
-    const all = [...internal, ids.invitee, ids.otherGuest];
+    const internal = [ids.admin, ids.editor, ids.viewer, ids.outsider, ids.candidate, ids.grouped];
     await db.query("begin");
     await db.query(
       "insert into auth.users (id, email) select * from unnest($1::uuid[], $2::text[])",
-      [all, (Object.keys(ids).filter((k) => k !== "space") as Who[]).map(email)],
+      [people.map((who) => ids[who]), people.map(email)],
     );
     await db.query("select set_config('request.jwt.claim.role', 'service_role', true)");
     // New auth users are guests unless allowlisted; make the internal ones internal.
@@ -152,9 +159,16 @@ describe.skipIf(!URL || !SECRET || !ADMIN_URL)("members and invitations through 
        values ($1, $2, 'editor', $4), ($1, $3, 'viewer', $4)`,
       [ids.space, ids.editor, ids.viewer, ids.admin],
     );
+    await db.query("insert into public.groups (id, name) values ($1, $2)", [
+      ids.group,
+      `Nhóm Kế toán ${run}`,
+    ]);
+    await db.query("insert into public.group_members (group_id, user_id) values ($1, $2)", [
+      ids.group,
+      ids.grouped,
+    ]);
     await db.query("commit");
-    for (const who of Object.keys(ids).filter((k) => k !== "space") as Who[])
-      as[who] = await clientFor(ids[who]);
+    for (const who of people) as[who] = await clientFor(ids[who]);
 
     const mailer: Mailer | null = SMTP_HOST
       ? createSmtpMailer({ host: SMTP_HOST, port: SMTP_PORT, from: "KB <kb@example.com>" })
@@ -411,5 +425,67 @@ describe.skipIf(!URL || !SECRET || !ADMIN_URL)("members and invitations through 
     ).toMatchObject({
       role: "viewer",
     });
+  });
+
+  it("grants a group access: its members reach the Space until the grant is removed", async () => {
+    const input = { spaceId: ids.space, groupId: ids.group } as const;
+    await expectCode(listMembers(as.grouped, { spaceId: ids.space }), "SPACE_NOT_FOUND");
+
+    await expectCode(
+      searchGrantableGroups(as.editor, { spaceId: ids.space, query: `ke toan ${run}` }),
+      "FORBIDDEN",
+    );
+    const { groups: found } = await searchGrantableGroups(as.admin, {
+      spaceId: ids.space,
+      query: `ke toan ${run}`,
+    });
+    expect(found).toEqual([
+      { groupId: ids.group, name: `Nhóm Kế toán ${run}`, description: null, memberCount: 1 },
+    ]);
+
+    await expectCode(addSpaceGroup(as.editor, { ...input, role: "editor" }), "FORBIDDEN");
+    await expectCode(addSpaceGroup(as.outsider, { ...input, role: "editor" }), "SPACE_NOT_FOUND");
+    expect(await addSpaceGroup(as.admin, { ...input, role: "viewer" })).toMatchObject({
+      groupId: ids.group,
+      role: "viewer",
+      memberCount: 1,
+    });
+    await expectCode(
+      addSpaceGroup(as.admin, { ...input, role: "viewer" }),
+      "SPACE_GROUP_ALREADY_EXISTS",
+    );
+    expect(
+      (await searchGrantableGroups(as.admin, { spaceId: ids.space, query: `ke toan ${run}` }))
+        .groups,
+    ).toEqual([]);
+
+    // The group member now sees the Space and its grants; they are not a direct member.
+    expect((await listSpaceGroups(as.grouped, { spaceId: ids.space })).groups).toEqual([
+      expect.objectContaining({ groupId: ids.group, role: "viewer" }),
+    ]);
+    expect(
+      (await listMembers(as.grouped, { spaceId: ids.space })).members.map((m) => m.userId),
+    ).not.toContain(ids.grouped);
+
+    await expectCode(changeSpaceGroupRole(as.editor, { ...input, role: "editor" }), "FORBIDDEN");
+    expect(await changeSpaceGroupRole(as.admin, { ...input, role: "editor" })).toMatchObject({
+      role: "editor",
+    });
+
+    await expectCode(removeSpaceGroup(as.editor, input), "FORBIDDEN");
+    await removeSpaceGroup(as.admin, input);
+    await expectCode(removeSpaceGroup(as.admin, input), "SPACE_GROUP_NOT_FOUND");
+    await expectCode(listMembers(as.grouped, { spaceId: ids.space }), "SPACE_NOT_FOUND");
+
+    const { rows } = await db.query<{ action: string }>(
+      `select action from public.audit_logs
+        where space_id = $1 and action like 'member.group_%' order by occurred_at, id`,
+      [ids.space],
+    );
+    expect(rows.map((r) => r.action)).toEqual([
+      "member.group_add",
+      "member.group_role_change",
+      "member.group_remove",
+    ]);
   });
 });

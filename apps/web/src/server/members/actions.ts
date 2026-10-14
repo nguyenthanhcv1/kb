@@ -10,15 +10,20 @@ import {
   MemberError,
   acceptInvitation as acceptInvitationCore,
   addMember as addMemberCore,
+  addSpaceGroup as addSpaceGroupCore,
+  changeSpaceGroupRole as changeSpaceGroupRoleCore,
   changeMemberRole as changeMemberRoleCore,
   createInvitation as createInvitationCore,
   getInvitation as getInvitationCore,
   leaveSpace as leaveSpaceCore,
   listInvitations as listInvitationsCore,
   listMembers as listMembersCore,
+  listSpaceGroups as listSpaceGroupsCore,
   removeMember as removeMemberCore,
+  removeSpaceGroup as removeSpaceGroupCore,
   resendInvitation as resendInvitationCore,
   revokeInvitation as revokeInvitationCore,
+  searchGrantableGroups as searchGrantableGroupsCore,
   searchMemberCandidates as searchMemberCandidatesCore,
   type AcceptInvitationOutput,
   type AddMemberInput,
@@ -32,12 +37,18 @@ import {
   type ListInvitationsInput,
   type ListInvitationsOutput,
   type ListMembersOutput,
+  type ListSpaceGroupsOutput,
   type MemberErrorCode,
   type MembersDb,
   type RemoveMemberInput,
+  type RemoveSpaceGroupInput,
+  type SearchGrantableGroupsInput,
+  type SearchGrantableGroupsOutput,
   type SearchMemberCandidatesInput,
   type SearchMemberCandidatesOutput,
   type SentInvitation,
+  type SpaceGroup,
+  type SpaceGroupInput,
   type SpaceIdInput,
   type SpaceMember,
 } from "./index";
@@ -111,6 +122,36 @@ export async function removeMember(input: RemoveMemberInput): Promise<MemberActi
 
 export async function leaveSpace(input: SpaceIdInput): Promise<MemberActionResult<void>> {
   return run((db) => leaveSpaceCore(db, input));
+}
+
+export async function listSpaceGroups(
+  input: SpaceIdInput,
+): Promise<MemberActionResult<ListSpaceGroupsOutput>> {
+  return run((db) => listSpaceGroupsCore(db, input));
+}
+
+export async function searchGrantableGroups(
+  input: SearchGrantableGroupsInput,
+): Promise<MemberActionResult<SearchGrantableGroupsOutput>> {
+  return run((db) => searchGrantableGroupsCore(db, input));
+}
+
+export async function addSpaceGroup(
+  input: SpaceGroupInput,
+): Promise<MemberActionResult<SpaceGroup>> {
+  return run((db) => addSpaceGroupCore(db, input));
+}
+
+export async function changeSpaceGroupRole(
+  input: SpaceGroupInput,
+): Promise<MemberActionResult<SpaceGroup>> {
+  return run((db) => changeSpaceGroupRoleCore(db, input));
+}
+
+export async function removeSpaceGroup(
+  input: RemoveSpaceGroupInput,
+): Promise<MemberActionResult<void>> {
+  return run((db) => removeSpaceGroupCore(db, input));
 }
 
 export async function listInvitations(

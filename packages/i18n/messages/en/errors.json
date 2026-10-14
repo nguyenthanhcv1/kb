@@ -42,6 +42,8 @@
   "PROFILE_UPDATE_FAILED": "Could not save your personal settings. Please try again.",
   "RATE_LIMITED": "Too many requests. Please wait a moment and try again.",
   "SEARCH_FAILED": "Search failed. Please try again.",
+  "SPACE_GROUP_ALREADY_EXISTS": "This group already has access to the Space.",
+  "SPACE_GROUP_NOT_FOUND": "This group no longer has access to the Space (it may have been removed).",
   "SPACE_NOT_FOUND": "This space does not exist or you do not have access to it.",
   "SPACE_REQUIRES_ADMIN": "A space must keep at least one admin.",
   "SPACE_SLUG_TAKEN": "This URL is already used by another space.",

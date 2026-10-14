@@ -145,6 +145,7 @@
       "confirm": "Xoá nhóm",
       "description": "{count, plural, =0 {Chưa có ai trong nhóm này.} other {# thành viên sẽ mất}} quyền truy cập mà nhóm này cấp. Mọi người vẫn giữ tài khoản và quyền được cấp trực tiếp.",
       "label": "Xoá nhóm",
+      "spaces": "{count, plural, =0 {Nhóm chưa được cấp quyền vào Space nào.} other {Quyền của nhóm sẽ bị gỡ khỏi # Space:}}",
       "title": "Xoá {name}?",
       "working": "Đang xoá…"
     },
@@ -169,6 +170,13 @@
       "title": "Thành viên"
     },
     "open": "Mở {name}",
+    "spaces": "{count, plural, other {# Space}}",
+    "spacesSection": {
+      "description": "Quyền của nhóm được cấp và chỉnh trong phần Thành viên của từng Space.",
+      "empty": "Nhóm này chưa được cấp quyền vào Space nào.",
+      "open": "Mở phần thành viên của {name}",
+      "title": "Space được truy cập"
+    },
     "title": "Nhóm"
   },
   "nav": {

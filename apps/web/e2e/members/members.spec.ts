@@ -201,3 +201,59 @@ for (const locale of ["vi", "en"] as const) {
     await expect(members.getByRole("listitem").filter({ hasText: guestName })).toHaveCount(0);
   });
 }
+
+for (const locale of ["vi", "en"] as const) {
+  test(`grant a group access, change its role and remove it (${locale})`, async ({
+    page,
+    context,
+  }, testInfo) => {
+    const m = messages[locale];
+    await useLocale(context, locale);
+    const suffix = `${locale}-${Date.now().toString(36)}${testInfo.parallelIndex}${testInfo.repeatEachIndex}${testInfo.retry}`;
+    // Groups are managed by super admins (Admin › Groups); create one directly.
+    const groupName = `Group ${suffix}`;
+    await admin("/rest/v1/groups", {
+      method: "POST",
+      headers: { Prefer: "return=minimal" },
+      body: JSON.stringify({ name: groupName }),
+    });
+    const slug = await createSpace(page, m, `Groups ${suffix}`);
+    await page.goto(`/s/${slug}/settings/members`);
+
+    const groups = page.getByRole("list", { name: m.members.groups.title });
+    await expect(page.getByText(m.members.groups.empty)).toBeVisible();
+
+    await page.getByRole("combobox", { name: m.members.groups.roleLabel }).click();
+    await page.getByRole("option", { name: m.space.roles.editor }).click();
+    await page.getByLabel(m.members.groups.searchLabel).fill(groupName);
+    await page
+      .getByRole("button", { name: m.members.groups.addLabel.replace("{name}", groupName) })
+      .click();
+    const row = groups.getByRole("listitem").filter({ hasText: groupName });
+    const role = row.getByRole("combobox", {
+      name: m.members.groups.roleItemLabel.replace("{name}", groupName),
+    });
+    await expect(role).toContainText(m.space.roles.editor);
+
+    await role.click();
+    await page.getByRole("option", { name: m.space.roles.viewer }).click();
+    await expect(
+      page.getByText(
+        m.members.groups.roleChanged
+          .replace("{name}", groupName)
+          .replace("{role}", m.space.roles.viewer),
+      ),
+    ).toBeVisible();
+    await page.reload();
+    await expect(role).toContainText(m.space.roles.viewer);
+
+    await row
+      .getByRole("button", { name: m.members.groups.removeLabel.replace("{name}", groupName) })
+      .click();
+    await page
+      .getByRole("alertdialog")
+      .getByRole("button", { name: m.members.groups.remove })
+      .click();
+    await expect(page.getByText(m.members.groups.empty)).toBeVisible();
+  });
+}

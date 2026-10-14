@@ -3,27 +3,30 @@
 import { useTranslations } from "next-intl";
 
 import { Separator } from "@/components/ui/separator";
-import type { Invitation, SpaceMember } from "@/server/members";
+import type { Invitation, SpaceGroup, SpaceMember } from "@/server/members";
 
 import { AddMemberForm } from "./add-member-form";
 import { FeedbackMessage, useFeedback } from "./feedback";
+import { GroupAccessSettings } from "./group-access";
 import { InvitationList } from "./invitation-list";
 import { InviteGuestForm } from "./invite-guest-form";
 import { MemberList } from "./member-list";
 
 /**
  * Members section of the Space settings (admins only — the settings layout gates it, RLS
- * enforces it): add internal people, members with roles, guest invitations. Data comes from the
+ * enforces it): add internal people, members with roles, groups with access, guest invitations. Data comes from the
  * Server Component page; every action ends with `router.refresh()` to re-read it.
  */
 export function MembersSettings({
   space,
   members,
+  groups,
   invitations,
   currentUserId,
 }: {
   space: { id: string; name: string };
   members: readonly SpaceMember[];
+  groups: readonly SpaceGroup[];
   invitations: readonly Invitation[];
   currentUserId: string;
 }) {
@@ -47,6 +50,8 @@ export function MembersSettings({
         <FeedbackMessage feedback={feedback} />
         <MemberList space={space} members={members} currentUserId={currentUserId} notify={notify} />
       </section>
+      <Separator />
+      <GroupAccessSettings space={space} groups={groups} />
       <Separator />
       <div className="flex flex-col gap-6">
         <InviteGuestForm spaceId={space.id} />
