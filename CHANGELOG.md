@@ -7,6 +7,15 @@
 
 * **web:** share a page and its subpages with people outside the space ([#115](https://github.com/nguyenthanhcv1/kb/issues/115)) ([66b979a](https://github.com/nguyenthanhcv1/kb/commit/66b979ac4b38e1b1060bcbabcf27dfa1d917d78a))
 
+<!-- vi-notes:start -->
+### Tiếng Việt
+
+#### Thêm
+
+- Chia sẻ trang: quản trị viên không gian có thể cho một người xem hoặc sửa **một trang và các trang con của nó** mà không cần thêm họ vào cả không gian, kể cả người chưa có tài khoản (họ nhận email mời). Bấm **Chia sẻ** ở góc trên bên phải trang để mời, đổi quyền hoặc bỏ chia sẻ.
+- Mục **Được chia sẻ với tôi** ở thanh bên liệt kê các trang người khác đã chia sẻ với bạn.
+<!-- vi-notes:end -->
+
 ## [1.1.0](https://github.com/nguyenthanhcv1/kb/compare/v1.0.1...v1.1.0) (2026-10-14)
 
 
