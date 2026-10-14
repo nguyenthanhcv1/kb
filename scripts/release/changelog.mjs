@@ -186,6 +186,97 @@ export function injectViNotes(changelog, version, viMarkdown) {
   return { content, changed: content !== original };
 }
 
+/** Thư mục con của `changelog/vi/` chứa ghi chú tiếng Việt chờ phát hành, mỗi PR `feat`/`fix` một file. */
+export const UNRELEASED_DIR = "unreleased";
+/** Thứ tự mục khi gộp ghi chú chờ phát hành; mục khác xếp sau, theo thứ tự gặp. */
+export const VI_SECTION_ORDER = ["Thêm", "Thay đổi", "Sửa lỗi", "Bảo mật", "Gỡ bỏ"];
+/** Mục cho nội dung đứng trước mọi tiêu đề trong một file ghi chú chờ phát hành. */
+const VI_DEFAULT_SECTION = "Thay đổi";
+const LIST_ITEM = /^\s*(?:[-*+]|\d+[.)])\s/;
+
+/**
+ * Tên file trong `changelog/vi/unreleased/` là ghi chú chờ phát hành (`<tên-ngắn>.md`); README, file
+ * bắt đầu bằng `_` hoặc `.` → không.
+ * @param {string} fileName
+ */
+export function isViFragmentFile(fileName) {
+  return /\.md$/i.test(fileName) && !/^[_.]/.test(fileName) && !/^readme\.md$/i.test(fileName);
+}
+
+/**
+ * Gộp các ghi chú chờ phát hành thành nội dung `changelog/vi/<version>.md`: gom theo tiêu đề mục
+ * (`### Thêm`, `### Sửa lỗi`…) theo `VI_SECTION_ORDER`, trong mỗi mục giữ thứ tự tên file. Tiêu đề
+ * `####` trở xuống là nội dung của mục. Không có nội dung → `""`.
+ *
+ * ```js
+ * mergeViFragments([
+ *   { name: "b.md", content: "### Sửa lỗi\n\n- Tìm kiếm không dấu.\n" },
+ *   { name: "a.md", content: "### Thêm\n\n- Kéo thả trang.\n" },
+ * ]);
+ * // "### Thêm\n\n- Kéo thả trang.\n\n### Sửa lỗi\n\n- Tìm kiếm không dấu.\n"
+ * ```
+ * @param {{ name: string, content: string }[]} fragments
+ * @returns {string}
+ */
+export function mergeViFragments(fragments) {
+  /** @type {Map<string, string[][]>} tiêu đề mục → các khối nội dung, mỗi file một khối */
+  const sections = new Map();
+  const sorted = [...fragments].sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
+  for (const { content } of sorted) {
+    let heading = VI_DEFAULT_SECTION;
+    /** @type {string[]} */
+    let lines = [];
+    const flush = () => {
+      const block = trimBlankEnds(lines);
+      if (block.length) sections.set(heading, [...(sections.get(heading) ?? []), block]);
+      lines = [];
+    };
+    let inFence = false;
+    for (const line of normalizeNewlines(content).split("\n")) {
+      if (/^\s*(```|~~~)/.test(line)) inFence = !inFence;
+      const m = !inFence && line.match(/^#{1,3}\s+(.+?)\s*#*\s*$/);
+      if (m) {
+        flush();
+        heading = canonicalViHeading(m[1]);
+      } else {
+        lines.push(line);
+      }
+    }
+    flush();
+  }
+  const rank = (/** @type {string} */ h) => {
+    const i = VI_SECTION_ORDER.indexOf(h);
+    return i === -1 ? VI_SECTION_ORDER.length : i;
+  };
+  const headings = [...sections.keys()].sort((a, b) => rank(a) - rank(b));
+  /** @type {string[]} */
+  const out = [];
+  for (const heading of headings) {
+    if (out.length) out.push("");
+    out.push(`### ${heading}`, "");
+    /** @type {string[]} */
+    let prev = [];
+    for (const block of sections.get(heading) ?? []) {
+      // Hai khối đều là danh sách → nối liền để thành một danh sách; còn lại cách một dòng trống.
+      if (prev.length && !(LIST_ITEM.test(prev[prev.length - 1]) && LIST_ITEM.test(block[0]))) {
+        out.push("");
+      }
+      out.push(...block);
+      prev = block;
+    }
+  }
+  return out.length ? `${out.join("\n")}\n` : "";
+}
+
+/**
+ * `thêm` → `Thêm` nếu là mục chuẩn (không phân biệt hoa thường), còn lại giữ nguyên.
+ * @param {string} heading
+ */
+function canonicalViHeading(heading) {
+  const lower = heading.toLocaleLowerCase("vi");
+  return VI_SECTION_ORDER.find((h) => h.toLocaleLowerCase("vi") === lower) ?? heading;
+}
+
 /**
  * Phần tiếng Anh của một version cho trang What's new: bỏ khối tiếng Việt, section ẩn,
  * link commit hash (người dùng không cần; giữ link PR `#42`).

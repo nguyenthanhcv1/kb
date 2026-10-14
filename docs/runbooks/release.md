@@ -3,15 +3,16 @@
 Thiết kế: [`docs/PLAN.md`](../PLAN.md) §6. Số hiệu theo SemVer, bắt đầu `0.1.0`; không ai sửa version
 bằng tay.
 
-| Thành phần                                | Vai trò                                                                                                                                                                                                         |
-| ----------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `release-please-config.json`              | Cấu hình release-please: type `node`, tag `vX.Y.Z`, bump `apps/web` + `apps/collab/package.json`, map commit → mục Keep a Changelog (`feat` → Added, `fix` → Fixed…; `docs`/`chore`/`ci`/`test`/`refactor` ẩn). |
-| `.release-please-manifest.json`           | Version đã phát hành gần nhất. Chỉ release-please (và người, khi thiết lập lần đầu) sửa.                                                                                                                        |
-| `.github/workflows/release-please.yml`    | Push `main` → mở/cập nhật Release PR `chore(release): release X.Y.Z`; merge PR đó → tag + GitHub Release.                                                                                                       |
-| `.github/workflows/release-vi-notes.yml`  | Trên Release PR: thiếu `changelog/vi/<version>.md` → check đỏ; có → chèn khối `### Tiếng Việt` vào `CHANGELOG.md` và commit lại (idempotent).                                                                   |
-| `scripts/release/inject-vi-changelog.mjs` | Script chèn (`pnpm changelog:inject-vi [--version X.Y.Z]`).                                                                                                                                                     |
-| `scripts/release/build-changelog.mjs`     | Sinh `apps/web/src/generated/changelog.json` cho trang Có gì mới; chạy tự động trước `build`/`dev` của web (`pnpm changelog:build`).                                                                            |
-| `changelog/vi/<version>.md`               | Ghi chú tiếng Việt viết tay — hướng dẫn ở [`changelog/vi/README.md`](../../changelog/vi/README.md).                                                                                                             |
+| Thành phần                                | Vai trò                                                                                                                                                                                                                       |
+| ----------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `release-please-config.json`              | Cấu hình release-please: type `node`, tag `vX.Y.Z`, bump `apps/web` + `apps/collab/package.json`, map commit → mục Keep a Changelog (`feat` → Added, `fix` → Fixed…; `docs`/`chore`/`ci`/`test`/`refactor` ẩn).               |
+| `.release-please-manifest.json`           | Version đã phát hành gần nhất. Chỉ release-please (và người, khi thiết lập lần đầu) sửa.                                                                                                                                      |
+| `.github/workflows/release-please.yml`    | Push `main` → mở/cập nhật Release PR `chore(release): release X.Y.Z`; merge PR đó → tag + GitHub Release.                                                                                                                     |
+| `.github/workflows/release-vi-notes.yml`  | Trên Release PR: gộp `changelog/vi/unreleased/*.md` thành `changelog/vi/<version>.md` (nếu chưa có file viết tay), chèn khối `### Tiếng Việt` vào `CHANGELOG.md` và commit lại (idempotent); không có ghi chú nào → check đỏ. |
+| `scripts/release/inject-vi-changelog.mjs` | Script gộp + chèn (`pnpm changelog:inject-vi [--version X.Y.Z]`).                                                                                                                                                             |
+| `scripts/release/build-changelog.mjs`     | Sinh `apps/web/src/generated/changelog.json` cho trang Có gì mới; chạy tự động trước `build`/`dev` của web (`pnpm changelog:build`).                                                                                          |
+| `changelog/vi/unreleased/<tên-ngắn>.md`   | Ghi chú tiếng Việt chờ phát hành — **mỗi PR `feat`/`fix` kèm một file** (check `agent-scope` đòi). Hướng dẫn ở [`changelog/vi/README.md`](../../changelog/vi/README.md).                                                      |
+| `changelog/vi/<version>.md`               | Ghi chú tiếng Việt của một bản: thường do `release-vi-notes` gộp từ `unreleased/`; viết tay khi muốn bản tổng quan (vd `1.0.0`).                                                                                              |
 
 ## Vì sao trang "Có gì mới" trống?
 
@@ -50,11 +51,14 @@ Người nói "phát hành" / "cập nhật Có gì mới" → agent:
 
 1. Tìm Release PR đang mở (`chore(release): release X.Y.Z`, nhánh `release-please--branches--main`). Chưa có
    mà `main` có `feat`/`fix` mới → kiểm tra workflow `Release Please` (manifest, token) và báo người.
-2. Đọc mục `Added`/`Fixed`/`Changed` của PR, viết `changelog/vi/X.Y.Z.md` (theo `changelog/vi/README.md`:
-   câu người dùng hiểu, thuật ngữ theo glossary, xưng "bạn").
-3. Đưa file vào `main` bằng PR `docs(release): add Vietnamese notes for X.Y.Z` (`Task: none`); **không** tự merge Release PR.
-4. Báo người: Release PR + việc còn lại (chờ `release-vi-notes` và CI xanh, người squash-merge). Merge xong
-   thì trang Có gì mới có bản mới sau lần deploy kế tiếp (build lại image).
+2. Xem `release-vi-notes`: thường đã xanh vì các PR `feat`/`fix` kèm `changelog/vi/unreleased/*.md` và
+   workflow đã gộp chúng thành `changelog/vi/X.Y.Z.md`. Đọc khối `### Tiếng Việt` trong `CHANGELOG.md` của
+   Release PR: thiếu ý nào trong mục `Added`/`Fixed`/`Changed` (PR cũ không kèm ghi chú) → bước 3.
+3. Chỉ khi cần: thêm/sửa ghi chú bằng PR `docs(release): add Vietnamese notes for X.Y.Z` (`Task: none`) —
+   thêm file vào `changelog/vi/unreleased/`, hoặc viết cả `changelog/vi/X.Y.Z.md` (file viết tay thay
+   toàn bộ phần gộp). Merge xong mà Release PR không đổi → bấm **Update branch** trên Release PR (mục Sự cố).
+4. Báo người: Release PR + việc còn lại (chờ `release-vi-notes` và CI xanh, người squash-merge); **không**
+   tự merge Release PR. Merge xong thì trang Có gì mới có bản mới sau lần deploy kế tiếp (build lại image).
 
 Tần suất gợi ý: phát hành khi đã gom đủ thay đổi người dùng thấy được (vài ngày một lần, hoặc sau mỗi
 tính năng lớn); `chore`/`docs`/`ci`/`test`/`refactor` không tạo Release PR.
@@ -66,14 +70,15 @@ tính năng lớn); `chore`/`docs`/`ci`/`test`/`refactor` không tạo Release P
 2. Xem Release PR: version, mục `Added`/`Fixed`… trong `CHANGELOG.md`. Dòng nào khó hiểu → sửa thân PR
    gốc (đã merge), thêm khối `BEGIN_COMMIT_OVERRIDE` … `END_COMMIT_OVERRIDE` chứa commit message đúng,
    rồi chạy lại workflow `Release Please`.
-3. Viết `changelog/vi/<version>.md` (copy `changelog/vi/_template.md`). Cách đưa vào:
-   - **Khuyến nghị:** PR nhỏ vào `main`, tiêu đề `docs(release): add Vietnamese notes for <version>`
-     (thân PR `Agent: <tên agent>` hoặc `human`, `Task:` mã task release của milestone). `docs` là type ẩn nên
-     không đổi version; release-please dựng lại Release PR và `release-vi-notes` chèn ghi chú.
-   - Hoặc push thẳng file vào nhánh `release-please--branches--main`. Nhanh hơn, nhưng release-please
-     **dựng lại nhánh** mỗi khi `main` có commit mới → file bị mất, phải push lại.
+3. Ghi chú tiếng Việt: mỗi PR `feat`/`fix` đã kèm `changelog/vi/unreleased/<tên-ngắn>.md`;
+   `release-vi-notes` gộp chúng thành `changelog/vi/<version>.md`, xoá các file `unreleased/` và chèn vào
+   `CHANGELOG.md` — không cần làm gì thêm. Muốn bản tổng quan thay cho phần gộp (vd `1.0.0`): viết
+   `changelog/vi/<version>.md` (copy `changelog/vi/_template.md`) bằng PR nhỏ vào `main`, tiêu đề
+   `docs(release): add Vietnamese notes for <version>`; file viết tay được dùng nguyên, các file
+   `unreleased/` bị bỏ (đưa ý cần giữ vào file viết tay). Push thẳng vào nhánh Release PR cũng được nhưng
+   release-please **dựng lại nhánh** mỗi khi `main` có `feat`/`fix` mới → file bị mất.
 4. Chờ `release-vi-notes` xanh (nó commit `chore(release): add Vietnamese release notes to CHANGELOG.md`
-   lên Release PR) và CI xanh → **squash-merge** Release PR (không sửa tiêu đề).
+   lên Release PR, gồm `changelog/vi/<version>.md` và việc xoá `unreleased/`) và CI xanh → **squash-merge** Release PR (không sửa tiêu đề).
 5. release-please tạo tag `vX.Y.Z` + GitHub Release → `build-images.yml` retag image `X.Y.Z`/`latest`
    → deploy production (T0.8, cần duyệt environment `production`).
 6. Kiểm tra: `curl https://<host>/api/health` trả `"version":"X.Y.Z"`; trang Có gì mới có phiên bản mới
@@ -95,15 +100,16 @@ tính năng lớn); `chore`/`docs`/`ci`/`test`/`refactor` không tạo Release P
 ```bash
 pnpm test:scripts                                   # unit test script (node --test)
 pnpm changelog:build                                # → apps/web/src/generated/changelog.json ([] khi chưa có CHANGELOG.md)
-pnpm changelog:inject-vi --version 0.1.0 --check    # chỉ kiểm tra có changelog/vi/0.1.0.md
+pnpm changelog:inject-vi --version 0.1.0 --check    # chỉ kiểm tra có changelog/vi/0.1.0.md hoặc unreleased/*.md
 ```
 
 ## Sự cố
 
-| Triệu chứng                                                       | Nguyên nhân / cách xử lý                                                                                                                   |
-| ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| `release-please` cảnh báo "Chưa có .release-please-manifest.json" | Làm bước 1 phần Thiết lập lần đầu.                                                                                                         |
-| Release PR không có check nào                                     | Release PR do `GITHUB_TOKEN` tạo — cấu hình GitHub App (bước 2) hoặc đóng/mở lại PR.                                                       |
-| `release-vi-notes` đỏ "Thiếu ghi chú phát hành tiếng Việt"        | Thêm `changelog/vi/<version>.md` (bước 3).                                                                                                 |
-| `release-vi-notes` đỏ "không có section cho version"              | `CHANGELOG.md` trên nhánh không có `## … X.Y.Z` (manifest và changelog lệch) — xem log release-please, chạy lại workflow `Release Please`. |
-| Tag có nhưng không có image `X.Y.Z`                               | Tag tạo bằng `GITHUB_TOKEN` không kích hoạt `build-images.yml` — chạy tay workflow đó trên tag, và cấu hình GitHub App.                    |
+| Triệu chứng                                                       | Nguyên nhân / cách xử lý                                                                                                                    |
+| ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| `release-please` cảnh báo "Chưa có .release-please-manifest.json" | Làm bước 1 phần Thiết lập lần đầu.                                                                                                          |
+| Release PR không có check nào                                     | Release PR do `GITHUB_TOKEN` tạo — cấu hình GitHub App (bước 2) hoặc đóng/mở lại PR.                                                        |
+| `release-vi-notes` đỏ "Thiếu ghi chú phát hành tiếng Việt"        | Các PR `feat`/`fix` của bản này không kèm ghi chú: PR `docs(release)` thêm `changelog/vi/unreleased/*.md` hoặc `changelog/vi/<version>.md`. |
+| Đã merge PR ghi chú mà Release PR vẫn đỏ, không chạy lại          | PR `docs` không đổi nội dung changelog tiếng Anh → release-please không dựng lại nhánh. Bấm **Update branch** trên Release PR.              |
+| `release-vi-notes` đỏ "không có section cho version"              | `CHANGELOG.md` trên nhánh không có `## … X.Y.Z` (manifest và changelog lệch) — xem log release-please, chạy lại workflow `Release Please`.  |
+| Tag có nhưng không có image `X.Y.Z`                               | Tag tạo bằng `GITHUB_TOKEN` không kích hoạt `build-images.yml` — chạy tay workflow đó trên tag, và cấu hình GitHub App.                     |

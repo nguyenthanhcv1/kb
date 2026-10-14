@@ -3,7 +3,8 @@
 //   (`Task: none`, không cần task — WORKFLOW §0), và không phá quy tắc chung.
 //   Không còn lane/vùng sở hữu — agent nào cũng làm được việc nào, sửa được file nào việc cần.
 //   Kiểm tra: dòng `Agent:`/`Task:` trong thân PR, `[Txx]` trong tiêu đề (có task) hoặc không có
-//   (`Task: none`), deps đã merge vào nhánh gốc, không sửa file chỉ release-please được sửa (WORKFLOW §5).
+//   (`Task: none`), deps đã merge vào nhánh gốc, không sửa file chỉ release-please được sửa (WORKFLOW §5),
+//   PR hiện ở trang "Có gì mới" (feat/fix…) kèm ghi chú tiếng Việt changelog/vi/unreleased/*.md.
 // Chạy trong CI: env PR_BODY, PR_TITLE, PR_AUTHOR_TYPE, BASE_SHA, HEAD_SHA (xem agent-scope.yml).
 // Chạy local:   PR_BODY="$(cat body.md)" PR_TITLE="…" node scripts/ai/scope.mjs --base origin/main
 import { execFileSync } from "node:child_process";
@@ -131,6 +132,35 @@ export function checkScope({ taskFile, body, title, files, done, authorIsBot = f
   return r;
 }
 
+/** Type commit hiện ở trang "Có gì mới" (mục không ẩn trong release-please-config.json). */
+const VISIBLE_TYPE = /^(feat|fix|perf|revert|security)(?:\([^)]*\))?!?:/;
+/** Ghi chú tiếng Việt chờ phát hành (changelog/vi/README.md). */
+export const VI_FRAGMENT = /^changelog\/vi\/unreleased\/(?![_.])(?!readme\.md$)[^/]+\.md$/i;
+
+/**
+ * PR có tiêu đề `feat`/`fix`/`perf`/`revert`/`security` phải thêm hoặc sửa một ghi chú tiếng Việt
+ * `changelog/vi/unreleased/<tên-ngắn>.md` — Release PR gộp chúng, không cần PR ghi chú riêng.
+ * PR của bot: bỏ qua; `Agent: human`: chỉ cảnh báo.
+ * @param {{ body: string, title: string, files: ChangedFile[], authorIsBot?: boolean }} input
+ * @returns {ScopeResult}
+ */
+export function checkViNotes({ body, title, files, authorIsBot = false }) {
+  /** @type {ScopeResult} */
+  const r = { errors: [], warnings: [], notes: [] };
+  const type = title.trim().match(VISIBLE_TYPE)?.[1];
+  if (authorIsBot || !type) return r;
+  if (files.some((f) => f.status !== "D" && VI_FRAGMENT.test(f.path))) {
+    r.notes.push("Có ghi chú tiếng Việt trong changelog/vi/unreleased/.");
+    return r;
+  }
+  const msg =
+    `PR "${type}" hiện ở trang "Có gì mới" nhưng chưa có ghi chú tiếng Việt — thêm ` +
+    "changelog/vi/unreleased/<tên-ngắn>.md (xem changelog/vi/README.md).";
+  if (parsePrBody(body).agent === "human") r.warnings.push(msg);
+  else r.errors.push(msg);
+  return r;
+}
+
 /**
  * `git diff --name-status -z` → danh sách file. File đổi tên tính cả đường dẫn cũ và mới.
  * @param {string} raw
@@ -167,14 +197,20 @@ function main() {
   const files = parseNameStatus(git(["diff", "--name-status", "-z", "-M", `${base}...${head}`]));
   const done = doneIdsFromSubjects(git(["log", base, "--format=%s"]).split("\n"));
 
-  const result = checkScope({
-    taskFile,
+  const input = {
     body: process.env.PR_BODY ?? "",
     title: process.env.PR_TITLE ?? "",
     files,
-    done,
     authorIsBot: process.env.PR_AUTHOR_TYPE === "Bot",
-  });
+  };
+  const scope = checkScope({ ...input, taskFile, done });
+  const vi = checkViNotes(input);
+  /** @type {ScopeResult} */
+  const result = {
+    errors: [...scope.errors, ...vi.errors],
+    warnings: [...scope.warnings, ...vi.warnings],
+    notes: [...scope.notes, ...vi.notes],
+  };
 
   for (const n of result.notes) console.log(n);
   for (const w of result.warnings) console.log(`::warning::${w}`);

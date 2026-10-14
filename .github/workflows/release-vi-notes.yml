@@ -1,7 +1,10 @@
 # Ghi chú phát hành tiếng Việt trên Release PR (T0.6a, docs/PLAN.md §6.3, docs/runbooks/release.md).
-# - Thiếu changelog/vi/<version>.md → check đỏ (Release PR không merge được khi check này là bắt buộc).
+# - Nguồn: changelog/vi/<version>.md viết tay, hoặc (thường gặp) gộp changelog/vi/unreleased/*.md mà
+#   mỗi PR feat/fix đã kèm theo thành <version>.md rồi xoá các file đó (changelog/vi/README.md).
+# - Không có nguồn nào → check đỏ (Release PR không merge được khi check này là bắt buộc).
 # - Có → chèn khối "### Tiếng Việt" vào CHANGELOG.md và commit lại nhánh Release PR. Idempotent:
-#   release-please dựng lại nhánh (mất commit này) → workflow chạy lại và chèn lại.
+#   release-please dựng lại nhánh từ main (mất commit này, unreleased/ còn nguyên trên main) →
+#   workflow chạy lại và gộp + chèn lại.
 # PR không phải Release PR: job bị bỏ qua (skipped = đạt với branch protection).
 name: Release vi notes
 
@@ -49,17 +52,17 @@ jobs:
 
       # Script không có dependency → không cần pnpm install. Version lấy từ .release-please-manifest.json
       # của nhánh Release PR (release-please đã bump).
-      - name: Kiểm tra changelog/vi/<version>.md và chèn vào CHANGELOG.md
+      - name: Gộp ghi chú tiếng Việt và chèn vào CHANGELOG.md
         run: node scripts/release/inject-vi-changelog.mjs
 
-      - name: Commit CHANGELOG.md (nếu đổi)
+      - name: Commit CHANGELOG.md + changelog/vi (nếu đổi)
         run: |
-          if git diff --quiet -- CHANGELOG.md; then
+          if [ -z "$(git status --porcelain -- CHANGELOG.md changelog/vi)" ]; then
             echo "CHANGELOG.md đã có ghi chú tiếng Việt mới nhất."
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
-          git add CHANGELOG.md
+          git add -A -- CHANGELOG.md changelog/vi
           git commit -m "chore(release): add Vietnamese release notes to CHANGELOG.md"
           git push origin "HEAD:${GITHUB_HEAD_REF}"
