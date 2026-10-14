@@ -9,7 +9,7 @@ Who can view or edit a Space is decided by its **Space admins** in the Space's *
 ## Give a group access
 
 1. Open the Space › **Settings** › **Members** and scroll to **Groups with access**.
-2. Pick the **Group role** (_Can view_ or _Can edit_), then type the group's name in **Search groups**.
+2. Pick the **Role when adding** (_Can view_ or _Can edit_), then type the group's name in **Search groups**.
 3. Click **Add** next to the group.
 
 Every member of the group gets that access right away, including people who join the group later. People who leave the group lose the access it gave them. Change a group's role with the role picker on its row; click **Remove access** to take it back.

@@ -29,7 +29,7 @@
     "results": "Groups found",
     "roleChanged": "Changed the role of group {name} to “{role}”.",
     "roleItemLabel": "Role of group {name}",
-    "roleLabel": "Group role",
+    "roleLabel": "Role when adding",
     "searchLabel": "Search groups",
     "searchPlaceholder": "Group name…",
     "searching": "Searching…",

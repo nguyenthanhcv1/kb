@@ -29,7 +29,7 @@
     "results": "Nhóm tìm được",
     "roleChanged": "Đã đổi quyền của nhóm {name} thành “{role}”.",
     "roleItemLabel": "Quyền của nhóm {name}",
-    "roleLabel": "Quyền của nhóm",
+    "roleLabel": "Quyền khi thêm",
     "searchLabel": "Tìm nhóm",
     "searchPlaceholder": "Tên nhóm…",
     "searching": "Đang tìm…",

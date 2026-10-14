@@ -9,7 +9,7 @@ Ai được xem hoặc sửa một Không gian do **quản trị Không gian** q
 ## Cấp quyền cho nhóm
 
 1. Mở Không gian › **Cài đặt** › **Thành viên**, kéo tới phần **Nhóm có quyền truy cập**.
-2. Chọn **Quyền của nhóm** (_Xem_ hoặc _Sửa_), rồi gõ tên nhóm vào ô **Tìm nhóm**.
+2. Chọn **Quyền khi thêm** (_Xem_ hoặc _Sửa_), rồi gõ tên nhóm vào ô **Tìm nhóm**.
 3. Bấm **Thêm** ở nhóm cần cấp quyền.
 
 Mọi thành viên của nhóm có ngay quyền đó, kể cả người vào nhóm sau. Ai rời nhóm thì mất quyền mà nhóm cấp. Đổi quyền của nhóm bằng ô chọn vai trò ở dòng của nhóm; bấm **Gỡ quyền** để thu lại.

@@ -135,11 +135,10 @@ describe.skipIf(!URL || !SECRET || !ADMIN_URL)("members and invitations through 
     db = new pg.Client({ connectionString: ADMIN_URL });
     await db.connect();
     const internal = [ids.admin, ids.editor, ids.viewer, ids.outsider, ids.candidate, ids.grouped];
-    const all = [...internal, ids.invitee, ids.otherGuest];
     await db.query("begin");
     await db.query(
       "insert into auth.users (id, email) select * from unnest($1::uuid[], $2::text[])",
-      [all, people.map(email)],
+      [people.map((who) => ids[who]), people.map(email)],
     );
     await db.query("select set_config('request.jwt.claim.role', 'service_role', true)");
     // New auth users are guests unless allowlisted; make the internal ones internal.
