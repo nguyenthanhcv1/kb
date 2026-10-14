@@ -82,7 +82,8 @@ Không có → báo người "đang chờ <deps>" và dừng.
 | `supabase/migrations/*` | Tạo bằng `supabase migration new <tên>` **ngay trước khi mở PR**. Trước khi merge, nếu `main` có migration timestamp lớn hơn của mình → đổi tên file của mình sang timestamp mới để thứ tự luôn tăng dần. Không sửa migration đã merge. |
 | `packages/db/src/types.gen.ts` | Không sửa tay. Conflict → `pnpm db:types` sinh lại sau khi merge `main`. |
 | `CHANGELOG.md`, `.release-please-manifest.json`, version trong `package.json` | Chỉ release-please sửa. Agent không bao giờ đụng (CI `agent-scope` chặn). |
-| `changelog/vi/<version>.md` | Chỉ viết trong Release PR khi người yêu cầu. |
+| `changelog/vi/unreleased/*.md` | Mỗi PR `feat`/`fix` thêm **một file riêng** (tên theo việc) — không sửa file của PR khác. Release PR tự gộp và xoá. |
+| `changelog/vi/<version>.md` | Thường do `release-vi-notes` sinh trên Release PR. Viết tay chỉ khi người yêu cầu (bản tổng quan, bổ sung ghi chú thiếu). |
 | File dịch `packages/i18n/messages/{vi,en}/*.json` | Key sắp xếp **theo alphabet** (`pnpm i18n:sort`, `i18n:check` fail nếu chưa sắp) — hai PR thêm key khác nhau hiếm khi đụng cùng dòng. Luôn thêm cả `vi` và `en` trong cùng commit. Dùng key đã có trước khi tạo key mới; chữ dùng chung (Lưu, Huỷ…) đặt ở `common`. |
 | `packages/shared/src/errors.ts` | Mã lỗi xếp alphabet; mỗi mã có key `errors.<CODE>` đủ vi/en. |
 | Component có sẵn trong `apps/web/src/components/ui/**`, theme, `layout.tsx` | Dùng chung cho mọi màn hình: sửa nhỏ, tương thích ngược; đổi hành vi/giao diện chung thì nêu rõ trong PR. Component shadcn mới → `pnpm dlx shadcn add <name>`. |
@@ -124,7 +125,7 @@ Deps `b → a` trong `tasks.yaml` là mốc để **merge** `b` (CI `agent-scope
 - Bật trên GitHub: squash merge only, "Default commit message = Pull request title and description", "Require branches to be up to date before merging", required checks (`ci`, `agent-scope`), xoá nhánh sau merge.
 - Khi hai agent vô tình nhận cùng task: giữ PR mở trước, đóng PR còn lại, ghi lại bài học vào `docs/ai/WORKFLOW.md`.
 - Hạng mục lớn muốn theo dõi dài hạn: thêm vào `tasks.yaml` trong PR riêng (`Agent: human`), chèn đúng vị trí ưu tiên (sau mọi deps của nó), tách `a`/`b` nếu cần. Lỗi nhỏ, chỉnh sửa, tính năng nhỏ: **không cần** task — chỉ cần yêu cầu rõ và `Task: none`.
-- Sau một nhóm thay đổi người dùng thấy được (`feat`/`fix` đã merge): bảo agent "phát hành" → Release PR + ghi chú tiếng Việt (`docs/runbooks/release.md`), để trang Có gì mới luôn cập nhật.
+- Sau một nhóm thay đổi người dùng thấy được (`feat`/`fix` đã merge): bảo agent "phát hành" → kiểm tra Release PR (ghi chú tiếng Việt đã được gộp từ các PR, `docs/runbooks/release.md`) rồi merge, để trang Có gì mới luôn cập nhật.
 
 ## 9. Khác biệt Claude Code và Codex cần lưu ý
 
