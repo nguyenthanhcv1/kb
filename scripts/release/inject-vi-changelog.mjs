@@ -1,18 +1,28 @@
 #!/usr/bin/env node
-// Chèn ghi chú tiếng Việt changelog/vi/<version>.md vào section <version> của CHANGELOG.md
-// (docs/PLAN.md §6.3). Chạy bởi .github/workflows/release-vi-notes.yml trên Release PR; idempotent.
+// Chèn ghi chú tiếng Việt của <version> vào section <version> của CHANGELOG.md (docs/PLAN.md §6.3).
+// Chạy bởi .github/workflows/release-vi-notes.yml trên Release PR; idempotent.
 //
 //   node scripts/release/inject-vi-changelog.mjs [--version 0.3.0] [--check]
 //
+// Nguồn ghi chú (changelog/vi/README.md):
+//   - changelog/vi/<version>.md viết tay (vd bản tổng quan) — có thì dùng nguyên file này;
+//   - không có → gộp changelog/vi/unreleased/*.md (mỗi PR feat/fix một file) thành <version>.md.
+//   Sau khi chèn, các file unreleased/ bị xoá: chúng đã thuộc về <version>. Workflow commit cả hai.
 // --version  mặc định: version trong .release-please-manifest.json (Release PR đã bump nó).
-// --check    chỉ kiểm tra file tiếng Việt tồn tại và không trống, không sửa CHANGELOG.md.
-// Thoát: 0 = đã chèn/không đổi · 1 = thiếu/trống changelog/vi/<version>.md · 2 = lỗi khác.
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+// --check    chỉ kiểm tra có ghi chú (file <version>.md hoặc unreleased/), không sửa file nào.
+// Thoát: 0 = đã chèn/không đổi · 1 = không có ghi chú tiếng Việt nào · 2 = lỗi khác.
+import { existsSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
 
-import { ChangelogError, injectViNotes } from "./changelog.mjs";
+import {
+  ChangelogError,
+  UNRELEASED_DIR,
+  injectViNotes,
+  isViFragmentFile,
+  mergeViFragments,
+} from "./changelog.mjs";
 
 const ROOT = fileURLToPath(new URL("../..", import.meta.url));
 const SEMVER = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/;
@@ -26,6 +36,21 @@ export function manifestVersion(root) {
   if (!existsSync(file)) return null;
   const v = JSON.parse(readFileSync(file, "utf8"))["."];
   return typeof v === "string" ? v : null;
+}
+
+/**
+ * Ghi chú chờ phát hành trong `dir` (bỏ file trống).
+ * @param {string} dir
+ * @returns {{ name: string, file: string, content: string }[]}
+ */
+export function readViFragments(dir) {
+  if (!existsSync(dir)) return [];
+  return readdirSync(dir)
+    .filter(isViFragmentFile)
+    .sort()
+    .map((name) => ({ name, file: path.join(dir, name) }))
+    .map((f) => ({ ...f, content: readFileSync(f.file, "utf8") }))
+    .filter((f) => f.content.trim() !== "");
 }
 
 function main() {
@@ -44,14 +69,32 @@ function main() {
   }
   const viRel = path.posix.join(values["vi-dir"], `${version}.md`);
   const viFile = path.resolve(ROOT, viRel);
-  if (!existsSync(viFile) || readFileSync(viFile, "utf8").trim() === "") {
+  const fragmentRel = path.posix.join(values["vi-dir"], UNRELEASED_DIR);
+  const fragments = readViFragments(path.resolve(ROOT, fragmentRel));
+  const hasViFile = existsSync(viFile) && readFileSync(viFile, "utf8").trim() !== "";
+  if (!hasViFile && fragments.length === 0) {
     console.error(
-      `::error file=${viRel}::Thiếu ghi chú phát hành tiếng Việt ${viRel}. ` +
-        "Thêm file này (xem changelog/vi/README.md) rồi push lên nhánh Release PR.",
+      `::error file=${viRel}::Thiếu ghi chú phát hành tiếng Việt: không có ${viRel} và ` +
+        `${fragmentRel}/ trống. PR feat/fix phải kèm ${fragmentRel}/<tên-ngắn>.md; hoặc thêm ` +
+        `${viRel} (xem changelog/vi/README.md).`,
     );
     process.exit(1);
   }
-  console.log(`Có ${viRel}.`);
+  if (hasViFile) {
+    console.log(`Có ${viRel}.`);
+    if (fragments.length) {
+      console.log(
+        `::warning file=${viRel}::Dùng ${viRel} viết tay; ${fragments.length} ghi chú trong ` +
+          `${fragmentRel}/ (${fragments.map((f) => f.name).join(", ")}) bị bỏ — nội dung cần có ` +
+          `trong ${viRel}.`,
+      );
+    }
+  } else {
+    console.log(
+      `Gộp ${fragments.length} ghi chú trong ${fragmentRel}/ ` +
+        `(${fragments.map((f) => f.name).join(", ")}) thành ${viRel}.`,
+    );
+  }
   if (values.check) return;
 
   const changelogFile = path.resolve(ROOT, values.changelog);
@@ -59,12 +102,16 @@ function main() {
     console.error(`::error::Không có ${values.changelog} — Release PR phải có file này.`);
     process.exit(2);
   }
+  const viNotes = hasViFile ? readFileSync(viFile, "utf8") : mergeViFragments(fragments);
   try {
     const { content, changed } = injectViNotes(
       readFileSync(changelogFile, "utf8"),
       version,
-      readFileSync(viFile, "utf8"),
+      viNotes,
     );
+    // Chỉ ghi khi chèn được: lỗi thì không để lại <version>.md/xoá dở unreleased/.
+    if (!hasViFile) writeFileSync(viFile, viNotes);
+    for (const f of fragments) rmSync(f.file);
     if (changed) writeFileSync(changelogFile, content);
     console.log(
       changed

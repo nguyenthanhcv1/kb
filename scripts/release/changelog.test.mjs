@@ -1,6 +1,13 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, it } from "node:test";
@@ -15,6 +22,8 @@ import {
   demoteHeadings,
   englishNotes,
   injectViNotes,
+  isViFragmentFile,
+  mergeViFragments,
   parseChangelog,
   versionFromViFile,
 } from "./changelog.mjs";
@@ -218,6 +227,80 @@ describe("englishNotes / buildEntries", () => {
   });
 });
 
+describe("mergeViFragments", () => {
+  it("groups fragments by section in the standard order, files in name order", () => {
+    const merged = mergeViFragments([
+      { name: "b-search.md", content: "### Sửa lỗi\n\n- Tìm kiếm không dấu.\n" },
+      { name: "c-share.md", content: "### Thêm\n\n- Chia sẻ trang.\n" },
+      {
+        name: "a-drag.md",
+        content: "### thêm\n\n- Kéo thả trang.\n\n### Sửa lỗi\n\n- Lưu nhanh hơn.\n",
+      },
+    ]);
+    assert.equal(
+      merged,
+      [
+        "### Thêm",
+        "",
+        "- Kéo thả trang.",
+        "- Chia sẻ trang.",
+        "",
+        "### Sửa lỗi",
+        "",
+        "- Lưu nhanh hơn.",
+        "- Tìm kiếm không dấu.",
+        "",
+      ].join("\n"),
+    );
+  });
+
+  it("puts text before any heading under Thay đổi, keeps #### and unknown sections", () => {
+    const merged = mergeViFragments([
+      { name: "a.md", content: "- Giao diện gọn hơn.\n" },
+      { name: "b.md", content: "## Ghi chú\n\nĐoạn văn.\n\n#### Chi tiết\n\n- Một ý.\n" },
+      { name: "c.md", content: "### Bảo mật\n\n- Vá lỗi.\n" },
+    ]);
+    assert.equal(
+      merged,
+      [
+        "### Thay đổi",
+        "",
+        "- Giao diện gọn hơn.",
+        "",
+        "### Bảo mật",
+        "",
+        "- Vá lỗi.",
+        "",
+        "### Ghi chú",
+        "",
+        "Đoạn văn.",
+        "",
+        "#### Chi tiết",
+        "",
+        "- Một ý.",
+        "",
+      ].join("\n"),
+    );
+  });
+
+  it("separates non-list blocks with a blank line and ignores empty input", () => {
+    const merged = mergeViFragments([
+      { name: "a.md", content: "### Thêm\n\nMột đoạn.\n" },
+      { name: "b.md", content: "### Thêm\n\n- Một ý.\n" },
+    ]);
+    assert.equal(merged, "### Thêm\n\nMột đoạn.\n\n- Một ý.\n");
+    assert.equal(mergeViFragments([]), "");
+    assert.equal(mergeViFragments([{ name: "a.md", content: "\n\n" }]), "");
+  });
+
+  it("recognises fragment files", () => {
+    assert.equal(isViFragmentFile("share-page.md"), true);
+    assert.equal(isViFragmentFile("README.md"), false);
+    assert.equal(isViFragmentFile("_template.md"), false);
+    assert.equal(isViFragmentFile(".gitkeep"), false);
+  });
+});
+
 describe("CLI", () => {
   const tmp = () => mkdtempSync(path.join(tmpdir(), "kb-changelog-"));
 
@@ -332,5 +415,75 @@ describe("CLI", () => {
     ]);
     assert.equal(r.code, 2);
     assert.match(r.out, /0\.3\.0/);
+  });
+  it("inject-vi-changelog merges unreleased fragments into <version>.md and deletes them", () => {
+    const dir = tmp();
+    mkdirSync(path.join(dir, "vi", "unreleased"), { recursive: true });
+    writeFileSync(path.join(dir, "CHANGELOG.md"), CHANGELOG);
+    writeFileSync(path.join(dir, "vi", "unreleased", "drag.md"), "### Thêm\n\n- Kéo thả trang.\n");
+    writeFileSync(path.join(dir, "vi", "unreleased", "search.md"), "### Sửa lỗi\n\n- Tìm kiếm.\n");
+    writeFileSync(path.join(dir, "vi", "unreleased", "README.md"), "# not a note\n");
+    const args = [
+      "--version",
+      "0.2.0",
+      "--changelog",
+      path.join(dir, "CHANGELOG.md"),
+      "--vi-dir",
+      path.join(dir, "vi"),
+    ];
+    const check = inject([...args, "--check"]);
+    assert.equal(check.code, 0);
+    assert.ok(existsSync(path.join(dir, "vi", "unreleased", "drag.md")), "--check sửa file");
+
+    const r = inject(args);
+    assert.equal(r.code, 0, r.out);
+    const vi = readFileSync(path.join(dir, "vi", "0.2.0.md"), "utf8");
+    assert.equal(vi, "### Thêm\n\n- Kéo thả trang.\n\n### Sửa lỗi\n\n- Tìm kiếm.\n");
+    assert.deepEqual(readdirSync(path.join(dir, "vi", "unreleased")), ["README.md"]);
+    const changelog = readFileSync(path.join(dir, "CHANGELOG.md"), "utf8");
+    assert.ok(changelog.includes("#### Thêm\n\n- Kéo thả trang."), changelog);
+
+    // Chạy lại (sau commit của workflow): dùng <version>.md, không đổi gì.
+    const again = inject(args);
+    assert.equal(again.code, 0);
+    assert.match(again.out, /không đổi/);
+  });
+
+  it("inject-vi-changelog prefers a hand-written <version>.md and drops the fragments", () => {
+    const dir = tmp();
+    mkdirSync(path.join(dir, "vi", "unreleased"), { recursive: true });
+    writeFileSync(path.join(dir, "CHANGELOG.md"), CHANGELOG);
+    writeFileSync(path.join(dir, "vi", "0.2.0.md"), VI_020);
+    writeFileSync(path.join(dir, "vi", "unreleased", "drag.md"), "- Một ý khác.\n");
+    const r = inject([
+      "--version",
+      "0.2.0",
+      "--changelog",
+      path.join(dir, "CHANGELOG.md"),
+      "--vi-dir",
+      path.join(dir, "vi"),
+    ]);
+    assert.equal(r.code, 0);
+    assert.equal(readFileSync(path.join(dir, "vi", "0.2.0.md"), "utf8"), VI_020);
+    assert.deepEqual(readdirSync(path.join(dir, "vi", "unreleased")), []);
+    assert.ok(!readFileSync(path.join(dir, "CHANGELOG.md"), "utf8").includes("Một ý khác"));
+  });
+
+  it("inject-vi-changelog leaves files untouched when the version is not in CHANGELOG.md", () => {
+    const dir = tmp();
+    mkdirSync(path.join(dir, "vi", "unreleased"), { recursive: true });
+    writeFileSync(path.join(dir, "CHANGELOG.md"), CHANGELOG);
+    writeFileSync(path.join(dir, "vi", "unreleased", "drag.md"), "- Kéo thả.\n");
+    const r = inject([
+      "--version",
+      "0.3.0",
+      "--changelog",
+      path.join(dir, "CHANGELOG.md"),
+      "--vi-dir",
+      path.join(dir, "vi"),
+    ]);
+    assert.equal(r.code, 2);
+    assert.ok(!existsSync(path.join(dir, "vi", "0.3.0.md")));
+    assert.ok(existsSync(path.join(dir, "vi", "unreleased", "drag.md")));
   });
 });

@@ -11,7 +11,7 @@
       "include-component-in-tag": false,
       "changelog-path": "CHANGELOG.md",
       "pull-request-title-pattern": "chore(release): release${component} ${version}",
-      "pull-request-header": ":robot: Release PR do release-please tạo. Trước khi merge: thêm `changelog/vi/<version>.md` (xem `docs/runbooks/release.md`) — check `release-vi-notes` sẽ chèn nó vào CHANGELOG.md.",
+      "pull-request-header": ":robot: Release PR do release-please tạo. Check `release-vi-notes` gộp `changelog/vi/unreleased/*.md` của các PR thành `changelog/vi/<version>.md` và chèn vào CHANGELOG.md; đỏ khi không có ghi chú tiếng Việt nào (xem `docs/runbooks/release.md`).",
       "extra-files": [
         { "type": "json", "path": "apps/web/package.json", "jsonpath": "$.version" },
         { "type": "json", "path": "apps/collab/package.json", "jsonpath": "$.version" }

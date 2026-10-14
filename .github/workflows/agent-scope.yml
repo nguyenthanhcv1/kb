@@ -1,5 +1,6 @@
 # CI `agent-scope`: PR gắn đúng một task trong docs/ai/tasks.yaml (dòng Agent:/Task:, [Txx] trong tiêu đề),
-# deps đã merge vào nhánh gốc, không sửa file chỉ release-please được sửa. Không còn lane/vùng sở hữu.
+# deps đã merge vào nhánh gốc, không sửa file chỉ release-please được sửa, PR feat/fix kèm ghi chú tiếng Việt
+# changelog/vi/unreleased/*.md. Không còn lane/vùng sở hữu.
 # Tách khỏi ci.yml để sửa thân PR (dòng Agent:/Task:, sự kiện `edited`) chỉ chạy lại check này.
 # Branch protection: yêu cầu check `agent-scope` (WORKFLOW §8).
 name: Agent scope

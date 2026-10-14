@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { parseTasks } from "./lib.mjs";
-import { checkScope, parseNameStatus, parsePrBody } from "./scope.mjs";
+import { checkScope, checkViNotes, parseNameStatus, parsePrBody } from "./scope.mjs";
 
 const taskFile = parseTasks(`
 tasks:
@@ -132,5 +132,54 @@ describe("parseNameStatus", () => {
       { status: "A", path: "b.ts" },
       { status: "A", path: "d.ts" },
     ]);
+  });
+});
+
+describe("checkViNotes", () => {
+  const add = (/** @type {string[]} */ ...paths) => paths.map((path) => ({ status: "A", path }));
+  /** @param {string} title @param {{status: string, path: string}[]} files @param {string} [agent] */
+  const vi = (title, files, agent = "claude") =>
+    checkViNotes({ body: body(agent, "none"), title, files });
+
+  it("feat/fix/perf/revert/security không có ghi chú → lỗi", () => {
+    for (const title of [
+      "feat(web): share pages",
+      "fix: x",
+      "perf(search)!: faster",
+      "revert: y",
+      "security: z",
+    ]) {
+      const r = vi(title, mod("apps/web/src/x.tsx"));
+      assert.equal(r.errors.length, 1, title);
+      assert.match(r.errors[0], /changelog\/vi\/unreleased/);
+    }
+  });
+
+  it("có changelog/vi/unreleased/<tên>.md (thêm hoặc sửa) → đạt", () => {
+    assert.deepEqual(vi("feat: x", add("changelog/vi/unreleased/share.md")).errors, []);
+    assert.deepEqual(vi("fix: x", mod("changelog/vi/unreleased/share.md")).errors, []);
+  });
+
+  it("xoá ghi chú, README, file mẫu hay thư mục khác không tính", () => {
+    for (const files of [
+      [{ status: "D", path: "changelog/vi/unreleased/share.md" }],
+      add("changelog/vi/unreleased/README.md"),
+      add("changelog/vi/unreleased/_template.md"),
+      add("changelog/vi/unreleased/sub/x.md"),
+      add("changelog/vi/1.3.0.md"),
+    ]) {
+      assert.equal(vi("feat: x", files).errors.length, 1, files[0].path);
+    }
+  });
+
+  it("type ẩn (chore, docs, ci…) không cần ghi chú; bot bỏ qua; human chỉ cảnh báo", () => {
+    for (const title of ["chore: x", "docs(release): x", "ci: x", "refactor: x", "test: x"]) {
+      assert.deepEqual(vi(title, []).errors, [], title);
+    }
+    const bot = checkViNotes({ body: "", title: "fix: x", files: [], authorIsBot: true });
+    assert.deepEqual(bot, { errors: [], warnings: [], notes: [] });
+    const human = vi("feat: x", [], "human");
+    assert.deepEqual(human.errors, []);
+    assert.equal(human.warnings.length, 1);
   });
 });
