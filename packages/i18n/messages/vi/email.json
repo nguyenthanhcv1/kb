@@ -20,7 +20,7 @@
   },
   "pageInvitation": {
     "accept": "Nhận lời mời",
-    "body": "{inviter} đã chia sẻ trang “{page}” (không gian {space}) với bạn. Quyền của bạn: {role}. Bạn sẽ xem được trang này và các trang con của nó.",
+    "body": "{inviter} đã chia sẻ trang “{page}” (không gian {space}) với bạn. Quyền của bạn: {role}. Bạn sẽ mở được trang này và các trang con của nó.",
     "expires": "Lời mời hết hạn vào {date}.",
     "greeting": "Xin chào,",
     "ignore": "Nếu bạn không mong đợi lời mời này, bạn có thể bỏ qua email.",
@@ -30,7 +30,7 @@
     "untitled": "Trang chưa đặt tên"
   },
   "pageShared": {
-    "body": "{sharer} đã chia sẻ trang “{page}” (không gian {space}) với bạn. Quyền của bạn: {role}. Bạn xem được trang này và các trang con của nó.",
+    "body": "{sharer} đã chia sẻ trang “{page}” (không gian {space}) với bạn. Quyền của bạn: {role}. Bạn mở được trang này và các trang con của nó.",
     "greeting": "Xin chào,",
     "ignore": "Trang cũng xuất hiện trong mục “Được chia sẻ với tôi” ở thanh bên.",
     "linkFallback": "Nếu nút không hoạt động, hãy mở liên kết sau:",

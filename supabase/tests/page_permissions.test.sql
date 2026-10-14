@@ -275,7 +275,9 @@ reset role;
 
 select results_eq(
   $$ select action, metadata ->> 'email', coalesce(metadata ->> 'role', metadata ->> 'to_role'), space_id
-     from public.audit_logs where action like 'page.%share%' order by occurred_at, id $$,
+     from public.audit_logs
+     where action like 'page.%share%' and space_id = 'a0000000-0000-0000-0000-000000000001'
+     order by occurred_at, id $$,
   $$ select * from (values
        ('page.share', 'guest@partner.example', 'viewer', 'a0000000-0000-0000-0000-000000000001'::uuid),
        ('page.share', 'guest2@partner.example', 'editor', 'a0000000-0000-0000-0000-000000000001'::uuid),

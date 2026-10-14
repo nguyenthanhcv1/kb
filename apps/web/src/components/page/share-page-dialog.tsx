@@ -193,13 +193,13 @@ export function SharePageDialogBody({ page }: { page: Pick<PageSummary, "id" | "
             )}
           </div>
           <div className="grid gap-2">
-            <Label htmlFor={roleId}>{t("members.invite.roleLabel")}</Label>
+            <Label htmlFor={roleId}>{t("members.pageShare.roleField")}</Label>
             <RoleSelect
               id={roleId}
               value={role}
               roles={PAGE_SHARE_ROLES}
               onChange={setRole}
-              label={t("members.invite.roleLabel")}
+              label={t("members.pageShare.roleField")}
               disabled={pending}
             />
           </div>
