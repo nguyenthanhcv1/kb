@@ -18,6 +18,27 @@
     "signInHint": "Sign in with Google as {email} to accept the invitation.",
     "subject": "{inviter} invited you to the {space} space"
   },
+  "pageInvitation": {
+    "accept": "Accept invitation",
+    "body": "{inviter} shared the page “{page}” ({space} space) with you. Your access: {role}. You will be able to open this page and its subpages.",
+    "expires": "This invitation expires on {date}.",
+    "greeting": "Hello,",
+    "ignore": "If you were not expecting this invitation, you can ignore this email.",
+    "linkFallback": "If the button does not work, open this link:",
+    "signInHint": "Sign in with Google as {email} to accept the invitation.",
+    "subject": "{inviter} shared the page “{page}” with you",
+    "untitled": "Untitled page"
+  },
+  "pageShared": {
+    "body": "{sharer} shared the page “{page}” ({space} space) with you. Your access: {role}. You can open this page and its subpages.",
+    "greeting": "Hello,",
+    "ignore": "The page is also listed under “Shared with me” in the sidebar.",
+    "linkFallback": "If the button does not work, open this link:",
+    "open": "Open page",
+    "signInHint": "Sign in as {email} to open the page.",
+    "subject": "{sharer} shared the page “{page}” with you",
+    "untitled": "Untitled page"
+  },
   "test": {
     "body": "This is a test email sent by {sender} from the {app} administration page at {sentAt, date, long} {sentAt, time, short}.\n\nIf you received it, the SMTP settings work. No reply needed.",
     "subject": "Test email from {app}"

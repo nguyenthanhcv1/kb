@@ -1,7 +1,9 @@
 import { redirect } from "next/navigation";
 import { cache } from "react";
 
+import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/server/auth";
+import { listSharedWithMe } from "@/server/page-shares";
 import { getSpaceBySlug, listSpaces } from "@/server/space/actions";
 
 /**
@@ -35,4 +37,14 @@ export const loadSpace = cache(async (slug: string) => {
     throw new Error(result.error);
   }
   return result.data;
+});
+
+/** Pages shared directly with the user (sidebar "Shared with me"); empty on a read error. */
+export const loadSharedPages = cache(async () => {
+  try {
+    return await listSharedWithMe(await createClient());
+  } catch (error) {
+    console.error("[page-shares] listSharedWithMe failed", error);
+    return [];
+  }
 });

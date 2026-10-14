@@ -350,6 +350,7 @@ describe.skipIf(!URL || !SECRET || !ADMIN_URL)("members and invitations through 
       spaceId: ids.space,
       spaceSlug: `mb-${run}`,
       role: "editor",
+      page: null,
     });
     const { members } = await listMembers(as.invitee, { spaceId: ids.space });
     expect(members.find((m) => m.userId === ids.invitee)).toMatchObject({

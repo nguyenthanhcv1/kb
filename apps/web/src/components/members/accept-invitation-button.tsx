@@ -5,11 +5,15 @@ import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 
 import { Button } from "@/components/ui/button";
+import { pageHref } from "@/lib/page-href";
 import { acceptInvitation } from "@/server/members/actions";
 
 import { memberErrorKey } from "./errors";
 
-/** Accepts the invitation, then opens the Space. Errors (expired meanwhile…) show inline. */
+/**
+ * Accepts the invitation, then opens the Space — or the shared page of a page invitation. Errors
+ * (expired meanwhile…) show inline.
+ */
 export function AcceptInvitationButton({ token }: { token: string }) {
   const t = useTranslations();
   const router = useRouter();
@@ -24,7 +28,8 @@ export function AcceptInvitationButton({ token }: { token: string }) {
         setError(t(memberErrorKey(result.error)));
         return;
       }
-      router.push(`/s/${encodeURIComponent(result.data.spaceSlug)}`);
+      const { spaceSlug, page } = result.data;
+      router.push(page ? pageHref(spaceSlug, page) : `/s/${encodeURIComponent(spaceSlug)}`);
       router.refresh();
     });
   }

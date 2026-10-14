@@ -24,6 +24,8 @@ type PageBreadcrumbProps = {
   page: Pick<PageSummary, "title" | "icon">;
   /** Ancestors shown before collapsing the middle ones into "…" (first and last are kept). */
   maxAncestors?: number;
+  /** `false` for someone who reaches the page only through a share: the Space is plain text. */
+  linkSpace?: boolean;
 };
 
 /** Visible ancestors: all of them, or the first and the last `maxAncestors - 1` with a gap. */
@@ -42,7 +44,13 @@ export function visibleCrumbs<T>(ancestors: readonly T[], maxAncestors: number) 
  * Space › ancestors › page, for the page route (T2.4). Works in Server and Client Components.
  * Long chains collapse the middle into "…" so the bar stays on one or two lines at 360 px.
  */
-export function PageBreadcrumb({ space, ancestors, page, maxAncestors = 3 }: PageBreadcrumbProps) {
+export function PageBreadcrumb({
+  space,
+  ancestors,
+  page,
+  maxAncestors = 3,
+  linkSpace = true,
+}: PageBreadcrumbProps) {
   const t = useTranslations("tree");
   const { head, collapsed, tail } = visibleCrumbs(ancestors, maxAncestors);
   const crumb = (ancestor: Crumb) => (
@@ -67,9 +75,13 @@ export function PageBreadcrumb({ space, ancestors, page, maxAncestors = 3 }: Pag
     <Breadcrumb aria-label={t("breadcrumb.label")}>
       <BreadcrumbList>
         <BreadcrumbItem className="min-w-0">
-          <BreadcrumbLink asChild className="max-w-40 truncate">
-            <Link href={`/s/${space.slug}`}>{space.name}</Link>
-          </BreadcrumbLink>
+          {linkSpace ? (
+            <BreadcrumbLink asChild className="max-w-40 truncate">
+              <Link href={`/s/${space.slug}`}>{space.name}</Link>
+            </BreadcrumbLink>
+          ) : (
+            <span className="max-w-40 truncate">{space.name}</span>
+          )}
         </BreadcrumbItem>
         {head.map(crumb)}
         {collapsed && (

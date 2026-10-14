@@ -1,10 +1,8 @@
 "use server";
 
-import { headers } from "next/headers";
-
-import { webEnv } from "@/lib/env";
 import { createClient } from "@/lib/supabase/server";
-import { mailerFromEnv, type Mailer } from "@/server/email/mailer";
+
+import { invitationDeps } from "./deps";
 
 import {
   MemberError,
@@ -30,7 +28,6 @@ import {
   type ChangeMemberRoleInput,
   type CreateInvitationInput,
   type Invitation,
-  type InvitationDeps,
   type InvitationIdInput,
   type InvitationPreview,
   type InvitationTokenInput,
@@ -76,22 +73,6 @@ async function run<T>(action: (db: MembersDb) => Promise<T>): Promise<MemberActi
     console.error("[members] unexpected error", error);
     return { ok: false, error: "MEMBER_ACTION_FAILED" };
   }
-}
-
-let cachedMailer: Mailer | null | undefined;
-
-/** `APP_URL` (required when deployed), else the request origin (local dev). */
-async function invitationDeps(): Promise<InvitationDeps> {
-  const env = webEnv();
-  cachedMailer ??= mailerFromEnv(env);
-  let appUrl = env.APP_URL;
-  if (!appUrl) {
-    const h = await headers();
-    const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3000";
-    const proto = h.get("x-forwarded-proto") ?? "http";
-    appUrl = h.get("origin") ?? `${proto}://${host}`;
-  }
-  return { appUrl, mailer: cachedMailer };
 }
 
 export async function listMembers(

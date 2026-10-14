@@ -18,6 +18,27 @@
     "signInHint": "Hãy đăng nhập bằng Google với địa chỉ {email} để nhận lời mời.",
     "subject": "{inviter} mời bạn vào không gian {space}"
   },
+  "pageInvitation": {
+    "accept": "Nhận lời mời",
+    "body": "{inviter} đã chia sẻ trang “{page}” (không gian {space}) với bạn. Quyền của bạn: {role}. Bạn sẽ mở được trang này và các trang con của nó.",
+    "expires": "Lời mời hết hạn vào {date}.",
+    "greeting": "Xin chào,",
+    "ignore": "Nếu bạn không mong đợi lời mời này, bạn có thể bỏ qua email.",
+    "linkFallback": "Nếu nút không hoạt động, hãy mở liên kết sau:",
+    "signInHint": "Hãy đăng nhập bằng Google với địa chỉ {email} để nhận lời mời.",
+    "subject": "{inviter} chia sẻ trang “{page}” với bạn",
+    "untitled": "Trang chưa đặt tên"
+  },
+  "pageShared": {
+    "body": "{sharer} đã chia sẻ trang “{page}” (không gian {space}) với bạn. Quyền của bạn: {role}. Bạn mở được trang này và các trang con của nó.",
+    "greeting": "Xin chào,",
+    "ignore": "Trang cũng xuất hiện trong mục “Được chia sẻ với tôi” ở thanh bên.",
+    "linkFallback": "Nếu nút không hoạt động, hãy mở liên kết sau:",
+    "open": "Mở trang",
+    "signInHint": "Đăng nhập bằng tài khoản {email} để mở trang.",
+    "subject": "{sharer} chia sẻ trang “{page}” với bạn",
+    "untitled": "Trang chưa đặt tên"
+  },
   "test": {
     "body": "Đây là email thử do {sender} gửi từ trang Quản trị của {app} lúc {sentAt, date, long} {sentAt, time, short}.\n\nNếu bạn nhận được email này, cấu hình SMTP đã hoạt động. Không cần trả lời.",
     "subject": "Email thử từ {app}"

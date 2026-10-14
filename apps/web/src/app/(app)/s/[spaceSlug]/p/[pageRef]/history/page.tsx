@@ -7,8 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import { canonicalPageRedirect, pageHref } from "@/lib/page-href";
 import { getPageVersion, listPageVersions, VersionError } from "@/server/versions";
 
-import { loadSpace } from "../../../../../_lib/data";
-import { loadPageByRef, loadPageContent } from "../../../../../_lib/pages";
+import { loadPageAccess, loadPageByRef, loadPageContent } from "../../../../../_lib/pages";
 
 type Props = {
   params: Promise<{ spaceSlug: string; pageRef: string }>;
@@ -39,8 +38,8 @@ export default async function PageHistoryRoute({ params, searchParams }: Props) 
   const canonical = canonicalPageRedirect({ spaceSlug, ref: pageRef }, page);
   if (canonical) redirect(`${canonical}/history`);
 
-  const space = await loadSpace(page.spaceSlug);
-  if (!space) notFound();
+  const access = await loadPageAccess(page.id, page.spaceSlug);
+  if (!access) notFound();
 
   const supabase = await createClient();
   const versions = await listPageVersions(supabase, { pageId: page.id });
@@ -74,12 +73,12 @@ export default async function PageHistoryRoute({ params, searchParams }: Props) 
     }
   }
 
-  const href = pageHref(space.slug, page);
+  const href = pageHref(access.spaceSlug, page);
   return (
     <HistoryView
       key={page.id}
       pageId={page.id}
-      canRestore={canEditSpaceContent(space.role)}
+      canRestore={canEditSpaceContent(access.pageRole)}
       pageHref={href}
       historyHref={`${href}/history`}
       pageTitle={page.title}

@@ -74,6 +74,12 @@ function Detail({ t, detail }: { t: Translate; detail: AuditDetail }) {
       return t("audit.details.role", { role: roleLabel(t, detail.role) });
     case "left":
       return t("audit.details.left");
+    case "leftPage":
+      return t("audit.details.leftPage");
+    case "sharedWith":
+      return t("audit.details.sharedWith", { email: detail.email });
+    case "page":
+      return t("audit.details.page", { title: detail.title || t("tree.untitled") });
     case "expiresAt":
       return t("audit.details.expiresAt", {
         date: format.dateTime(new Date(detail.at), "dateTime"),

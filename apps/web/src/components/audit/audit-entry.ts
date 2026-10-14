@@ -192,6 +192,9 @@ export type AuditDetail =
   | { kind: "roleChange"; from: string; to: string }
   | { kind: "role"; role: string }
   | { kind: "left" }
+  | { kind: "leftPage" }
+  | { kind: "sharedWith"; email: string }
+  | { kind: "page"; title: string }
   | { kind: "expiresAt"; at: string }
   | { kind: "fieldChange"; field: string; from: unknown; to: unknown };
 
@@ -271,13 +274,35 @@ export function describeAuditEntry(
     case "invitation.accept": {
       const email = str(m.email);
       const expires = entry.action === "invitation.create" ? str(m.expires_at) : null;
+      // Page share invitations carry the page (`page_id`, `title`).
+      const page = str(m.page_id) ? (str(m.title) ?? "") : null;
       return {
         target: email
           ? { kind: "text", text: email }
           : { kind: "entity", entityType: entry.entityType },
         details: [
+          ...(page !== null ? [{ kind: "page" as const, title: page }] : []),
           ...(role ? [{ kind: "role" as const, role }] : []),
           ...(expires ? [{ kind: "expiresAt" as const, at: expires }] : []),
+        ],
+      };
+    }
+    case "page.share":
+    case "page.share_role_change":
+    case "page.unshare": {
+      const title = str(m.title);
+      const email = str(m.email);
+      const from = str(m.from_role);
+      const to = str(m.to_role);
+      return {
+        target: title
+          ? { kind: "text", text: title }
+          : { kind: "entity", entityType: entry.entityType },
+        details: [
+          ...(email ? [{ kind: "sharedWith" as const, email }] : []),
+          ...(from && to ? [{ kind: "roleChange" as const, from, to }] : []),
+          ...(role ? [{ kind: "role" as const, role }] : []),
+          ...(m.self === true ? [{ kind: "leftPage" as const }] : []),
         ],
       };
     }
