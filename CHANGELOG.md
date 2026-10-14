@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.0](https://github.com/nguyenthanhcv1/kb/compare/v1.1.0...v1.2.0) (2026-10-14)
+
+
+### Added
+
+* **web:** share a page and its subpages with people outside the space ([#115](https://github.com/nguyenthanhcv1/kb/issues/115)) ([66b979a](https://github.com/nguyenthanhcv1/kb/commit/66b979ac4b38e1b1060bcbabcf27dfa1d917d78a))
+
 ## [1.1.0](https://github.com/nguyenthanhcv1/kb/compare/v1.0.1...v1.1.0) (2026-10-14)
 
 
