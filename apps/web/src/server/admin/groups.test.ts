@@ -16,6 +16,7 @@ const SUPER = "10000000-0000-4000-8000-000000000001";
 const OTHER = "10000000-0000-4000-8000-000000000002";
 const GROUP = "7a0f0000-0000-4000-8000-000000000001";
 const USER = "10000000-0000-4000-8000-000000000003";
+const SPACE = "00000000-0000-4000-8000-000000000001";
 
 type Result = { data: unknown; error: { code?: string; message: string } | null };
 
@@ -61,6 +62,7 @@ const groupRow = {
   name: "KAS",
   description: null,
   member_count: 2,
+  space_count: 1,
   created_at: "2026-10-12T02:00:00+00:00",
 };
 
@@ -82,13 +84,14 @@ describe("groups contract", () => {
           name: "KAS",
           description: null,
           memberCount: 2,
+          spaceCount: 1,
           createdAt: "2026-10-12T02:00:00+00:00",
         },
       ],
     });
   });
 
-  it("gets a group with its members, and reports an unknown one", async () => {
+  it("gets a group with its members and Spaces, and reports an unknown one", async () => {
     const db = new FakeDb();
     db.results.admin_list_group_members = {
       data: [
@@ -102,8 +105,14 @@ describe("groups contract", () => {
       ],
       error: null,
     };
+    db.results.admin_list_group_spaces = {
+      data: [{ space_id: SPACE, slug: "sales", name: "Sales", role: "editor" }],
+      error: null,
+    };
     db.results.admin_list_groups = { data: [groupRow], error: null };
-    const { group, members } = await getGroup(db, { groupId: GROUP });
+    const { group, members, spaces } = await getGroup(db, { groupId: GROUP });
+    expect(spaces).toEqual([{ spaceId: SPACE, slug: "sales", name: "Sales", role: "editor" }]);
+    expect(db.calls).toContainEqual({ fn: "admin_list_group_spaces", args: { p_group_id: GROUP } });
     expect(group.memberCount).toBe(2);
     expect(members).toEqual([
       {

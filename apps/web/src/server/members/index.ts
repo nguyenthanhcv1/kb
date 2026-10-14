@@ -51,6 +51,7 @@ import type { Mailer } from "@/server/email/mailer";
 
 export const MEMBER_ERROR_CODES = [
   "FORBIDDEN",
+  "GROUP_NOT_FOUND",
   "GUEST_CANNOT_BE_SPACE_ADMIN",
   "INVITATION_ALREADY_PENDING",
   "INVITATION_ALREADY_USED",
@@ -63,6 +64,8 @@ export const MEMBER_ERROR_CODES = [
   "MEMBER_NOT_FOUND",
   "MEMBER_USER_NOT_FOUND",
   "RATE_LIMITED",
+  "SPACE_GROUP_ALREADY_EXISTS",
+  "SPACE_GROUP_NOT_FOUND",
   "SPACE_NOT_FOUND",
   "SPACE_REQUIRES_ADMIN",
   "UNAUTHORIZED",
@@ -89,6 +92,10 @@ export type InvitationRole = (typeof INVITATION_ROLES)[number];
 
 export const INVITATION_STATUSES = ["pending", "accepted", "revoked", "expired"] as const;
 export type InvitationStatus = (typeof INVITATION_STATUSES)[number];
+
+/** Groups are never Space admins (`space_groups.role in ('viewer', 'editor')`). */
+export const SPACE_GROUP_ROLES = ["viewer", "editor"] as const;
+export type SpaceGroupRole = (typeof SPACE_GROUP_ROLES)[number];
 
 /** Matches the column default `now() + interval '14 days'`; resend extends by the same amount. */
 export const INVITATION_TTL_DAYS = 14;
@@ -198,6 +205,49 @@ export type Invitation = z.infer<typeof invitationSchema>;
 export const listInvitationsOutputSchema = z.object({ invitations: z.array(invitationSchema) });
 export type ListInvitationsOutput = z.infer<typeof listInvitationsOutputSchema>;
 
+const spaceGroupRoleSchema = z.enum(SPACE_GROUP_ROLES);
+
+export const spaceGroupSchema = z.object({
+  groupId: z.guid(),
+  name: z.string(),
+  description: z.string().nullable(),
+  role: spaceGroupRoleSchema,
+  memberCount: z.number().int(),
+  /** When the group was granted access. ISO 8601 (UTC). */
+  addedAt: z.string(),
+});
+export type SpaceGroup = z.infer<typeof spaceGroupSchema>;
+
+export const listSpaceGroupsOutputSchema = z.object({ groups: z.array(spaceGroupSchema) });
+export type ListSpaceGroupsOutput = z.infer<typeof listSpaceGroupsOutputSchema>;
+
+export const searchGrantableGroupsInputSchema = z.object({
+  spaceId: z.guid(),
+  /** Fragment of the group name; accent/case-insensitive ("ke toan" finds "Kế toán"). */
+  query: z.string().trim().min(1).max(100),
+  limit: z.number().int().min(1).max(50).optional(),
+});
+export type SearchGrantableGroupsInput = z.input<typeof searchGrantableGroupsInputSchema>;
+
+export const grantableGroupSchema = spaceGroupSchema.omit({ role: true, addedAt: true });
+export type GrantableGroup = z.infer<typeof grantableGroupSchema>;
+
+export const searchGrantableGroupsOutputSchema = z.object({
+  groups: z.array(grantableGroupSchema),
+});
+export type SearchGrantableGroupsOutput = z.infer<typeof searchGrantableGroupsOutputSchema>;
+
+export const spaceGroupInputSchema = z.object({
+  spaceId: z.guid(),
+  groupId: z.guid(),
+  role: spaceGroupRoleSchema,
+});
+/** `addSpaceGroup` and `changeSpaceGroupRole`. */
+export type SpaceGroupInput = z.input<typeof spaceGroupInputSchema>;
+
+export const removeSpaceGroupInputSchema = z.object({ spaceId: z.guid(), groupId: z.guid() });
+export type RemoveSpaceGroupInput = z.input<typeof removeSpaceGroupInputSchema>;
+
 export const EMAIL_STATUSES = ["sent", "skipped", "failed"] as const;
 /** `skipped`: SMTP not configured; `failed`: SMTP error (logged). The invitation exists either way. */
 export type EmailStatus = (typeof EMAIL_STATUSES)[number];
@@ -295,6 +345,30 @@ export const listInvitationsExample: ListInvitationsOutput = {
   ],
 };
 
+export const listSpaceGroupsExample: ListSpaceGroupsOutput = {
+  groups: [
+    {
+      groupId: "7a0f0000-0000-4000-8000-000000000001",
+      name: "KAS",
+      description: "Key account sales",
+      role: "editor",
+      memberCount: 12,
+      addedAt: "2026-10-12T02:00:00+00:00",
+    },
+  ],
+};
+
+export const searchGrantableGroupsExample: SearchGrantableGroupsOutput = {
+  groups: [
+    {
+      groupId: "7a0f0000-0000-4000-8000-000000000002",
+      name: "Kế toán",
+      description: null,
+      memberCount: 4,
+    },
+  ],
+};
+
 export const invitationPreviewExample: InvitationPreview = {
   invitationId: "7a1c0000-0000-4000-8000-000000000001",
   spaceId: "0b9a0000-0000-4000-8000-000000000001",
@@ -340,9 +414,14 @@ export interface MembersQuery extends PromiseLike<DbResult<unknown>> {
   single(): PromiseLike<DbResult<unknown>>;
 }
 
-export type MembersTable = "profiles" | "spaces" | "space_members" | "invitations";
+export type MembersTable = "profiles" | "spaces" | "space_members" | "invitations" | "space_groups";
 export type MembersRpc =
-  "list_space_members" | "search_member_candidates" | "get_invitation" | "accept_invitation";
+  | "list_space_members"
+  | "search_member_candidates"
+  | "get_invitation"
+  | "accept_invitation"
+  | "list_space_groups"
+  | "search_grantable_groups";
 
 export interface MembersDb {
   auth: {
@@ -393,6 +472,7 @@ const PG_INVALID_TEXT = "22P02";
 /** Error messages raised by DB triggers / SQL functions that are already stable codes. */
 const DB_CODES = new Set<MemberErrorCode>([
   "FORBIDDEN",
+  "GROUP_NOT_FOUND",
   "GUEST_CANNOT_BE_SPACE_ADMIN",
   "INVITATION_ALREADY_USED",
   "INVITATION_EMAIL_MISMATCH",
@@ -791,6 +871,191 @@ export async function leaveSpace(db: MembersDb, input: SpaceIdInput): Promise<vo
     throw (await spaceIsVisible(db, spaceId))
       ? new MemberError("MEMBER_NOT_FOUND")
       : new MemberError("SPACE_NOT_FOUND");
+  }
+}
+
+// ---------------------------------------------------------------------------------------------
+// Group access (`space_groups`, migration `*_space_group_access.sql`)
+// ---------------------------------------------------------------------------------------------
+
+const spaceGroupRowSchema = z.object({
+  group_id: z.guid(),
+  name: z.string(),
+  description: z.string().nullable(),
+  role: spaceGroupRoleSchema,
+  member_count: z.number().int(),
+  added_at: z.string(),
+});
+
+async function fetchSpaceGroups(db: MembersDb, spaceId: string): Promise<SpaceGroup[]> {
+  const data = await unwrap(db.rpc("list_space_groups", { p_space_id: spaceId }));
+  return parseData(z.array(spaceGroupRowSchema), data ?? []).map((row) => ({
+    groupId: row.group_id,
+    name: row.name,
+    description: row.description,
+    role: row.role,
+    memberCount: row.member_count,
+    addedAt: row.added_at,
+  }));
+}
+
+async function fetchSpaceGroup(
+  db: MembersDb,
+  spaceId: string,
+  groupId: string,
+): Promise<SpaceGroup> {
+  const group = (await fetchSpaceGroups(db, spaceId)).find((g) => g.groupId === groupId);
+  if (!group) throw new MemberError("SPACE_GROUP_NOT_FOUND");
+  return group;
+}
+
+/** Same as {@link diagnoseMemberWrite}, for a group grant. */
+async function diagnoseSpaceGroupWrite(
+  db: MembersDb,
+  spaceId: string,
+  groupId: string,
+): Promise<MemberError> {
+  if (!(await spaceIsVisible(db, spaceId))) return new MemberError("SPACE_NOT_FOUND");
+  const grant = await unwrap(
+    db
+      .from("space_groups")
+      .select("group_id")
+      .eq("space_id", spaceId)
+      .eq("group_id", groupId)
+      .maybeSingle(),
+  );
+  return new MemberError(grant ? "FORBIDDEN" : "SPACE_GROUP_NOT_FOUND");
+}
+
+/**
+ * Groups with access to a Space and the role each grants, by name. Anyone who can view the Space
+ * may list them (member counts included; who is in a group stays private to super admins).
+ *
+ * @throws {MemberError} `VALIDATION_FAILED`, `UNAUTHORIZED`, `SPACE_NOT_FOUND`, `MEMBER_ACTION_FAILED`.
+ */
+export async function listSpaceGroups(
+  db: MembersDb,
+  input: SpaceIdInput,
+): Promise<ListSpaceGroupsOutput> {
+  const { spaceId } = parseInput(spaceIdInputSchema, input);
+  await requireUserId(db);
+  if (!(await spaceIsVisible(db, spaceId))) throw new MemberError("SPACE_NOT_FOUND");
+  return { groups: await fetchSpaceGroups(db, spaceId) };
+}
+
+/**
+ * Groups without access to the Space yet whose name contains `query`, accent-insensitive (Space
+ * admins only — SQL `search_grantable_groups`).
+ *
+ * @throws {MemberError} `VALIDATION_FAILED`, `UNAUTHORIZED`, `FORBIDDEN`, `MEMBER_ACTION_FAILED`.
+ */
+export async function searchGrantableGroups(
+  db: MembersDb,
+  input: SearchGrantableGroupsInput,
+): Promise<SearchGrantableGroupsOutput> {
+  const parsed = parseInput(searchGrantableGroupsInputSchema, input);
+  await requireUserId(db);
+  const data = await unwrap(
+    db.rpc("search_grantable_groups", {
+      p_space_id: parsed.spaceId,
+      p_query: parsed.query,
+      p_limit: parsed.limit ?? 10,
+    }),
+  );
+  const rows = parseData(
+    z.array(spaceGroupRowSchema.omit({ role: true, added_at: true })),
+    data ?? [],
+  );
+  return {
+    groups: rows.map((row) => ({
+      groupId: row.group_id,
+      name: row.name,
+      description: row.description,
+      memberCount: row.member_count,
+    })),
+  };
+}
+
+/**
+ * Grants a group access to the Space as `viewer` or `editor` (Space admins only; a group is never
+ * an admin). Every member of the group gets that role at least, for as long as they are in it.
+ * Audited as `member.group_add`.
+ *
+ * @throws {MemberError} `VALIDATION_FAILED`, `UNAUTHORIZED`, `SPACE_NOT_FOUND`, `FORBIDDEN`,
+ *   `GROUP_NOT_FOUND`, `SPACE_GROUP_ALREADY_EXISTS`, `MEMBER_ACTION_FAILED`.
+ */
+export async function addSpaceGroup(db: MembersDb, input: SpaceGroupInput): Promise<SpaceGroup> {
+  const parsed = parseInput(spaceGroupInputSchema, input);
+  await requireUserId(db);
+
+  const { error } = await db
+    .from("space_groups")
+    .insert({ space_id: parsed.spaceId, group_id: parsed.groupId, role: parsed.role })
+    .select("group_id")
+    .single();
+  if (error) {
+    if (error.code === PG_INSUFFICIENT_PRIVILEGE) {
+      throw (await spaceIsVisible(db, parsed.spaceId))
+        ? new MemberError("FORBIDDEN", { cause: error })
+        : new MemberError("SPACE_NOT_FOUND", { cause: error });
+    }
+    throw toMemberError(error, {
+      [PG_UNIQUE_VIOLATION]: "SPACE_GROUP_ALREADY_EXISTS",
+      // The Space was checked by RLS above, so the missing row is the group.
+      [PG_FOREIGN_KEY_VIOLATION]: "GROUP_NOT_FOUND",
+    });
+  }
+  return fetchSpaceGroup(db, parsed.spaceId, parsed.groupId);
+}
+
+/**
+ * Changes the role a group grants in the Space (Space admins only). Audited as
+ * `member.group_role_change`.
+ *
+ * @throws {MemberError} `VALIDATION_FAILED`, `UNAUTHORIZED`, `SPACE_NOT_FOUND`,
+ *   `SPACE_GROUP_NOT_FOUND`, `FORBIDDEN`, `MEMBER_ACTION_FAILED`.
+ */
+export async function changeSpaceGroupRole(
+  db: MembersDb,
+  input: SpaceGroupInput,
+): Promise<SpaceGroup> {
+  const parsed = parseInput(spaceGroupInputSchema, input);
+  await requireUserId(db);
+
+  const data = await unwrap(
+    db
+      .from("space_groups")
+      .update({ role: parsed.role })
+      .eq("space_id", parsed.spaceId)
+      .eq("group_id", parsed.groupId)
+      .select("group_id")
+      .maybeSingle(),
+  );
+  if (!data) throw await diagnoseSpaceGroupWrite(db, parsed.spaceId, parsed.groupId);
+  return fetchSpaceGroup(db, parsed.spaceId, parsed.groupId);
+}
+
+/**
+ * Takes a group's access to the Space away (Space admins only). Its members keep any access they
+ * have directly or through another group. Audited as `member.group_remove`.
+ *
+ * @throws {MemberError} `VALIDATION_FAILED`, `UNAUTHORIZED`, `SPACE_NOT_FOUND`,
+ *   `SPACE_GROUP_NOT_FOUND`, `FORBIDDEN`, `MEMBER_ACTION_FAILED`.
+ */
+export async function removeSpaceGroup(db: MembersDb, input: RemoveSpaceGroupInput): Promise<void> {
+  const parsed = parseInput(removeSpaceGroupInputSchema, input);
+  await requireUserId(db);
+
+  const data = await unwrap(
+    db
+      .from("space_groups")
+      .delete()
+      .eq("space_id", parsed.spaceId)
+      .eq("group_id", parsed.groupId)
+      .select("group_id"),
+  );
+  if (!Array.isArray(data) || data.length === 0) {
+    throw await diagnoseSpaceGroupWrite(db, parsed.spaceId, parsed.groupId);
   }
 }
 

@@ -25,10 +25,23 @@ export const groupSchema = z.object({
   name: z.string(),
   description: z.string().nullable(),
   memberCount: z.number().int(),
+  /** Spaces (not archived) the group has been granted access to. */
+  spaceCount: z.number().int(),
   /** ISO 8601 (UTC). */
   createdAt: z.string(),
 });
 export type Group = z.infer<typeof groupSchema>;
+
+export const GROUP_SPACE_ROLES = ["viewer", "editor"] as const;
+
+/** A Space a group reaches, and the role the group has there. */
+export const groupSpaceSchema = z.object({
+  spaceId: z.guid(),
+  slug: z.string(),
+  name: z.string(),
+  role: z.enum(GROUP_SPACE_ROLES),
+});
+export type GroupSpace = z.infer<typeof groupSpaceSchema>;
 
 export const groupMemberSchema = z.object({
   userId: z.guid(),
@@ -53,6 +66,7 @@ export const listGroupsExample: ListGroupsOutput = {
       name: "KAS",
       description: "Key account sales",
       memberCount: 12,
+      spaceCount: 3,
       createdAt: "2026-10-12T02:00:00+00:00",
     },
   ],
@@ -83,6 +97,8 @@ export type GroupIdInput = z.input<typeof groupIdInputSchema>;
 export const getGroupOutputSchema = z.object({
   group: groupSchema,
   members: z.array(groupMemberSchema),
+  /** By name; access to them is managed in each Space's settings. */
+  spaces: z.array(groupSpaceSchema),
 });
 export type GetGroupOutput = z.infer<typeof getGroupOutputSchema>;
 
@@ -128,7 +144,15 @@ const groupRowSchema = z.object({
   name: z.string(),
   description: z.string().nullable(),
   member_count: z.number(),
+  space_count: z.number(),
   created_at: z.string(),
+});
+
+const spaceRowSchema = z.object({
+  space_id: z.string(),
+  slug: z.string(),
+  name: z.string(),
+  role: z.enum(GROUP_SPACE_ROLES),
 });
 
 const memberRowSchema = z.object({
@@ -147,6 +171,7 @@ function mapGroup(row: z.infer<typeof groupRowSchema>): Group {
     name: row.name,
     description: row.description,
     memberCount: row.member_count,
+    spaceCount: row.space_count,
     createdAt: row.created_at,
   };
 }
@@ -175,14 +200,17 @@ export async function listGroups(db: AdminDb): Promise<ListGroupsOutput> {
 }
 
 /**
- * One group and its members (by name).
+ * One group, its members and the Spaces it has access to (both by name).
  *
  * @throws {AdminError} `VALIDATION_FAILED`, `FORBIDDEN`, `GROUP_NOT_FOUND`, `ADMIN_ACTION_FAILED`.
  */
 export async function getGroup(db: AdminDb, input: GroupIdInput): Promise<GetGroupOutput> {
   const { groupId } = parseInput(groupIdInputSchema, input);
   await requireSuperAdmin(db);
-  const rows = await rpc(db, "admin_list_group_members", { p_group_id: groupId });
+  const [rows, spaceRows] = await Promise.all([
+    rpc(db, "admin_list_group_members", { p_group_id: groupId }),
+    rpc(db, "admin_list_group_spaces", { p_group_id: groupId }),
+  ]);
   const group = (await fetchGroups(db)).find((g) => g.id === groupId);
   if (!group) throw new AdminError("GROUP_NOT_FOUND");
   const members = z
@@ -195,7 +223,11 @@ export async function getGroup(db: AdminDb, input: GroupIdInput): Promise<GetGro
       avatarUrl: row.avatar_url,
       addedAt: row.added_at,
     }));
-  return { group, members };
+  const spaces = z
+    .array(spaceRowSchema)
+    .parse(spaceRows ?? [])
+    .map((row) => ({ spaceId: row.space_id, slug: row.slug, name: row.name, role: row.role }));
+  return { group, members, spaces };
 }
 
 /**

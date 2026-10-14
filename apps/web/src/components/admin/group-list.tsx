@@ -23,8 +23,8 @@ import { GROUP_DESCRIPTION_MAX, GROUP_NAME_MAX, type Group } from "@/server/admi
 import { adminErrorKey } from "./errors";
 
 /**
- * Groups of `/admin/groups`: one row per group (name, description, member count) linking to its
- * page, and "New group". Errors such as `GROUP_NAME_TAKEN` are shown translated in the dialog.
+ * Groups of `/admin/groups`: one row per group (name, description, member and Space counts)
+ * linking to its page, and "New group". Errors such as `GROUP_NAME_TAKEN` are shown translated in the dialog.
  */
 export function GroupList({ groups }: { groups: Group[] }) {
   const t = useTranslations("admin.groups");
@@ -101,8 +101,9 @@ export function GroupList({ groups }: { groups: Group[] }) {
                     </span>
                   )}
                 </div>
-                <span className="text-sm whitespace-nowrap text-muted-foreground">
-                  {t("members", { count: group.memberCount })}
+                <span className="grid text-right text-sm whitespace-nowrap text-muted-foreground">
+                  <span>{t("members", { count: group.memberCount })}</span>
+                  <span>{t("spaces", { count: group.spaceCount })}</span>
                 </span>
                 <ChevronRightIcon className="size-4 text-muted-foreground" aria-hidden />
               </Link>

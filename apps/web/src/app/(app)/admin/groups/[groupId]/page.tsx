@@ -19,7 +19,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: t("groups.title") };
 }
 
-/** One group: details, members, add members, delete. */
+/** One group: details, members, add members, the Spaces it reaches, delete. */
 export default async function AdminGroupPage({ params }: Props) {
   const user = await requireUser();
   // The layout renders the "no access" state.
@@ -31,7 +31,7 @@ export default async function AdminGroupPage({ params }: Props) {
     if (result.error === "GROUP_NOT_FOUND" || result.error === "VALIDATION_FAILED") notFound();
     throw new Error(result.error);
   }
-  const { group, members } = result.data;
+  const { group, members, spaces } = result.data;
 
   return (
     <div className="flex flex-col gap-4">
@@ -47,6 +47,7 @@ export default async function AdminGroupPage({ params }: Props) {
         key={`${group.id}:${group.name}:${group.description ?? ""}`}
         group={group}
         members={members}
+        spaces={spaces}
       />
     </div>
   );

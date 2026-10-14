@@ -17,7 +17,10 @@ import {
   invitationPreviewExample,
   listInvitationsExample,
   listMembersExample,
+  listSpaceGroupsExample,
+  searchGrantableGroupsExample,
   searchMemberCandidatesExample,
+  type SpaceGroup,
   type SpaceMember,
 } from "@/server/members";
 
@@ -34,6 +37,10 @@ const actions = vi.hoisted(() => ({
   resendInvitation: vi.fn(),
   revokeInvitation: vi.fn(),
   acceptInvitation: vi.fn(),
+  searchGrantableGroups: vi.fn(),
+  addSpaceGroup: vi.fn(),
+  changeSpaceGroupRole: vi.fn(),
+  removeSpaceGroup: vi.fn(),
 }));
 vi.mock("@/server/members/actions", () => actions);
 
@@ -42,6 +49,7 @@ const { AcceptInvitationButton } = await import("./accept-invitation-button");
 const { InvitationList } = await import("./invitation-list");
 const { InviteGuestForm } = await import("./invite-guest-form");
 const { AddMemberForm } = await import("./add-member-form");
+const { GroupAccessSettings } = await import("./group-access");
 
 const messages = {
   vi: { common: viCommon, errors: viErrors, members: viMembers, space: viSpace },
@@ -82,6 +90,7 @@ function renderSettings(locale: "vi" | "en" = "vi") {
     <MembersSettings
       space={SPACE}
       members={[GUEST, EDITOR, ADMIN]}
+      groups={listSpaceGroupsExample.groups}
       invitations={listInvitationsExample.invitations}
       currentUserId={ADMIN.userId}
     />,
@@ -188,6 +197,118 @@ describe("MembersSettings", () => {
     await user.click(within(dialog).getByRole("button", { name: viMembers.leave.confirm }));
     await waitFor(() => expect(router.push).toHaveBeenCalledWith("/"));
     expect(actions.leaveSpace).toHaveBeenCalledWith({ spaceId: SPACE.id });
+  });
+});
+
+describe("GroupAccessSettings", () => {
+  const KAS = listSpaceGroupsExample.groups[0] as SpaceGroup;
+  const FOUND = searchGrantableGroupsExample.groups[0]!;
+
+  it("is part of the members settings, with the groups and their role", () => {
+    renderSettings();
+    const list = screen.getByRole("list", { name: viMembers.groups.title });
+    expect(within(list).getByText("KAS")).toBeTruthy();
+    expect(within(list).getByText(/12 thành viên/)).toBeTruthy();
+    expect(
+      within(list).getByRole("combobox", { name: "Quyền của nhóm KAS" }).textContent,
+    ).toContain(viSpace.roles.editor);
+  });
+
+  it("shows an empty state in English", () => {
+    renderWith(<GroupAccessSettings space={SPACE} groups={[]} />, "en");
+    expect(screen.getByRole("heading", { name: /Groups with access/ })).toBeTruthy();
+    expect(screen.getByText(enMembers.groups.empty)).toBeTruthy();
+  });
+
+  it("searches groups and grants one as viewer by default; admin is never offered", async () => {
+    const user = userEvent.setup();
+    actions.searchGrantableGroups.mockResolvedValue({
+      ok: true,
+      data: searchGrantableGroupsExample,
+    });
+    actions.addSpaceGroup.mockResolvedValue({ ok: true, data: { ...FOUND, role: "viewer" } });
+    renderWith(<GroupAccessSettings space={SPACE} groups={[]} />);
+
+    await user.click(screen.getByRole("combobox", { name: viMembers.groups.roleLabel }));
+    const options = await screen.findAllByRole("option");
+    expect(options.map((o) => o.textContent)).toEqual([
+      expect.stringContaining(viSpace.roles.viewer),
+      expect.stringContaining(viSpace.roles.editor),
+    ]);
+    await user.keyboard("{Escape}");
+
+    await user.type(screen.getByLabelText(viMembers.groups.searchLabel), "ke toan");
+    const add = await screen.findByRole("button", { name: "Cấp quyền cho nhóm Kế toán" });
+    expect(actions.searchGrantableGroups).toHaveBeenCalledWith({
+      spaceId: SPACE.id,
+      query: "ke toan",
+    });
+    await user.click(add);
+    await waitFor(() =>
+      expect(actions.addSpaceGroup).toHaveBeenCalledWith({
+        spaceId: SPACE.id,
+        groupId: FOUND.groupId,
+        role: "viewer",
+      }),
+    );
+    expect(await screen.findByText("Đã cấp quyền cho nhóm Kế toán.")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Cấp quyền cho nhóm Kế toán" })).toBeNull();
+    expect(router.refresh).toHaveBeenCalled();
+  });
+
+  it("shows a translated error when granting fails", async () => {
+    const user = userEvent.setup();
+    actions.searchGrantableGroups.mockResolvedValue({
+      ok: true,
+      data: searchGrantableGroupsExample,
+    });
+    actions.addSpaceGroup.mockResolvedValue({ ok: false, error: "SPACE_GROUP_ALREADY_EXISTS" });
+    renderWith(<GroupAccessSettings space={SPACE} groups={[]} />);
+    await user.type(screen.getByLabelText(viMembers.groups.searchLabel), "ke");
+    await user.click(await screen.findByRole("button", { name: "Cấp quyền cho nhóm Kế toán" }));
+    expect((await screen.findByRole("alert")).textContent).toContain(
+      viErrors.SPACE_GROUP_ALREADY_EXISTS,
+    );
+  });
+
+  it("changes the role of a group, reverting on error", async () => {
+    const user = userEvent.setup();
+    actions.changeSpaceGroupRole
+      .mockResolvedValueOnce({ ok: false, error: "FORBIDDEN" })
+      .mockResolvedValueOnce({ ok: true, data: { ...KAS, role: "viewer" } });
+    renderWith(<GroupAccessSettings space={SPACE} groups={[KAS]} />);
+    const trigger = screen.getByRole("combobox", { name: "Quyền của nhóm KAS" });
+
+    await user.click(trigger);
+    await user.click((await screen.findAllByRole("option"))[0]!);
+    expect((await screen.findByRole("alert")).textContent).toContain(viErrors.FORBIDDEN);
+    await waitFor(() => expect(trigger.textContent).toContain(viSpace.roles.editor));
+
+    await user.click(trigger);
+    await user.click((await screen.findAllByRole("option"))[0]!);
+    expect(actions.changeSpaceGroupRole).toHaveBeenLastCalledWith({
+      spaceId: SPACE.id,
+      groupId: KAS.groupId,
+      role: "viewer",
+    });
+    expect(await screen.findByText("Đã đổi quyền của nhóm KAS thành “Xem”.")).toBeTruthy();
+  });
+
+  it("removes a group's access after confirmation; a grant already gone counts as removed", async () => {
+    const user = userEvent.setup();
+    actions.removeSpaceGroup.mockResolvedValue({ ok: false, error: "SPACE_GROUP_NOT_FOUND" });
+    renderWith(<GroupAccessSettings space={SPACE} groups={[KAS]} />);
+    await user.click(screen.getByRole("button", { name: "Gỡ quyền của nhóm KAS" }));
+    const dialog = await screen.findByRole("alertdialog");
+    expect(dialog.textContent).toContain("KAS");
+    expect(dialog.textContent).toContain("Design");
+    await user.click(within(dialog).getByRole("button", { name: viMembers.groups.remove }));
+    await waitFor(() => expect(screen.queryByRole("alertdialog")).toBeNull());
+    expect(actions.removeSpaceGroup).toHaveBeenCalledWith({
+      spaceId: SPACE.id,
+      groupId: KAS.groupId,
+    });
+    expect(screen.getByText("Đã gỡ quyền của nhóm KAS.")).toBeTruthy();
   });
 });
 
