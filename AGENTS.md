@@ -22,8 +22,8 @@ Quy tắc chung:
 2. **Luôn bắt đầu từ `main` mới nhất** và merge `main` vào nhánh trước khi mở PR. Không force-push nhánh của agent khác, không sửa PR của agent khác.
 3. **Tránh trùng việc**: trước khi làm, xem PR đang mở (`pnpm ai:status` hoặc GitHub). Có PR cùng khu vực/file → làm tiếp trên PR đó nếu là của mình, hoặc báo người; mở **draft PR** sớm để agent khác thấy.
 4. **Kiểm tra theo rủi ro**: production không có staging → CI xanh + tự chạy lại luồng bị ảnh hưởng. Thay đổi DB: migration forward-only, expand → contract, test pgTAP. Thay đổi giao diện: ảnh chụp vi/en × sáng/tối.
-5. **PR có `feat`/`fix` → xuất hiện ở trang "Có gì mới"**: tiêu đề là câu tiếng Anh người dùng đọc hiểu (§2). Việc nội bộ dùng `chore`/`refactor`/`docs`/`ci`/`test` để không lọt vào changelog.
-6. **Phát hành**: người nói "phát hành"/"cập nhật Có gì mới" → làm theo [`docs/runbooks/release.md`](docs/runbooks/release.md) (agent viết `changelog/vi/<version>.md` cho Release PR; người merge). Không sửa tay `CHANGELOG.md`, version, `.release-please-manifest.json`.
+5. **PR có `feat`/`fix` → xuất hiện ở trang "Có gì mới"**: tiêu đề là câu tiếng Anh người dùng đọc hiểu (§2), **và PR kèm ghi chú tiếng Việt** `changelog/vi/unreleased/<tên-ngắn>.md` ([`changelog/vi/README.md`](changelog/vi/README.md); CI `agent-scope` đỏ nếu thiếu). Việc nội bộ dùng `chore`/`refactor`/`docs`/`ci`/`test` để không lọt vào changelog.
+6. **Phát hành**: người nói "phát hành"/"cập nhật Có gì mới" → làm theo [`docs/runbooks/release.md`](docs/runbooks/release.md) (Release PR tự gộp ghi chú tiếng Việt từ `changelog/vi/unreleased/`; agent chỉ bổ sung khi thiếu; người merge). Không sửa tay `CHANGELOG.md`, version, `.release-please-manifest.json`.
 7. File "nóng" (lockfile, migration, file dịch, types sinh tự động…) có luật riêng: `docs/ai/WORKFLOW.md` §5. Không bao giờ sửa tay `CHANGELOG.md`, `packages/db/src/types.gen.ts`, `pnpm-lock.yaml`.
 8. Việc `ui: true` / có giao diện phải theo **Chuẩn UI** (dưới đây).
 9. Kết thúc: ghi **Handoff** trong PR (đã làm gì, hành vi/API mới, việc còn lại).
@@ -54,7 +54,7 @@ Knowledge base nội bộ self-host: editor dạng block (TipTap), table block �
 ### 2. Changelog cho mọi thay đổi
 - Commit theo **Conventional Commits** (`feat(editor): …`, `fix(search): …`). PR được squash-merge; **tiêu đề PR** chính là commit message và phải hợp lệ (CI kiểm tra).
 - Scope hợp lệ: `web`, `collab`, `db`, `editor`, `table`, `search`, `auth`, `i18n`, `infra`, `ci`, `release`, `docs`, `deps`.
-- `CHANGELOG.md` do **release-please** sinh (tiếng Anh, theo Keep a Changelog). Ghi chú tiếng Việt viết tay ở `changelog/vi/<version>.md` trong Release PR; CI chèn vào `CHANGELOG.md` để file luôn song ngữ và **fail nếu thiếu**.
+- `CHANGELOG.md` do **release-please** sinh (tiếng Anh, theo Keep a Changelog). Ghi chú tiếng Việt viết tay **trong chính PR `feat`/`fix`** ở `changelog/vi/unreleased/<tên-ngắn>.md`; trên Release PR, CI gộp chúng thành `changelog/vi/<version>.md` và chèn vào `CHANGELOG.md` để file luôn song ngữ, **fail nếu không có ghi chú nào**. Bản tổng quan (vd `1.0.0`) thì viết tay cả `changelog/vi/<version>.md`.
 - Tiêu đề commit `feat`/`fix` phải là câu tiếng Anh người dùng đọc hiểu được (nó xuất hiện trong trang "What's new").
 - Thao tác quan trọng phải ghi **audit log** trong DB (`audit_logs`): tạo/sửa/xoá/di chuyển trang, đổi quyền/thành viên Space, khôi phục phiên bản. Ghi bằng trigger ở DB, không phụ thuộc code ứng dụng.
 
@@ -97,6 +97,7 @@ Knowledge base nội bộ self-host: editor dạng block (TipTap), table block �
 ## Definition of Done cho mỗi PR
 - [ ] PR chỉ chứa **một việc** (một yêu cầu hoặc một task), chỉ sửa những gì việc cần (file "nóng" theo đúng luật §5 của WORKFLOW)
 - [ ] Tiêu đề PR đúng Conventional Commits (có `[Txx]` chỉ khi làm task trong `tasks.yaml`); thân PR có `Agent:`, `Task:` (`Txx` hoặc `none`), Handoff
+- [ ] PR `feat`/`fix` có ghi chú tiếng Việt `changelog/vi/unreleased/<tên-ngắn>.md`
 - [ ] Không có chuỗi hiển thị hard-code; `pnpm i18n:check` pass (vi = en)
 - [ ] Bảng mới có RLS + policy + test pgTAP; thao tác quan trọng có audit log
 - [ ] `pnpm lint && pnpm typecheck && pnpm test` pass; E2E liên quan được cập nhật

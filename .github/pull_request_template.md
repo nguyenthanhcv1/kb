@@ -37,7 +37,7 @@ Task: <!-- none (việc theo yêu cầu — mặc định) | Txx nếu làm task
 **Changelog & version**
 
 - [ ] Tiêu đề PR đúng Conventional Commits, scope hợp lệ, có `[Txx]` chỉ khi `Task: Txx`
-- [ ] `feat`/`fix` = người dùng thấy ở "Có gì mới": tiêu đề là câu tiếng Anh dễ hiểu; việc nội bộ dùng `chore`/`refactor`/`docs`/`ci`/`test`
+- [ ] `feat`/`fix` = người dùng thấy ở "Có gì mới": tiêu đề là câu tiếng Anh dễ hiểu và có ghi chú tiếng Việt `changelog/vi/unreleased/<tên-ngắn>.md`; việc nội bộ dùng `chore`/`refactor`/`docs`/`ci`/`test`
 - [ ] Thay đổi phá vỡ có `!` hoặc footer `BREAKING CHANGE:` (và đi theo expand → contract)
 
 **i18n**
