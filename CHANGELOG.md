@@ -8,6 +8,16 @@
 * **auth:** require approval for new accounts and add user groups with Space access ([#111](https://github.com/nguyenthanhcv1/kb/issues/111)) ([36808d6](https://github.com/nguyenthanhcv1/kb/commit/36808d6ba70f602fe9b7d59ba9aabc2b4cb23320))
 * **web:** let Space admins give groups access in the members settings ([#113](https://github.com/nguyenthanhcv1/kb/issues/113)) ([172d3bd](https://github.com/nguyenthanhcv1/kb/commit/172d3bd4a288ead7bb3e83b2437848cfc7ab3069))
 
+<!-- vi-notes:start -->
+### Tiếng Việt
+
+#### Thêm
+
+- Tài khoản mới phải được quản trị viên duyệt trước khi dùng: trong lúc chờ, người đó chỉ thấy màn hình "Chờ duyệt". Quản trị viên duyệt (chọn người dùng nội bộ hay khách) hoặc từ chối ở trang **Chờ duyệt** trong khu quản trị, và người đó nhận email báo kết quả.
+- Nhóm người dùng: quản trị viên tạo nhóm và thêm người dùng nội bộ vào nhóm, rồi cấp quyền truy cập không gian cho cả nhóm thay vì mời từng người.
+- Quản trị viên không gian có thể cấp quyền xem hoặc sửa cho nhóm, đổi vai trò hoặc gỡ quyền ở mục **Nhóm có quyền truy cập** trong Cài đặt không gian › Thành viên. Trang quản trị nhóm cho biết mỗi nhóm đang vào được những không gian nào.
+<!-- vi-notes:end -->
+
 ## [1.0.1](https://github.com/nguyenthanhcv1/kb/compare/v1.0.0...v1.0.1) (2026-10-11)
 
 
