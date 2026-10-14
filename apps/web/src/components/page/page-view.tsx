@@ -21,6 +21,7 @@ import { PageIconPicker } from "./page-icon-picker";
 import { PageProperties } from "./page-properties";
 import { PageToc } from "./page-toc";
 import { PageTitle } from "./page-title";
+import { SharePageButton } from "./share-page-dialog";
 
 type PageViewProps = {
   page: PageSummary;
@@ -28,8 +29,14 @@ type PageViewProps = {
   spaceName: string;
   /** Root first, without the page itself (`listPageAncestors`); empty for a root page. */
   ancestors?: readonly Pick<PageSummary, "id" | "title" | "icon" | "slug" | "shortId">[];
-  /** Editors and admins of the Space (RLS decides; this only shows the controls). */
+  /** Editors of the page — Space editors/admins or an editor share (RLS decides; this only shows the controls). */
   canEdit: boolean;
+  /** Trash and other tree actions: Space editors/admins only (default: `canEdit`). */
+  canManagePages?: boolean;
+  /** "Share" button: Space admins. */
+  canShare?: boolean;
+  /** `false` when the page is reached through a share only: the Space is not linked. */
+  spaceAccessible?: boolean;
   content: JSONContent | null;
   /** kb-collab settings; null → read-only body. */
   collab?: CollabClientConfig | null;
@@ -49,6 +56,9 @@ export function PageView({
   spaceName,
   ancestors = [],
   canEdit,
+  canManagePages = canEdit,
+  canShare = false,
+  spaceAccessible = true,
   content,
   collab = null,
 }: PageViewProps) {
@@ -78,9 +88,12 @@ export function PageView({
             space={{ slug: spaceSlug, name: spaceName }}
             ancestors={ancestors}
             page={page}
+            linkSpace={spaceAccessible}
           />
         </div>
-        {trashed && <TrashedPageNotice page={page} spaceSlug={spaceSlug} canRestore={canEdit} />}
+        {trashed && (
+          <TrashedPageNotice page={page} spaceSlug={spaceSlug} canRestore={canManagePages} />
+        )}
         <header className="flex items-start gap-2">
           {/* `md:pl-8`: aligned with the editor content, whose gutter holds the block handle. */}
           <div className="flex min-w-0 flex-1 flex-col gap-2 md:pl-8">
@@ -91,8 +104,9 @@ export function PageView({
             </p>
           </div>
           {editable && <EditModeButton editing={editMode} onChange={setEditing} />}
+          {canShare && !trashed && <SharePageButton page={page} />}
           {!trashed && <HistoryLink spaceSlug={spaceSlug} page={page} />}
-          {editable && <PageActionsMenu page={page} />}
+          {editable && canManagePages && <PageActionsMenu page={page} />}
         </header>
         <PageContent
           content={content}
@@ -111,6 +125,7 @@ export function PageView({
               space={{ slug: spaceSlug, name: spaceName }}
               parent={ancestors.at(-1) ?? null}
               lastEditedAt={page.lastEditedAt}
+              linkSpace={spaceAccessible}
             />
           )}
           <PageToc rootRef={rootRef} />

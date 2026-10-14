@@ -388,7 +388,10 @@ describe("listInvitations", () => {
       () => NOW,
     );
     expect(invitations.map((i) => i.status)).toEqual(["accepted", "revoked"]);
-    expect(db.calls[0]?.filters.some((f) => f.op === "is")).toBe(false);
+    // Only the Space-invitation filter (`page_id is null`), no status filter.
+    expect(db.calls[0]?.filters.filter((f) => f.op === "is")).toEqual([
+      expect.objectContaining({ column: "page_id" }),
+    ]);
   });
 
   it("reports SPACE_NOT_FOUND when empty and the Space is invisible", async () => {
@@ -681,6 +684,29 @@ describe("getInvitation / acceptInvitation", () => {
       spaceId: SPACE,
       spaceSlug: "design",
       role: "viewer",
+      page: null,
+    });
+  });
+
+  it("returns the shared page of a page invitation", async () => {
+    const PAGE = "00000000-0000-4000-8000-0000000000aa";
+    const db = new ScriptedMembersDb(() =>
+      ok([
+        {
+          space_id: SPACE,
+          space_slug: "design",
+          role: "editor",
+          page_id: PAGE,
+          page_short_id: "a1B2c3D4",
+          page_slug: "hop-dong",
+        },
+      ]),
+    );
+    expect(await acceptInvitation(db, { token: TOKEN })).toEqual({
+      spaceId: SPACE,
+      spaceSlug: "design",
+      role: "editor",
+      page: { id: PAGE, shortId: "a1B2c3D4", slug: "hop-dong" },
     });
   });
 });

@@ -10,6 +10,10 @@ import {
   listRecentPages,
   listTrash,
 } from "@/server/pages";
+import { getMyPageRole } from "@/server/page-shares";
+import type { SpaceRole } from "@/server/space";
+
+import { loadSpace } from "./data";
 
 /**
  * Per-request cached page reads for the `/s/[spaceSlug]` home, `/s/[spaceSlug]/p/[pageRef]` and
@@ -55,3 +59,38 @@ export const loadPageAncestors = cache(async (pageId: string) => {
     return [];
   }
 });
+
+/**
+ * What the caller may do on a page and how to label its Space. `spaceRole` is `null` for someone
+ * who reaches the page only through a page share (they see the Space name, not the Space);
+ * `pageRole` is the Space role raised by page shares (`app.page_role`). `null` = no access.
+ */
+export type PageAccess = {
+  spaceSlug: string;
+  spaceName: string;
+  spaceRole: SpaceRole | null;
+  pageRole: SpaceRole | null;
+};
+
+export const loadPageAccess = cache(
+  async (pageId: string, spaceSlug: string): Promise<PageAccess | null> => {
+    const supabase = await createClient();
+    const [space, pageRole] = await Promise.all([
+      loadSpace(spaceSlug),
+      getMyPageRole(supabase, { pageId }),
+    ]);
+    if (space) {
+      return { spaceSlug: space.slug, spaceName: space.name, spaceRole: space.role, pageRole };
+    }
+    if (!pageRole) return null;
+    // Shared page: `spaces_select` shows the name of a Space reached through a share.
+    const { data } = await supabase
+      .from("spaces")
+      .select("slug, name")
+      .eq("slug", spaceSlug)
+      .maybeSingle();
+    const row = data as { slug?: unknown; name?: unknown } | null;
+    if (typeof row?.slug !== "string" || typeof row.name !== "string") return null;
+    return { spaceSlug: row.slug, spaceName: row.name, spaceRole: null, pageRole };
+  },
+);

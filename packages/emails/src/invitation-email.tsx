@@ -27,7 +27,8 @@ export interface InvitationEmailSection {
   signInHint: string;
   accept: string;
   linkFallback: string;
-  expires: string;
+  /** Omitted for emails without an expiry (e.g. "a page was shared with you"). */
+  expires?: string;
   ignore: string;
 }
 
@@ -83,7 +84,7 @@ function InvitationSection({
           {acceptUrl}
         </Link>
       </Text>
-      <Text style={small}>{section.expires}</Text>
+      {section.expires ? <Text style={small}>{section.expires}</Text> : null}
       <Text style={small}>{section.ignore}</Text>
     </Section>
   );

@@ -9,6 +9,7 @@ import { memberErrorKey } from "@/components/members/errors";
 import { invitationView } from "@/components/members/invitation-view";
 import { SpaceIcon } from "@/components/space/space-icon";
 import { Button } from "@/components/ui/button";
+import { pageHref } from "@/lib/page-href";
 import { getCurrentUser } from "@/server/auth";
 import type { MemberErrorCode } from "@/server/members";
 import { getInvitation } from "@/server/members/actions";
@@ -26,8 +27,8 @@ export async function generateMetadata(): Promise<Metadata> {
  * `/invite/<token>` — the link from the invitation email (T1.5). The middleware only requires a
  * session here (not `has_active_access`: a guest has no membership until they accept), and sends
  * signed-out visitors to `/login?next=/invite/<token>`. Shows the invitation, then accepts it and
- * opens the Space; used / revoked / expired / unknown links and a wrong account get a translated
- * explanation.
+ * opens the Space (or the shared page of a page invitation); used / revoked / expired / unknown
+ * links and a wrong account get a translated explanation.
  */
 export default async function InvitePage({ params }: Props) {
   const { token } = await params;
@@ -44,11 +45,17 @@ export default async function InvitePage({ params }: Props) {
 
   const preview = result.data;
   const view = invitationView(preview);
+  const page = preview.page;
   if (view.kind === "error") {
-    return (
-      <InvitationError code={view.code} spaceSlug={view.canOpenSpace ? preview.spaceSlug : null} />
-    );
+    const href = !view.canOpenSpace
+      ? null
+      : page
+        ? pageHref(preview.spaceSlug, page)
+        : `/s/${encodeURIComponent(preview.spaceSlug)}`;
+    return <InvitationError code={view.code} href={href} isPage={page !== null} />;
   }
+  const pageTitle = page ? page.title || t("tree.untitled") : null;
+  const inviter = preview.inviterName || preview.inviterEmail;
 
   const format = await getFormatter();
   const expires = format.dateTime(new Date(preview.expiresAt), {
@@ -60,18 +67,38 @@ export default async function InvitePage({ params }: Props) {
     <div className="flex flex-col gap-6">
       <div className="flex flex-col items-center gap-3 text-center">
         <SpaceIcon icon={preview.spaceIcon} name={preview.spaceName} size="lg" />
-        <h1 className="text-xl font-semibold">{t("members.invitePage.title")}</h1>
+        <h1 className="text-xl font-semibold">
+          {pageTitle === null ? t("members.invitePage.title") : t("members.invitePage.pageTitle")}
+        </h1>
         <p className="text-sm text-muted-foreground">
-          {preview.inviterName || preview.inviterEmail
-            ? t("members.invitePage.description", {
-                inviter: preview.inviterName || preview.inviterEmail || "",
-                space: preview.spaceName,
-              })
-            : t("members.invitePage.descriptionNoInviter", { space: preview.spaceName })}
+          {pageTitle !== null
+            ? inviter
+              ? t("members.invitePage.pageDescription", { inviter, page: pageTitle })
+              : t("members.invitePage.pageDescriptionNoInviter", { page: pageTitle })
+            : inviter
+              ? t("members.invitePage.description", { inviter, space: preview.spaceName })
+              : t("members.invitePage.descriptionNoInviter", { space: preview.spaceName })}
         </p>
       </div>
       <div className="grid gap-1 rounded-md border bg-muted/40 p-3 text-sm">
-        <p className="font-medium break-words">{preview.spaceName}</p>
+        {pageTitle !== null ? (
+          <>
+            <p className="font-medium break-words">
+              {page?.icon && (
+                <span aria-hidden className="me-1">
+                  {page.icon}
+                </span>
+              )}
+              {pageTitle}
+            </p>
+            <p className="text-muted-foreground">
+              {t("members.invitePage.pageInSpace", { space: preview.spaceName })}
+            </p>
+            <p className="text-muted-foreground">{t("members.invitePage.pageScope")}</p>
+          </>
+        ) : (
+          <p className="font-medium break-words">{preview.spaceName}</p>
+        )}
         <p>{t("members.invitePage.role", { role: t(`space.roles.${preview.role}`) })}</p>
         <p className="text-muted-foreground">
           {t("members.invitePage.expires", { date: expires })}
@@ -105,10 +132,13 @@ export default async function InvitePage({ params }: Props) {
 
 async function InvitationError({
   code,
-  spaceSlug = null,
+  href = null,
+  isPage = false,
 }: {
   code: MemberErrorCode;
-  spaceSlug?: string | null;
+  /** Where an already accepted invitation leads (the Space or the shared page). */
+  href?: string | null;
+  isPage?: boolean;
 }) {
   const t = await getTranslations();
   return (
@@ -120,9 +150,13 @@ async function InvitationError({
       <p role="alert" className="text-sm text-muted-foreground">
         {t(memberErrorKey(code))}
       </p>
-      <Button asChild className="mt-2 w-full" variant={spaceSlug ? "default" : "outline"}>
-        <Link href={spaceSlug ? `/s/${encodeURIComponent(spaceSlug)}` : "/"}>
-          {spaceSlug ? t("members.invitePage.openSpace") : t("members.invitePage.backHome")}
+      <Button asChild className="mt-2 w-full" variant={href ? "default" : "outline"}>
+        <Link href={href ?? "/"}>
+          {!href
+            ? t("members.invitePage.backHome")
+            : isPage
+              ? t("members.invitePage.openPage")
+              : t("members.invitePage.openSpace")}
         </Link>
       </Button>
     </div>

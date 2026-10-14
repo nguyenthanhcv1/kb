@@ -22,6 +22,9 @@
     "page_move": "Moved page",
     "page_purge": "Permanently deleted page",
     "page_restore_from_trash": "Restored page from trash",
+    "page_share": "Share page",
+    "page_share_role_change": "Change page share access",
+    "page_unshare": "Stop sharing page",
     "page_update_content": "Edited page content",
     "page_update_title": "Renamed page",
     "settings_update": "Changed system settings",
@@ -46,8 +49,11 @@
     "expiresAt": "Expires {date}",
     "fieldChange": "{field}: {from} → {to}",
     "left": "Left the space themselves",
+    "leftPage": "Removed the shared page themselves",
+    "page": "Page: {title}",
     "role": "Role: {role}",
-    "roleChange": "{from} → {to}"
+    "roleChange": "{from} → {to}",
+    "sharedWith": "With {email}"
   },
   "entityTypes": {
     "access_entry": "Access allowlist",

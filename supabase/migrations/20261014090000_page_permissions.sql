@@ -829,7 +829,8 @@ returns table (
   space_name text,
   space_icon text,
   role public.space_role,
-  shared_at timestamptz
+  shared_at timestamptz,
+  has_children boolean
 )
 language sql
 stable
@@ -847,7 +848,8 @@ as $$
     s.name,
     s.icon,
     pp.role,
-    pp.created_at
+    pp.created_at,
+    exists (select 1 from public.pages as c where c.parent_id = pg.id and c.deleted_at is null)
   from public.page_permissions as pp
   join public.pages as pg on pg.id = pp.page_id and pg.deleted_at is null
   join public.spaces as s on s.id = pg.space_id and s.archived_at is null

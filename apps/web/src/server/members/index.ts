@@ -183,6 +183,8 @@ export type SearchMemberCandidatesOutput = z.infer<typeof searchMemberCandidates
 export const invitationSchema = z.object({
   id: z.guid(),
   spaceId: z.guid(),
+  /** Set for a page share invitation (`server/page-shares`): accepting shares that page. */
+  pageId: z.guid().nullable(),
   email: z.string(),
   role: invitationRoleSchema,
   status: z.enum(INVITATION_STATUSES),
@@ -224,6 +226,16 @@ export const invitationPreviewSchema = z.object({
   status: z.enum(INVITATION_STATUSES),
   /** The signed-in account's email is the invited one (else show "sign in with <email>"). */
   emailMatches: z.boolean(),
+  /** The shared page of a page invitation (`null` for a Space invitation). */
+  page: z
+    .object({
+      id: z.guid(),
+      shortId: z.string(),
+      slug: z.string(),
+      title: z.string(),
+      icon: z.string().nullable(),
+    })
+    .nullable(),
 });
 export type InvitationPreview = z.infer<typeof invitationPreviewSchema>;
 
@@ -232,6 +244,8 @@ export const acceptInvitationOutputSchema = z.object({
   spaceSlug: z.string(),
   /** Effective role after accepting (an existing higher role is kept). */
   role: roleSchema,
+  /** The shared page of a page invitation — redirect there instead of the Space. */
+  page: z.object({ id: z.guid(), shortId: z.string(), slug: z.string() }).nullable(),
 });
 export type AcceptInvitationOutput = z.infer<typeof acceptInvitationOutputSchema>;
 
@@ -282,6 +296,7 @@ export const listInvitationsExample: ListInvitationsOutput = {
     {
       id: "7a1c0000-0000-4000-8000-000000000001",
       spaceId: "0b9a0000-0000-4000-8000-000000000001",
+      pageId: null,
       email: "doitac@partner.vn",
       role: "editor",
       status: "pending",
@@ -308,6 +323,7 @@ export const invitationPreviewExample: InvitationPreview = {
   expiresAt: "2026-10-11T02:00:00+00:00",
   status: "pending",
   emailMatches: true,
+  page: null,
 };
 
 // ---------------------------------------------------------------------------------------------
@@ -340,7 +356,7 @@ export interface MembersQuery extends PromiseLike<DbResult<unknown>> {
   single(): PromiseLike<DbResult<unknown>>;
 }
 
-export type MembersTable = "profiles" | "spaces" | "space_members" | "invitations";
+export type MembersTable = "profiles" | "spaces" | "space_members" | "invitations" | "pages";
 export type MembersRpc =
   "list_space_members" | "search_member_candidates" | "get_invitation" | "accept_invitation";
 
@@ -512,12 +528,13 @@ async function fetchMember(db: MembersDb, spaceId: string, userId: string): Prom
   return member;
 }
 
-const INVITATION_COLUMNS =
-  "id, space_id, email, role, invited_by, expires_at, accepted_at, accepted_by, revoked_at, created_at";
+export const INVITATION_COLUMNS =
+  "id, space_id, page_id, email, role, invited_by, expires_at, accepted_at, accepted_by, revoked_at, created_at";
 
-const invitationRowSchema = z.object({
+export const invitationRowSchema = z.object({
   id: z.guid(),
   space_id: z.guid(),
+  page_id: z.guid().nullable().default(null),
   email: z.string(),
   role: invitationRoleSchema,
   invited_by: z.guid(),
@@ -527,7 +544,7 @@ const invitationRowSchema = z.object({
   revoked_at: z.string().nullable(),
   created_at: z.string(),
 });
-type InvitationRow = z.infer<typeof invitationRowSchema>;
+export type InvitationRow = z.infer<typeof invitationRowSchema>;
 
 function invitationStatus(row: InvitationRow, now: Date): InvitationStatus {
   if (row.accepted_at) return "accepted";
@@ -536,10 +553,11 @@ function invitationStatus(row: InvitationRow, now: Date): InvitationStatus {
   return "pending";
 }
 
-function mapInvitation(row: InvitationRow, now: Date): Invitation {
+export function mapInvitation(row: InvitationRow, now: Date): Invitation {
   return {
     id: row.id,
     spaceId: row.space_id,
+    pageId: row.page_id,
     email: row.email,
     role: row.role,
     status: invitationStatus(row, now),
@@ -566,12 +584,15 @@ function assertPending(row: InvitationRow): void {
   if (row.revoked_at) throw new MemberError("INVITATION_REVOKED");
 }
 
-function addDays(date: Date, days: number): Date {
+export function addDays(date: Date, days: number): Date {
   return new Date(date.getTime() + days * 24 * 60 * 60 * 1000);
 }
 
-/** Sends the invitation email; never throws — failures are logged and reported as `failed`. */
-async function deliverInvitation(
+/**
+ * Sends the invitation email (Space or page invitation); never throws — failures are logged and
+ * reported as `failed`.
+ */
+export async function deliverInvitation(
   db: MembersDb,
   row: InvitationRow,
   inviteUrl: string,
@@ -580,13 +601,17 @@ async function deliverInvitation(
 ): Promise<EmailStatus> {
   if (!deps.mailer) return "skipped";
   try {
-    const [space, inviter, invitee] = await Promise.all([
+    const [space, page, inviter, invitee] = await Promise.all([
       unwrap(db.from("spaces").select("name").eq("id", row.space_id).maybeSingle()),
+      row.page_id
+        ? unwrap(db.from("pages").select("title").eq("id", row.page_id).maybeSingle())
+        : null,
       unwrap(db.from("profiles").select("full_name, email").eq("id", callerId).maybeSingle()),
       // Visible only when RLS lets the inviter see the invitee (internal user / co-member).
       unwrap(db.from("profiles").select("locale").eq("email", row.email).maybeSingle()),
     ]);
     const spaceName = parseData(z.object({ name: z.string() }), space).name;
+    const pageTitle = page ? parseData(z.object({ title: z.string() }), page).title : null;
     const inviterRow = parseData(
       z.object({ full_name: z.string().nullable(), email: z.string() }).nullable(),
       inviter,
@@ -600,6 +625,7 @@ async function deliverInvitation(
       locales,
       inviterName: inviterRow?.full_name || inviterRow?.email || "",
       spaceName,
+      ...(pageTitle === null ? {} : { pageTitle }),
       role: row.role,
       acceptUrl: inviteUrl,
       expiresAt: row.expires_at,
@@ -816,6 +842,8 @@ export async function listInvitations(
     .from("invitations")
     .select(INVITATION_COLUMNS)
     .eq("space_id", parsed.spaceId)
+    // Page share invitations are managed from the page (`server/page-shares`).
+    .is("page_id", null)
     .order("created_at", { ascending: false });
   if (!parsed.includeInactive) query = query.is("accepted_at", null).is("revoked_at", null);
   const data = await unwrap(query);
@@ -857,6 +885,7 @@ export async function createInvitation(
       .select("id")
       .eq("space_id", parsed.spaceId)
       .eq("email", parsed.email)
+      .is("page_id", null)
       .is("accepted_at", null)
       .is("revoked_at", null)
       .gt("expires_at", now.toISOString()),
@@ -996,6 +1025,11 @@ export async function getInvitation(
         expires_at: z.string(),
         status: z.enum(INVITATION_STATUSES),
         email_matches: z.boolean(),
+        page_id: z.guid().nullable().default(null),
+        page_short_id: z.string().nullable().default(null),
+        page_slug: z.string().nullable().default(null),
+        page_title: z.string().nullable().default(null),
+        page_icon: z.string().nullable().default(null),
       }),
     ),
     data ?? [],
@@ -1014,6 +1048,16 @@ export async function getInvitation(
     expiresAt: row.expires_at,
     status: row.status,
     emailMatches: row.email_matches,
+    page:
+      row.page_id && row.page_short_id !== null
+        ? {
+            id: row.page_id,
+            shortId: row.page_short_id,
+            slug: row.page_slug ?? "",
+            title: row.page_title ?? "",
+            icon: row.page_icon,
+          }
+        : null,
   };
 }
 
@@ -1037,9 +1081,26 @@ export async function acceptInvitation(
 
   const data = await unwrap(db.rpc("accept_invitation", { p_token: parsed.data.token }));
   const [row] = parseData(
-    z.array(z.object({ space_id: z.guid(), space_slug: z.string(), role: roleSchema })),
+    z.array(
+      z.object({
+        space_id: z.guid(),
+        space_slug: z.string(),
+        role: roleSchema,
+        page_id: z.guid().nullable().default(null),
+        page_short_id: z.string().nullable().default(null),
+        page_slug: z.string().nullable().default(null),
+      }),
+    ),
     data ?? [],
   );
   if (!row) throw new MemberError("MEMBER_ACTION_FAILED");
-  return { spaceId: row.space_id, spaceSlug: row.space_slug, role: row.role };
+  return {
+    spaceId: row.space_id,
+    spaceSlug: row.space_slug,
+    role: row.role,
+    page:
+      row.page_id && row.page_short_id !== null
+        ? { id: row.page_id, shortId: row.page_short_id, slug: row.page_slug ?? "" }
+        : null,
+  };
 }

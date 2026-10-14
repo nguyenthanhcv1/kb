@@ -3,6 +3,12 @@
   "home": "Trang chủ",
   "search": "Tìm kiếm",
   "settings": "Cài đặt",
+  "shared": {
+    "collapse": "Thu gọn các trang con của {title}",
+    "expand": "Mở các trang con của {title}",
+    "heading": "Được chia sẻ với tôi",
+    "loadError": "Không tải được các trang con."
+  },
   "spaces": "Không gian",
   "trash": "Thùng rác",
   "whatsNew": "Có gì mới"

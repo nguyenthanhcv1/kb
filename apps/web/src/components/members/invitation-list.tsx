@@ -21,7 +21,14 @@ type Notify = { success: (message: string) => void; error: (message: string) => 
  * Pending and expired invitations of the Space: resend (new link, new 14 days — the old link
  * stops working) or revoke behind a confirmation.
  */
-export function InvitationList({ invitations }: { invitations: readonly Invitation[] }) {
+export function InvitationList({
+  invitations,
+  onChanged,
+}: {
+  invitations: readonly Invitation[];
+  /** Called after a resend or revoke (e.g. to reload a dialog's data); the route is refreshed too. */
+  onChanged?: () => void;
+}) {
   const t = useTranslations("members.invitations");
   const id = useId();
   const { feedback, success, error } = useFeedback();
@@ -46,6 +53,7 @@ export function InvitationList({ invitations }: { invitations: readonly Invitati
               invitation={invitation}
               notify={notify}
               onResent={(url) => setLink({ invitationId: invitation.id, url })}
+              onChanged={onChanged}
             />
           ))}
         </ul>
@@ -59,10 +67,12 @@ function InvitationRow({
   invitation,
   notify,
   onResent,
+  onChanged,
 }: {
   invitation: Invitation;
   notify: Notify;
   onResent: (url: string) => void;
+  onChanged?: () => void;
 }) {
   const t = useTranslations();
   const format = useFormatter();
@@ -89,6 +99,7 @@ function InvitationRow({
       if (emailStatus === "sent") notify.success(t("members.invitations.resent", { email }));
       else notify.error(t(`members.invite.emailStatus.${emailStatus}`, { email }));
       onResent(result.data.inviteUrl);
+      onChanged?.();
       router.refresh();
     });
   }
@@ -103,6 +114,7 @@ function InvitationRow({
       }
       setRevokeOpen(false);
       notify.success(t("members.invitations.revoked", { email }));
+      onChanged?.();
       router.refresh();
     });
   }

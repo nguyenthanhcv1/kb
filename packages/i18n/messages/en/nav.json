@@ -3,6 +3,12 @@
   "home": "Home",
   "search": "Search",
   "settings": "Settings",
+  "shared": {
+    "collapse": "Hide subpages of {title}",
+    "expand": "Show subpages of {title}",
+    "heading": "Shared with me",
+    "loadError": "Could not load the subpages."
+  },
   "spaces": "Spaces",
   "trash": "Trash",
   "whatsNew": "What's new"

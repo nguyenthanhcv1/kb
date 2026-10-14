@@ -22,6 +22,9 @@
     "page_move": "Di chuyển trang",
     "page_purge": "Xoá vĩnh viễn trang",
     "page_restore_from_trash": "Khôi phục trang từ thùng rác",
+    "page_share": "Chia sẻ trang",
+    "page_share_role_change": "Đổi quyền chia sẻ trang",
+    "page_unshare": "Bỏ chia sẻ trang",
     "page_update_content": "Sửa nội dung trang",
     "page_update_title": "Đổi tên trang",
     "settings_update": "Đổi cài đặt hệ thống",
@@ -46,8 +49,11 @@
     "expiresAt": "Hết hạn {date}",
     "fieldChange": "{field}: {from} → {to}",
     "left": "Tự rời khỏi không gian",
+    "leftPage": "Tự bỏ trang được chia sẻ",
+    "page": "Trang: {title}",
     "role": "Vai trò: {role}",
-    "roleChange": "{from} → {to}"
+    "roleChange": "{from} → {to}",
+    "sharedWith": "Với {email}"
   },
   "entityTypes": {
     "access_entry": "Danh sách được phép truy cập",

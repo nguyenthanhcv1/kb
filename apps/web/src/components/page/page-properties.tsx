@@ -14,8 +14,11 @@ export function PageProperties({
   space,
   parent,
   lastEditedAt,
+  linkSpace = true,
 }: {
   space: { slug: string; name: string };
+  /** `false` when the page is reached through a share only (no access to the Space page). */
+  linkSpace?: boolean;
   /** Last entry of the page's ancestors; `null` for a top-level page. */
   parent: Related | null;
   lastEditedAt: string;
@@ -37,12 +40,16 @@ export function PageProperties({
       </h2>
       <dl className="flex flex-col gap-3">
         <Row label={t("space")}>
-          <Link
-            href={`/s/${encodeURIComponent(space.slug)}`}
-            className="font-medium hover:underline"
-          >
-            {space.name}
-          </Link>
+          {linkSpace ? (
+            <Link
+              href={`/s/${encodeURIComponent(space.slug)}`}
+              className="font-medium hover:underline"
+            >
+              {space.name}
+            </Link>
+          ) : (
+            <span className="font-medium">{space.name}</span>
+          )}
         </Row>
         <Row label={t("parent")}>
           {parent ? (

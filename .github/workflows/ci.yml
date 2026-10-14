@@ -147,6 +147,12 @@ jobs:
           MEMBERS_TEST_SMTP_PORT: "54325"
           MEMBERS_TEST_MAILPIT_URL: http://127.0.0.1:54324
         run: pnpm --filter @kb/web exec vitest run src/server/members/members.integration.test.ts
+      - name: Integration test chia sẻ trang (supabase-js → PostgREST → RLS/hàm share_page)
+        env:
+          PAGE_SHARES_TEST_SUPABASE_URL: http://127.0.0.1:54321
+          PAGE_SHARES_TEST_JWT_SECRET: super-secret-jwt-token-with-at-least-32-characters-long
+          PAGE_SHARES_TEST_ADMIN_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+        run: pnpm --filter @kb/web exec vitest run src/server/page-shares/page-shares.integration.test.ts
       - name: Integration test quản trị truy cập (supabase-js → PostgREST → RLS/hàm admin_*)
         env:
           ADMIN_TEST_SUPABASE_URL: http://127.0.0.1:54321
