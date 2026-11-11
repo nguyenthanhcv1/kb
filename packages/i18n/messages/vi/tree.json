@@ -58,6 +58,9 @@
       "title": "Thuộc tính trang",
       "updated": "Cập nhật lần cuối"
     },
+    "sticky": {
+      "backToTop": "Lên đầu trang"
+    },
     "title": {
       "label": "Tiêu đề trang",
       "saving": "Đang lưu…"

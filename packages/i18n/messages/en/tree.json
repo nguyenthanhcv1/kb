@@ -58,6 +58,9 @@
       "title": "Page properties",
       "updated": "Last updated"
     },
+    "sticky": {
+      "backToTop": "Back to top"
+    },
     "title": {
       "label": "Page title",
       "saving": "Saving…"
