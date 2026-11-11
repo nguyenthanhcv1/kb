@@ -7,6 +7,8 @@ The dark sidebar is on the left of the screen (on a phone, tap the menu icon at 
 - **Home**, **Search** and **What's new** at the top; the one you are on is highlighted.
 - **Spaces**: the Spaces you can view, each with its own icon. Click a Space to open its page tree right below it.
 - **Create space** (people inside the organization only) at the end of the list.
+- Long page titles are cut short: hover to see the full title.
+- **Resize**: drag the right edge of the sidebar (or focus it with `Tab` and use the arrow keys); double-click to go back to the default width. The width is remembered in your browser.
 - At the bottom is the **running version**; click it to see **What's new**.
 
 ## Top bar
