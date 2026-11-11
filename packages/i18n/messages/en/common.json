@@ -36,6 +36,8 @@
     "closeSidebar": "Close sidebar",
     "mainNavigation": "Main navigation",
     "openSidebar": "Open sidebar",
+    "resizeSidebar": "Resize sidebar",
+    "resizeSidebarHint": "Drag to resize · double-click to reset",
     "sidebarEmpty": "No spaces yet.",
     "skipToContent": "Skip to main content",
     "version": "v{version}",

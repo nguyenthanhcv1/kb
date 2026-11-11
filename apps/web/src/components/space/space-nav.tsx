@@ -32,6 +32,14 @@ export function isSpacePath(pathname: string, slug: string): boolean {
 }
 
 /**
+ * Whether `pathname` is something shown *inside* the Space's tree (a page or the trash): the tree
+ * row then carries the "current" highlight, so the Space entry only stays bold — one highlight.
+ */
+export function isSpaceChildPath(pathname: string, slug: string): boolean {
+  return pathname.startsWith(`/s/${slug}/p/`) || pathname === `/s/${slug}/trash`;
+}
+
+/**
  * Sidebar section listing the Spaces the user can view (links to `/s/<slug>`, current one
  * marked with `aria-current`), plus the create button for internal users. The page tree of the
  * current Space (T2.3) shows under its entry.
@@ -63,14 +71,18 @@ export function SpaceNav({ spaces, canCreate }: SpaceNavProps) {
         <ul className="flex flex-col gap-0.5">
           {spaces.map((space) => {
             const active = isSpacePath(pathname, space.slug);
+            const inChild = active && isSpaceChildPath(pathname, space.slug);
             return (
               <li key={space.id}>
                 <Link
                   href={`/s/${space.slug}`}
-                  aria-current={active ? "page" : undefined}
+                  aria-current={active ? (inChild ? "location" : "page") : undefined}
                   className={cn(
                     "flex items-center gap-2 rounded-md px-2 py-1.5 text-sm outline-none hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50",
-                    active && "bg-sidebar-accent font-medium text-sidebar-accent-foreground",
+                    active &&
+                      (inChild
+                        ? "font-semibold"
+                        : "bg-sidebar-accent font-medium text-sidebar-accent-foreground"),
                   )}
                 >
                   <SpaceIcon icon={space.icon} name={space.name} size="sm" />

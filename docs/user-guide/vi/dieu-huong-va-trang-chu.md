@@ -7,6 +7,8 @@ Thanh bên màu tối nằm bên trái màn hình (trên điện thoại, bấm 
 - **Trang chủ**, **Tìm kiếm** và **Có gì mới** ở trên cùng; mục đang xem được tô sáng.
 - **Không gian**: các Không gian bạn có quyền xem, mỗi Không gian có biểu tượng riêng. Bấm vào một Không gian để mở cây trang của nó ngay bên dưới.
 - **Tạo không gian** (chỉ hiện với người trong tổ chức) ở cuối danh sách.
+- Tên trang dài bị cắt bớt: rê chuột lên để xem đầy đủ.
+- **Đổi độ rộng**: kéo mép phải của thanh bên (hoặc chọn mép đó bằng `Tab` rồi dùng phím mũi tên); nháy đúp để về độ rộng mặc định. Độ rộng được nhớ trên trình duyệt.
 - Dưới cùng là **số phiên bản** đang chạy; bấm vào để xem **Có gì mới**.
 
 ## Thanh trên cùng
