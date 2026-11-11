@@ -20,15 +20,16 @@ async function setup(content: string, locale: "vi" | "en" = "vi", end?: ReactNod
   editors.push(editor);
   await new Promise((resolve) => editor.on("create", resolve));
   const onImage = vi.fn();
+  const onLink = vi.fn();
   render(
     <NextIntlClientProvider
       locale={locale}
       messages={{ editor: locale === "vi" ? viEditor : enEditor }}
     >
-      <EditorToolbar editor={editor} onImage={onImage} end={end} />
+      <EditorToolbar editor={editor} onImage={onImage} onLink={onLink} end={end} />
     </NextIntlClientProvider>,
   );
-  return { editor, onImage };
+  return { editor, onImage, onLink };
 }
 
 afterEach(() => {
@@ -38,19 +39,23 @@ afterEach(() => {
 });
 
 describe("EditorToolbar", () => {
-  it("is a labelled toolbar with the headings, marks, blocks, table and image", async () => {
+  it("is a labelled toolbar with undo/redo, headings, marks, link, blocks, table and image", async () => {
     await setup("<p>Xin chào</p>", "en");
     const toolbar = screen.getByRole("toolbar", { name: enEditor.toolbar.label });
     const names = Array.from(toolbar.querySelectorAll("button")).map((b) =>
       b.getAttribute("aria-label"),
     );
     expect(names).toEqual([
+      enEditor.shortcuts.items.undo,
+      enEditor.shortcuts.items.redo,
       enEditor.slash.items.heading1.title,
       enEditor.slash.items.heading2.title,
       enEditor.slash.items.heading3.title,
       enEditor.bubble.bold,
       enEditor.bubble.italic,
+      enEditor.bubble.link,
       enEditor.slash.items.bulletList.title,
+      enEditor.slash.items.orderedList.title,
       enEditor.slash.items.callout.info.title,
       enEditor.slash.items.codeBlock.title,
       enEditor.slash.items.table.title,
@@ -70,6 +75,56 @@ describe("EditorToolbar", () => {
     const toolbar = screen.getByRole("toolbar", { name: enEditor.toolbar.label });
     expect(toolbar.querySelector("[role=status]")?.textContent).toBe("Saved");
     expect(Array.from(toolbar.querySelectorAll("button")).at(-1)?.textContent).toBe("Done");
+  });
+
+  it("shows the keyboard shortcut in the tooltips", async () => {
+    await setup("<p>Xin chào</p>", "en");
+    const bold = screen.getByRole("button", { name: enEditor.bubble.bold });
+    expect(bold.getAttribute("title")).toBe("Bold (Ctrl+B)");
+  });
+
+  it("turns the paragraph into a numbered list", async () => {
+    const user = userEvent.setup();
+    const { editor } = await setup("<p>Bước một</p>");
+    act(() => {
+      editor.commands.setTextSelection(2);
+    });
+    await user.click(screen.getByRole("button", { name: viEditor.slash.items.orderedList.title }));
+    expect(editor.isActive("orderedList")).toBe(true);
+  });
+
+  it("undoes and redoes the last change", async () => {
+    const user = userEvent.setup();
+    const { editor } = await setup("<p>Một</p>");
+    const undo = screen.getByRole("button", { name: viEditor.shortcuts.items.undo });
+    const redo = screen.getByRole("button", { name: viEditor.shortcuts.items.redo });
+    expect(undo).toHaveProperty("disabled", true);
+    act(() => {
+      editor.chain().focus("end").insertContent(" hai").run();
+    });
+    expect(undo).toHaveProperty("disabled", false);
+    await user.click(undo);
+    expect(editor.getText()).toBe("Một");
+    expect(redo).toHaveProperty("disabled", false);
+    await user.click(redo);
+    expect(editor.getText()).toBe("Một hai");
+  });
+
+  it("offers the link only on a selection and then opens the link field", async () => {
+    const user = userEvent.setup();
+    const { editor, onLink } = await setup("<p>Trang chủ</p>");
+    act(() => {
+      editor.commands.setTextSelection(2);
+    });
+    const link = screen.getByRole("button", { name: viEditor.bubble.link });
+    expect(link).toHaveProperty("disabled", true);
+    expect(link.getAttribute("title")).toBe(viEditor.toolbar.linkHint);
+    act(() => {
+      editor.commands.setTextSelection({ from: 1, to: 6 });
+    });
+    expect(link).toHaveProperty("disabled", false);
+    await user.click(link);
+    expect(onLink).toHaveBeenCalledOnce();
   });
 
   it("turns the block into a heading and back to a paragraph", async () => {

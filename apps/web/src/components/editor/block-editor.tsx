@@ -297,6 +297,7 @@ export function BlockEditor({
         <EditorToolbar
           editor={editor}
           end={toolbarEnd}
+          onLink={() => setLinkRequested(true)}
           onImage={() => {
             const image = SLASH_ITEMS.find((item) => item.id === "image");
             if (image) setPendingImage(image);
