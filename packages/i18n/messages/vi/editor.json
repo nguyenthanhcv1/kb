@@ -223,7 +223,9 @@
     "label": "Chèn khối"
   },
   "toolbar": {
-    "label": "Thanh công cụ định dạng"
+    "label": "Thanh công cụ định dạng",
+    "linkHint": "Bôi đen chữ để chèn liên kết",
+    "withShortcut": "{label} ({keys})"
   },
   "upload": {
     "dismiss": "Đóng",

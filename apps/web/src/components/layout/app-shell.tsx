@@ -13,6 +13,8 @@ import type { CurrentUser } from "@/server/auth";
 import { Brand } from "./brand";
 import { LocaleSwitcher } from "./locale-switcher";
 import { Sidebar } from "./sidebar";
+import { SidebarResizeHandle } from "./sidebar-resize-handle";
+import { SIDEBAR_WIDTH_DEFAULT, storeSidebarWidth } from "./sidebar-width";
 import { ThemeToggle } from "./theme-toggle";
 import { UserMenu } from "./user-menu";
 
@@ -23,6 +25,8 @@ type AppShellProps = {
   user?: CurrentUser | null;
   /** Running release (`appInfo().version`), shown in the sidebar footer; omitted → no footer. */
   version?: string;
+  /** Desktop sidebar width (px) from the `kb_sidebar_width` cookie; the user resizes it by dragging. */
+  sidebarWidth?: number;
   children: ReactNode;
 };
 
@@ -30,9 +34,16 @@ type AppShellProps = {
  * Signed-in app frame: fixed sidebar from `md` (768 px), a drawer below that,
  * a top bar with the language and theme switchers and the account menu, and a skip link to the main content.
  */
-export function AppShell({ sidebar, user, version, children }: AppShellProps) {
+export function AppShell({
+  sidebar,
+  user,
+  version,
+  sidebarWidth = SIDEBAR_WIDTH_DEFAULT,
+  children,
+}: AppShellProps) {
   const t = useTranslations("common.shell");
   const [open, setOpen] = useState(false);
+  const [width, setWidth] = useState(sidebarWidth);
 
   return (
     <div className="flex min-h-dvh">
@@ -43,8 +54,12 @@ export function AppShell({ sidebar, user, version, children }: AppShellProps) {
         {t("skipToContent")}
       </a>
 
-      <aside className="sticky top-0 hidden h-dvh w-64 shrink-0 border-r border-sidebar-border md:block">
+      <aside
+        style={{ width }}
+        className="sticky top-0 hidden h-dvh shrink-0 border-r border-sidebar-border md:block"
+      >
         <Sidebar version={version}>{sidebar}</Sidebar>
+        <SidebarResizeHandle width={width} onResize={setWidth} onCommit={storeSidebarWidth} />
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">

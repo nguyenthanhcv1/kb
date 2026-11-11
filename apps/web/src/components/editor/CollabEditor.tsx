@@ -2,7 +2,7 @@
 
 import Collaboration, { isChangeOrigin } from "@tiptap/extension-collaboration";
 import type { JSONContent } from "@tiptap/core";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useMemo, useState } from "react";
 
 import type { CollabClientConfig } from "@/lib/collab/config";
 import { type DocumentReplaced, parseDocumentReplaced } from "@/lib/collab/replaced";
@@ -22,6 +22,11 @@ type CollabEditorProps = {
   editing?: boolean;
   /** `/s/<space>/p/<ref>/history`, linked from the "content was restored" toast. */
   historyHref?: string;
+  /**
+   * Controls shown with the save status while editing (the page's "Done" button): at the end of
+   * the sticky edit toolbar once the editor is ready, above the content before that.
+   */
+  editActions?: ReactNode;
 };
 
 /**
@@ -37,6 +42,7 @@ export function CollabEditor({
   title,
   editing = true,
   historyHref,
+  editActions,
 }: CollabEditorProps) {
   const collab = useCollab(pageId, config);
   const bound = collab?.synced ? collab : null;
@@ -64,23 +70,31 @@ export function CollabEditor({
   );
 
   const status = collab?.status ?? "connecting";
+  const editable =
+    !!bound &&
+    editing &&
+    bound.canWrite &&
+    bound.status !== "outdated" &&
+    bound.status !== "forbidden";
   // While reading, the save status only shows when something needs attention (unsaved changes
   // after "Done", offline, a reload needed).
   const showStatus = editing || (status !== "saved" && status !== "connecting");
+  const statusIndicator = showStatus ? <CollabStatusIndicator status={status} /> : null;
+  const actions = editing ? editActions : null;
 
   return (
     <div className="flex flex-col gap-3">
-      {showStatus && (
-        <div className="md:pl-8">
-          <CollabStatusIndicator status={status} />
+      {/* The toolbar carries status and actions while editing; above the content otherwise. */}
+      {!editable && (statusIndicator || actions) && (
+        <div className="flex items-center justify-between gap-3 md:pl-8">
+          {statusIndicator ?? <span />}
+          {actions}
         </div>
       )}
       {bound ? (
         <BlockEditor
           key="collab"
-          editable={
-            editing && bound.canWrite && bound.status !== "outdated" && bound.status !== "forbidden"
-          }
+          editable={editable}
           extensions={extensions}
           extensionOptions={{
             undoRedo: false,
@@ -88,6 +102,14 @@ export function CollabEditor({
           }}
           title={title}
           pageId={pageId}
+          toolbarEnd={
+            editable ? (
+              <>
+                {statusIndicator}
+                {actions}
+              </>
+            ) : undefined
+          }
         />
       ) : (
         <BlockEditor key="static" content={content ?? undefined} editable={false} title={title} />

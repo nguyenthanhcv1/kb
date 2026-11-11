@@ -115,7 +115,8 @@ export function PageView({
               {t("updated", { date: format.dateTime(new Date(page.lastEditedAt), "dateTime") })}
             </p>
           </div>
-          {editable && <EditModeButton editing={editMode} onChange={setEditing} />}
+          {/* While editing, "Done" moves into the sticky edit toolbar (see `editActions`). */}
+          {editable && !editMode && <EditModeButton editing={false} onChange={setEditing} />}
           {canShare && !trashed && <SharePageButton page={page} />}
           {!trashed && <HistoryLink spaceSlug={spaceSlug} page={page} />}
           {editable && canManagePages && <PageActionsMenu page={page} />}
@@ -127,6 +128,7 @@ export function PageView({
           collab={editable ? collab : null}
           editing={editMode}
           historyHref={`${pageHref(spaceSlug, page)}/history`}
+          editActions={editMode && <EditModeButton editing onChange={setEditing} />}
         />
       </article>
       {/* Right column from `xl`: page properties while editing, then the table of contents. */}

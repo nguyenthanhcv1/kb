@@ -138,6 +138,15 @@ describe("SpaceNav", () => {
     expect(screen.queryByRole("button", { name: viSpace.create })).toBeNull();
   });
 
+  it("leaves the background highlight to the open page of the tree", () => {
+    pathname = "/s/design/p/huong-dan-a1B2c3D4";
+    renderWith(<SpaceNav spaces={[makeSpace()]} canCreate={false} />);
+    const link = screen.getByRole("link", { name: "Design" });
+    expect(link.getAttribute("aria-current")).toBe("location");
+    expect(link.className.split(" ")).not.toContain("bg-sidebar-accent");
+    expect(link.className).toContain("font-semibold");
+  });
+
   it.each([
     ["admin", true],
     ["editor", true],

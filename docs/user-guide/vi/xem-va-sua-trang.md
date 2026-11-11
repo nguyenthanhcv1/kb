@@ -19,7 +19,7 @@ Trang mới (chưa có nội dung) mở thẳng ở chế độ sửa.
 
 ## Thanh công cụ khi sửa
 
-Khi bấm **Sửa**, một thanh công cụ hiện phía trên nội dung: **Tiêu đề 1, 2, 3**, **In đậm**, **In nghiêng**, danh sách dấu chấm, khung ghi chú, khối mã, bảng và hình ảnh. Bấm lại nút của khối đang dùng để quay về đoạn văn. Nút **Bảng** tắt khi con trỏ đang ở trong một bảng. Menu nổi khi bôi đen chữ và phím `/` vẫn dùng được như trước.
+Khi bấm **Sửa**, một thanh công cụ hiện phía trên nội dung: **Hoàn tác** / **Làm lại**, **Tiêu đề 1, 2, 3**, **In đậm**, **In nghiêng**, **Liên kết**, danh sách dấu chấm, danh sách đánh số, khung ghi chú, khối mã, bảng và hình ảnh. Rê chuột lên một nút để xem phím tắt của nó. Ở cuối thanh là trạng thái **Đã lưu** và nút **Xong**; thanh luôn bám ở đầu màn hình khi bạn cuộn, nên dù đang sửa ở giữa một trang dài bạn vẫn thấy nội dung đã lưu chưa. Nút **Liên kết** dùng được khi bạn đã bôi đen chữ (hoặc con trỏ đang ở trong một liên kết). Bấm lại nút của khối đang dùng để quay về đoạn văn. Nút **Bảng** tắt khi con trỏ đang ở trong một bảng. Menu nổi khi bôi đen chữ và phím `/` vẫn dùng được như trước.
 
 Trên màn hình rộng, thẻ **Thuộc tính trang** ở cột bên phải cho biết Không gian, trang cha và lần cập nhật cuối (chỉ để xem; muốn chuyển trang, kéo trang trong thanh bên).
 

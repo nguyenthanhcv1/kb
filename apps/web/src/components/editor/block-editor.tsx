@@ -24,7 +24,7 @@ import {
 import type { AnyExtension, Editor, JSONContent } from "@tiptap/core";
 import { EditorContent, useEditor } from "@tiptap/react";
 import { useTranslations } from "next-intl";
-import { useEffect, useRef, useState } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 
 import { cn } from "@/components/ui/utils";
 import { createAttachmentUpload } from "@/server/attachments/actions";
@@ -62,6 +62,8 @@ export type BlockEditorProps = {
   title?: string;
   /** Page the editor belongs to: enables uploading images and files (drag & drop, paste). */
   pageId?: string;
+  /** Extra content at the right end of the edit toolbar (see `EditorToolbar`'s `end`). */
+  toolbarEnd?: ReactNode;
   className?: string;
 };
 
@@ -87,6 +89,7 @@ export function BlockEditor({
   extensionOptions,
   title,
   pageId,
+  toolbarEnd,
   className,
 }: BlockEditorProps) {
   const t = useTranslations("editor");
@@ -293,6 +296,8 @@ export function BlockEditor({
       {editor && editable && (
         <EditorToolbar
           editor={editor}
+          end={toolbarEnd}
+          onLink={() => setLinkRequested(true)}
           onImage={() => {
             const image = SLASH_ITEMS.find((item) => item.id === "image");
             if (image) setPendingImage(image);

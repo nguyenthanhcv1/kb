@@ -36,6 +36,8 @@
     "closeSidebar": "Đóng thanh bên",
     "mainNavigation": "Điều hướng chính",
     "openSidebar": "Mở thanh bên",
+    "resizeSidebar": "Đổi độ rộng thanh bên",
+    "resizeSidebarHint": "Kéo để đổi độ rộng · nháy đúp để về mặc định",
     "sidebarEmpty": "Chưa có không gian nào.",
     "skipToContent": "Bỏ qua, tới nội dung chính",
     "version": "v{version}",
