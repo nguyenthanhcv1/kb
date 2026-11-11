@@ -1,6 +1,8 @@
+import { cookies } from "next/headers";
 import type { ReactNode } from "react";
 
 import { AppShell } from "@/components/layout/app-shell";
+import { parseSidebarWidth, SIDEBAR_WIDTH_COOKIE } from "@/components/layout/sidebar-width";
 import { canCreateSpace } from "@/components/space/permissions";
 import { SharedPagesNav } from "@/components/space/shared-pages-nav";
 import { SpaceNav } from "@/components/space/space-nav";
@@ -14,11 +16,16 @@ import { loadSharedPages, loadSpaces, requireUser } from "./_lib/data";
  */
 export default async function AppLayout({ children }: { children: ReactNode }) {
   const user = await requireUser();
-  const [spaces, sharedPages] = await Promise.all([loadSpaces(), loadSharedPages()]);
+  const [spaces, sharedPages, cookieStore] = await Promise.all([
+    loadSpaces(),
+    loadSharedPages(),
+    cookies(),
+  ]);
   return (
     <AppShell
       user={user}
       version={appInfo().version}
+      sidebarWidth={parseSidebarWidth(cookieStore.get(SIDEBAR_WIDTH_COOKIE)?.value)}
       sidebar={
         <div className="flex flex-col gap-4">
           <SpaceNav spaces={spaces} canCreate={canCreateSpace(user)} />

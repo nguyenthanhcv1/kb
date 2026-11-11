@@ -191,6 +191,7 @@ const RowBody = memo(function RowBody({
           onKeyDown={(event) => handlers.onKeyDown(event, item.id)}
           onFocus={() => handlers.onFocus(item.id)}
           onClick={handlers.onClick}
+          onPointerEnter={showTitleIfTruncated}
           className="flex h-7 min-w-0 flex-1 items-center gap-1.5 rounded-sm px-1 outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
         >
           {node.icon ? (
@@ -200,7 +201,9 @@ const RowBody = memo(function RowBody({
           ) : (
             <FileTextIcon aria-hidden className="size-4 shrink-0 text-muted-foreground" />
           )}
-          <span className={cn("truncate", !node.title && "text-muted-foreground")}>{title}</span>
+          <span data-tree-title className={cn("truncate", !node.title && "text-muted-foreground")}>
+            {title}
+          </span>
         </Link>
       )}
 
@@ -252,6 +255,18 @@ const RowBody = memo(function RowBody({
     </>
   );
 }, sameProps);
+
+/**
+ * Long titles are cut with an ellipsis: on hover, show the full title as a native tooltip — only
+ * when it is actually cut, so short titles get no redundant tooltip.
+ */
+function showTitleIfTruncated(event: MouseEvent<HTMLElement>) {
+  const link = event.currentTarget;
+  const label = link.querySelector<HTMLElement>("[data-tree-title]");
+  if (!label) return;
+  if (label.scrollWidth > label.clientWidth) link.title = label.textContent ?? "";
+  else link.removeAttribute("title");
+}
 
 /** Inline title editor: Enter or blur saves, Escape cancels (`onDone(null)`). */
 function RenameInput({
