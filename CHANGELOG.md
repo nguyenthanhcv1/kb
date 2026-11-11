@@ -14,6 +14,23 @@
 * **editor:** keep the save status and Done in the sticky toolbar and align tables with the text ([#121](https://github.com/nguyenthanhcv1/kb/issues/121)) ([1c4d6ed](https://github.com/nguyenthanhcv1/kb/commit/1c4d6ed3dca2ab66560d53409e09284a407b63a7))
 * **web:** highlight only the open page in the sidebar and let people resize it ([#120](https://github.com/nguyenthanhcv1/kb/issues/120)) ([1e77592](https://github.com/nguyenthanhcv1/kb/commit/1e77592e94449dd577014b48700fec3f9154ab4a))
 
+<!-- vi-notes:start -->
+### Tiếng Việt
+
+#### Thêm
+
+- Kéo mép phải thanh bên để đổi độ rộng (nháy đúp để về mặc định); độ rộng được nhớ cho lần sau.
+- Thanh công cụ khi sửa có thêm nút **Hoàn tác / Làm lại**, **Liên kết** và **Danh sách đánh số**; rê chuột lên nút để xem phím tắt.
+- Khi đọc trang dài, tên trang và nút **Sửa** bám ở đầu màn hình sau khi cuộn qua phần đầu trang — sửa ngay tại chỗ mà không phải cuộn ngược lên.
+
+#### Sửa lỗi
+
+- Thanh bên chỉ tô sáng trang đang mở, không còn tô cùng lúc cả không gian lẫn trang.
+- Rê chuột lên tên trang bị cắt trong cây trang để xem đầy đủ tên.
+- Khi sửa trang dài, trạng thái lưu và nút **Xong** nằm trên thanh công cụ luôn bám ở đầu màn hình, không còn bị trôi mất khi cuộn.
+- Bảng trong chế độ sửa thẳng mép với chữ và không còn xê dịch khi chuyển giữa xem và sửa.
+<!-- vi-notes:end -->
+
 ## [1.2.0](https://github.com/nguyenthanhcv1/kb/compare/v1.1.0...v1.2.0) (2026-10-14)
 
 
