@@ -4,7 +4,7 @@ Trang luôn mở ở **chế độ xem**: bạn đọc nội dung mà không lo 
 
 ## Sửa trang
 
-1. Bấm **Sửa** ở góc trên bên phải trang (chỉ hiện khi bạn có quyền sửa trong Không gian).
+1. Bấm **Sửa** ở góc trên bên phải trang (chỉ hiện khi bạn có quyền sửa trong Không gian). Đang đọc ở giữa một trang dài? Khi cuộn qua phần đầu trang, một thanh nhỏ ghi tên trang kèm nút **Sửa** bám ở trên cùng — bấm **Sửa** để sửa ngay tại chỗ, hoặc bấm tên trang để lên đầu trang.
 2. Tiêu đề, biểu tượng và nội dung trở thành sửa được; con trỏ đặt sẵn trong nội dung.
 3. Mọi thay đổi được **lưu tự động** khi bạn gõ — dòng trạng thái **Đang lưu… / Đã lưu** cho biết tiến độ. Người khác đang mở trang thấy thay đổi ngay.
 4. Bấm **Xong** để quay lại chế độ xem.

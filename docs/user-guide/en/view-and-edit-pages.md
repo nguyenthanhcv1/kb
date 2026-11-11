@@ -4,7 +4,7 @@ Pages always open in **view mode**: you read the content without typing into it 
 
 ## Edit a page
 
-1. Click **Edit** at the top right of the page (shown only when you can edit in the Space).
+1. Click **Edit** at the top right of the page (shown only when you can edit in the Space). Reading in the middle of a long page? Once you scroll past the top of the page, a small bar with the page title and an **Edit** button stays at the top — click **Edit** to edit right where you are, or click the title to go back to the top.
 2. The title, icon and content become editable; the cursor is placed in the content.
 3. Every change is **saved automatically** as you type — the **Saving… / Saved** status shows progress. Others who have the page open see your changes at once.
 4. Click **Done** to go back to view mode.

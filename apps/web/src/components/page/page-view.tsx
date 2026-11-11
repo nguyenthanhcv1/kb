@@ -19,6 +19,7 @@ import { PageActionsMenu } from "./page-actions-menu";
 import { isEmptyDocument, PageContent } from "./page-content";
 import { PageIconPicker } from "./page-icon-picker";
 import { PageProperties } from "./page-properties";
+import { PageStickyHeader, useScrolledPast } from "./page-sticky-header";
 import { PageToc } from "./page-toc";
 import { PageTitle } from "./page-title";
 import { SharePageButton } from "./share-page-dialog";
@@ -66,11 +67,16 @@ export function PageView({
   const tToc = useTranslations("tree.page.toc");
   const format = useFormatter();
   const rootRef = useRef<HTMLDivElement>(null);
+  const headerRef = useRef<HTMLElement>(null);
+  const tTree = useTranslations("tree");
   const router = useRouter();
   const trashed = page.deletedAt !== null;
   const editable = canEdit && !trashed;
   const [editing, setEditing] = useState(() => isEmptyDocument(content));
   const editMode = editable && editing;
+  // While reading, a compact title bar with "Edit" sticks once the header has scrolled away
+  // (while editing, the sticky edit toolbar takes that role).
+  const scrolledPast = useScrolledPast(headerRef, !editMode);
 
   function onRenamed(renamed: PageSummary) {
     if (renamed.slug !== page.slug) router.replace(pageHref(spaceSlug, renamed), { scroll: false });
@@ -94,7 +100,13 @@ export function PageView({
         {trashed && (
           <TrashedPageNotice page={page} spaceSlug={spaceSlug} canRestore={canManagePages} />
         )}
-        <header className="flex items-start gap-2">
+        <PageStickyHeader
+          visible={scrolledPast && !editMode}
+          icon={page.icon}
+          title={page.title || tTree("untitled")}
+          actions={editable && <EditModeButton editing={false} onChange={setEditing} />}
+        />
+        <header ref={headerRef} className="flex items-start gap-2">
           {/* `md:pl-8`: aligned with the editor content, whose gutter holds the block handle. */}
           <div className="flex min-w-0 flex-1 flex-col gap-2 md:pl-8">
             <PageIconPicker page={page} editable={editMode} onChanged={() => router.refresh()} />
