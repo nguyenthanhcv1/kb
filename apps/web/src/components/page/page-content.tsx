@@ -2,6 +2,7 @@
 
 import type { JSONContent } from "@tiptap/core";
 import { useTranslations } from "next-intl";
+import type { ReactNode } from "react";
 
 import { BlockEditor } from "@/components/editor/block-editor";
 import { CollabEditor } from "@/components/editor/CollabEditor";
@@ -25,6 +26,7 @@ export function PageContent({
   collab = null,
   editing = false,
   historyHref,
+  editActions,
 }: {
   content: JSONContent | null;
   title: string;
@@ -35,6 +37,8 @@ export function PageContent({
   editing?: boolean;
   /** History route of the page, linked from the "content was restored" toast. */
   historyHref?: string;
+  /** "Done" button while editing: shown next to the save status, in the sticky edit toolbar. */
+  editActions?: ReactNode;
 }) {
   const t = useTranslations("tree.page.content");
   if (collab && pageId) {
@@ -46,11 +50,23 @@ export function PageContent({
         title={title}
         editing={editing}
         historyHref={historyHref}
+        editActions={editActions}
       />
     );
   }
+  const actions = editing && editActions && <div className="flex justify-end">{editActions}</div>;
   if (!content || isEmptyDocument(content)) {
-    return <p className="text-muted-foreground md:pl-8">{t("empty")}</p>;
+    return (
+      <>
+        {actions}
+        <p className="text-muted-foreground md:pl-8">{t("empty")}</p>
+      </>
+    );
   }
-  return <BlockEditor content={content} editable={false} title={title} />;
+  return (
+    <>
+      {actions}
+      <BlockEditor content={content} editable={false} title={title} />
+    </>
+  );
 }

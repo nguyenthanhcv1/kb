@@ -35,10 +35,16 @@ const BLOCKS: { id: string; active: (e: Editor) => boolean }[] = [
 export function EditorToolbar({
   editor,
   onImage,
+  end,
 }: {
   editor: Editor;
   /** Opens the image dialog (the image item needs a URL first). */
   onImage: () => void;
+  /**
+   * Shown at the right end of the bar (the save status and "Done" of a page): the bar sticks
+   * under the top bar, so they stay in reach however far the page is scrolled.
+   */
+  end?: ReactNode;
 }) {
   const t = useTranslations("editor");
   const text = useBlockText();
@@ -106,6 +112,7 @@ export function EditorToolbar({
         icon={BLOCK_ICONS.image}
         onClick={onImage}
       />
+      {end && <div className="ml-auto flex items-center gap-2 pl-2">{end}</div>}
     </div>
   );
 }

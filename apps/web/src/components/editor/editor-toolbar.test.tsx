@@ -6,13 +6,14 @@ import { Editor } from "@tiptap/core";
 import { act, cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { NextIntlClientProvider } from "next-intl";
+import type { ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { EditorToolbar } from "./editor-toolbar";
 
 const editors: Editor[] = [];
 
-async function setup(content: string, locale: "vi" | "en" = "vi") {
+async function setup(content: string, locale: "vi" | "en" = "vi", end?: ReactNode) {
   const element = document.createElement("div");
   document.body.append(element);
   const editor = new Editor({ element, extensions: createExtensions(), content });
@@ -24,7 +25,7 @@ async function setup(content: string, locale: "vi" | "en" = "vi") {
       locale={locale}
       messages={{ editor: locale === "vi" ? viEditor : enEditor }}
     >
-      <EditorToolbar editor={editor} onImage={onImage} />
+      <EditorToolbar editor={editor} onImage={onImage} end={end} />
     </NextIntlClientProvider>,
   );
   return { editor, onImage };
@@ -55,6 +56,20 @@ describe("EditorToolbar", () => {
       enEditor.slash.items.table.title,
       enEditor.slash.items.image.title,
     ]);
+  });
+
+  it("keeps the page controls (save status, Done) at its end", async () => {
+    await setup(
+      "<p>Xin chào</p>",
+      "en",
+      <>
+        <p role="status">Saved</p>
+        <button type="button">Done</button>
+      </>,
+    );
+    const toolbar = screen.getByRole("toolbar", { name: enEditor.toolbar.label });
+    expect(toolbar.querySelector("[role=status]")?.textContent).toBe("Saved");
+    expect(Array.from(toolbar.querySelectorAll("button")).at(-1)?.textContent).toBe("Done");
   });
 
   it("turns the block into a heading and back to a paragraph", async () => {
