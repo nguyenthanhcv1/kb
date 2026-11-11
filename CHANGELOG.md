@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.3.0](https://github.com/nguyenthanhcv1/kb/compare/v1.2.0...v1.3.0) (2026-11-11)
+
+
+### Added
+
+* **editor:** add undo, redo, link and numbered list buttons to the edit toolbar ([#122](https://github.com/nguyenthanhcv1/kb/issues/122)) ([66e6650](https://github.com/nguyenthanhcv1/kb/commit/66e6650d8d66587cf22b77e840d6a2527e169096))
+* **web:** keep the page title and Edit button in reach while scrolling a long page ([#123](https://github.com/nguyenthanhcv1/kb/issues/123)) ([c6f6e27](https://github.com/nguyenthanhcv1/kb/commit/c6f6e270ced75724a5ccccff28fbf0ee314a1a25))
+
+
+### Fixed
+
+* **editor:** keep the save status and Done in the sticky toolbar and align tables with the text ([#121](https://github.com/nguyenthanhcv1/kb/issues/121)) ([1c4d6ed](https://github.com/nguyenthanhcv1/kb/commit/1c4d6ed3dca2ab66560d53409e09284a407b63a7))
+* **web:** highlight only the open page in the sidebar and let people resize it ([#120](https://github.com/nguyenthanhcv1/kb/issues/120)) ([1e77592](https://github.com/nguyenthanhcv1/kb/commit/1e77592e94449dd577014b48700fec3f9154ab4a))
+
 ## [1.2.0](https://github.com/nguyenthanhcv1/kb/compare/v1.1.0...v1.2.0) (2026-10-14)
 
 
