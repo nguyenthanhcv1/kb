@@ -19,7 +19,7 @@ A new page (no content yet) opens in edit mode.
 
 ## The toolbar while editing
 
-When you click **Edit**, a toolbar appears above the content: **Heading 1, 2, 3**, **Bold**, **Italic**, bulleted list, callout, code block, table and image. Click the button of the current block again to go back to a paragraph. The **Table** button is off while the cursor is inside a table. The floating menu over selected text and the `/` key work as before.
+When you click **Edit**, a toolbar appears above the content: **Heading 1, 2, 3**, **Bold**, **Italic**, bulleted list, callout, code block, table and image. At its end are the **Saved** status and the **Done** button; the toolbar stays at the top of the screen as you scroll, so even in the middle of a long page you can see whether your changes are saved. Click the button of the current block again to go back to a paragraph. The **Table** button is off while the cursor is inside a table. The floating menu over selected text and the `/` key work as before.
 
 On wide screens, the **Page properties** card in the right column shows the Space, the parent page and the last update (read-only; to move a page, drag it in the sidebar).
 

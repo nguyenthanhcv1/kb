@@ -212,9 +212,13 @@
       @apply opacity-100;
     }
   }
-  /* Room for the row handles that stick out on the left. */
+  /*
+   * Room for the row/column handles that stick out on the left/top. The padding is taken back with
+   * negative margins so the table keeps the same left edge (aligned with the text) and the same
+   * top as in reading mode — it does not shift when switching to editing.
+   */
   & .tableWrapper:has(.kb-table-handle) {
-    @apply pt-3 pl-3;
+    @apply mt-1 -ml-3 max-w-[calc(100%+0.75rem)] pt-3 pl-3;
   }
   & .kb-table-dragging {
     cursor: grabbing;

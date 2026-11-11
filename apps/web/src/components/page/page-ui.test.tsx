@@ -35,8 +35,11 @@ vi.mock("@/components/editor/block-editor", () => ({
   BlockEditor: () => <div data-testid="block-editor" />,
 }));
 vi.mock("@/components/editor/CollabEditor", () => ({
-  CollabEditor: ({ editing }: { editing: boolean }) => (
-    <div data-testid="collab-editor" data-editing={String(editing)} />
+  // "Done" is rendered by the editor (in its sticky toolbar) while editing.
+  CollabEditor: ({ editing, editActions }: { editing: boolean; editActions?: ReactNode }) => (
+    <div data-testid="collab-editor" data-editing={String(editing)}>
+      {editing && editActions}
+    </div>
   ),
 }));
 
