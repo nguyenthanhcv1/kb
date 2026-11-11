@@ -25,7 +25,9 @@ env:
 jobs:
   run:
     name: e2e (${{ matrix.locale }})
-    runs-on: ubuntu-latest
+    # Pinned: Playwright 1.56 cannot install Chromium on ubuntu-latest (26.04). Move back to
+    # ubuntu-latest once @playwright/test supports it.
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     strategy:
       fail-fast: false

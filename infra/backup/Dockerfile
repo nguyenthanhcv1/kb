@@ -15,7 +15,7 @@ FROM ${PG_IMAGE}
 ARG APP_VERSION=0.0.0-dev
 ARG GIT_SHA=unknown
 
-RUN apk add --no-cache bash curl ca-certificates tzdata 'age~1.3' 'rclone~1.74' 'supercronic~0.2' \
+RUN apk add --no-cache bash curl ca-certificates tzdata 'age~1.3' 'rclone~1.75' 'supercronic~0.2' \
  && pg_dump --version && age --version && rclone version && supercronic -version
 
 LABEL org.opencontainers.image.title="kb-backup" \
