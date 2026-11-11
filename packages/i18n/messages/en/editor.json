@@ -223,7 +223,9 @@
     "label": "Insert block"
   },
   "toolbar": {
-    "label": "Formatting toolbar"
+    "label": "Formatting toolbar",
+    "linkHint": "Select some text to add a link",
+    "withShortcut": "{label} ({keys})"
   },
   "upload": {
     "dismiss": "Dismiss",
