@@ -5,6 +5,11 @@ import { getLocale, getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
 
 import { Providers } from "@/components/layout/providers";
+import { supabaseAnonKey, supabaseUrl } from "@/lib/supabase/env";
+import {
+  type PublicSupabaseConfig,
+  publicSupabaseConfigScript,
+} from "@/lib/supabase/public-config";
 
 import "./globals.css";
 
@@ -37,12 +42,29 @@ export const viewport: Viewport = {
   ],
 };
 
+/**
+ * Read at request time (dynamic `process.env` lookups in `env.ts`), not inlined at build: the
+ * Docker image only gets these variables when the container starts.
+ */
+function runtimeSupabaseConfig(): PublicSupabaseConfig | null {
+  try {
+    return { url: supabaseUrl(), anonKey: supabaseAnonKey() };
+  } catch {
+    return null;
+  }
+}
+
 export default async function RootLayout({ children }: { children: ReactNode }) {
   const locale = await getLocale();
+  const supabase = runtimeSupabaseConfig();
   return (
     // next-themes sets the `dark` class on <html> before hydration.
     <html lang={locale} className={`${sans.variable} ${mono.variable}`} suppressHydrationWarning>
       <body>
+        {supabase ? (
+          // Runs before hydration, so browser Supabase clients (uploads, realtime) see it.
+          <script dangerouslySetInnerHTML={{ __html: publicSupabaseConfigScript(supabase) }} />
+        ) : null}
         {/* Inherits locale, time zone, now, formats and messages from src/i18n/request.ts. */}
         <NextIntlClientProvider>
           <Providers>{children}</Providers>
